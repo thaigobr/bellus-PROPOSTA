@@ -10,7 +10,7 @@ function Card({ t }: { t: Testimonial }) {
       <span className="font-serif text-5xl leading-none text-gold-soft" aria-hidden>
         “
       </span>
-      <blockquote className="mt-2 flex-1 font-serif text-lg leading-relaxed text-ink">
+      <blockquote className="mt-2 flex-1 text-lg leading-relaxed text-ink">
         {quotePending ? (
           <span className="text-ink-soft">
             Depoimento real a incluir <PendingMark note={(t.quote as { note: string }).note} />

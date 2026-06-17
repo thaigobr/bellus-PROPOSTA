@@ -48,7 +48,7 @@ export function OrderSummary({
   return (
     <div className="rounded-xl2 border border-line bg-bg p-6 shadow-soft">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-serif text-xl text-ink">Sua contratação</h3>
+        <h3 className="text-lg font-semibold text-ink">Sua contratação</h3>
         <span className="text-xs uppercase tracking-wide text-ink-soft">
           {proposal.event.type} · {formatDateShort(proposal.event.date)}
         </span>
@@ -100,7 +100,7 @@ export function OrderSummary({
 
           <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
             <span className="font-medium text-ink">Total</span>
-            <span className="font-serif text-2xl tabular-nums text-ink">
+            <span className="text-2xl font-semibold tabular-nums text-ink">
               {formatBRL(breakdown.total)}
             </span>
           </div>

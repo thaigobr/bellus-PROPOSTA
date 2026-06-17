@@ -14,7 +14,7 @@ export function MethodSection({ steps }: { steps: ProcessStep[] }) {
         {steps.map((step, i) => (
           <article key={step.title}>
             <span className="font-serif text-5xl text-gold-soft">0{i + 1}</span>
-            <h3 className="mt-4 font-serif text-2xl text-ink">{step.title}</h3>
+            <h3 className="mt-4 text-xl font-medium text-ink">{step.title}</h3>
             <p className="mt-3 leading-relaxed text-ink-soft">{step.description}</p>
           </article>
         ))}

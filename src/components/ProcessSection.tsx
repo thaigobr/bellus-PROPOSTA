@@ -21,7 +21,7 @@ export function ProcessSection({ steps }: { steps: ProcessStep[] }) {
               )}
             </div>
             <div className="pb-2">
-              <h3 className="font-serif text-lg text-ink">{step.title}</h3>
+              <h3 className="text-lg font-medium text-ink">{step.title}</h3>
               <p className="mt-1.5 text-[0.95rem] leading-relaxed text-ink-soft">
                 {step.description}
               </p>

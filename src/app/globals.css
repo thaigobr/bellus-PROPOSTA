@@ -47,13 +47,20 @@
     border-radius: 2px;
   }
 
+  /* Por padrão, títulos usam Montserrat (legível em qualquer tamanho).
+     A serifa Cormorant é aplicada só onde é grande, via `font-serif`. */
   h1,
   h2,
   h3 {
-    font-family: var(--font-serif), Georgia, serif;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    line-height: 1.06;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 1.2;
+  }
+
+  /* Ajuste de display para a serifa quando usada em tamanho grande. */
+  .font-serif {
+    letter-spacing: -0.015em;
   }
 }
 

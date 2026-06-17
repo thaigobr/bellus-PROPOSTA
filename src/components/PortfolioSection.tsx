@@ -67,7 +67,7 @@ function PortfolioTile({
         )}
       </div>
       <figcaption className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-10">
-        <h3 className="font-serif text-lg text-cream">{item.title}</h3>
+        <h3 className="text-lg font-medium text-cream">{item.title}</h3>
         {item.proves && <p className="mt-1 text-sm text-cream/65">{item.proves}</p>}
       </figcaption>
     </figure>

@@ -43,7 +43,7 @@ export function EventSummary({ proposal }: { proposal: Proposal }) {
               <dt className="w-28 shrink-0 text-sm uppercase tracking-wide text-ink-soft">
                 {r.label}
               </dt>
-              <dd className="font-serif text-lg text-ink">{r.value}</dd>
+              <dd className="text-lg font-medium text-ink">{r.value}</dd>
             </div>
           ))}
           {event.notes && (
@@ -57,7 +57,7 @@ export function EventSummary({ proposal }: { proposal: Proposal }) {
         <div className="flex flex-col gap-6">
           {meta.personalMessage && (
             <figure className="rounded-xl2 border border-line bg-ivory p-6 sm:p-7">
-              <blockquote className="font-serif text-xl leading-relaxed text-ink">
+              <blockquote className="text-xl leading-relaxed text-ink">
                 “{meta.personalMessage}”
               </blockquote>
               <figcaption className="mt-4 text-sm text-ink-soft">

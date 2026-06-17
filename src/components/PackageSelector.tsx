@@ -42,7 +42,7 @@ function PackageCard({
       )}
 
       <div className="mb-5">
-        <h3 className="font-serif text-2xl text-ink">{pkg.name}</h3>
+        <h3 className="text-2xl font-medium tracking-tight text-ink">{pkg.name}</h3>
         <p className="mt-1.5 text-[0.95rem] leading-snug text-ink-soft">{pkg.positioning}</p>
       </div>
 

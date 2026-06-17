@@ -66,7 +66,7 @@ function AddonRow({
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline justify-between gap-x-3">
           <span className="font-medium text-ink">{addon.name}</span>
-          <span className="font-serif text-lg text-ink">+ {formatBRL(addon.price as number)}</span>
+          <span className="text-base font-semibold text-ink">+ {formatBRL(addon.price as number)}</span>
         </span>
         <span className="mt-1 block text-sm text-ink-soft">{addon.description}</span>
         <span className="mt-0.5 block text-sm text-gold/90">{addon.benefit}</span>

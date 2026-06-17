@@ -66,7 +66,7 @@ export function PackageComparison({
                         isSel ? 'bg-ink text-cream' : 'text-ink hover:bg-ivory'
                       }`}
                     >
-                      <span className="font-serif text-base sm:text-lg">{p.name}</span>
+                      <span className="text-sm font-semibold sm:text-base">{p.name}</span>
                       {p.id === recommendedId && (
                         <span
                           className={`text-[0.62rem] font-semibold uppercase tracking-wider ${

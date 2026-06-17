@@ -42,7 +42,7 @@ export function PaymentSelector({
 }) {
   return (
     <div>
-      <h3 className="font-serif text-2xl text-ink">Como você prefere pagar</h3>
+      <h3 className="text-xl font-medium text-ink">Como você prefere pagar</h3>
       <p className="mt-2 text-ink-soft">Escolha a condição que faz mais sentido para vocês.</p>
 
       <div className="mt-6 grid gap-3" role="radiogroup" aria-label="Condição de pagamento">

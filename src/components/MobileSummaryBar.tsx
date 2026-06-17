@@ -29,7 +29,7 @@ export function MobileSummaryBar({
           <p className="truncate text-xs text-ink-soft">
             {selectedPackage ? `Experiência ${selectedPackage.name}` : 'Sua experiência'}
           </p>
-          <p className="font-serif text-xl leading-tight text-ink">{totalLabel}</p>
+          <p className="text-xl font-semibold leading-tight text-ink">{totalLabel}</p>
         </div>
         <a href="#contratacao" className="btn-primary shrink-0 px-5 py-2.5">
           Continuar
