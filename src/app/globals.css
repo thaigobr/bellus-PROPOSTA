@@ -2,20 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Tokens da identidade Bellus (fonte única) ───────────────────────────── */
+/* ── Tokens da identidade Bellus (espelhando noivadossonhos.com.br) ───────── */
 :root {
-  --bg: #fbfaf8;
-  --ivory: #f4f0e9;
-  --cream: #fbf7f0;
-  --ink: #1a1714;
-  --ink-soft: #5a524a;
-  --charcoal: #14110f;
-  --charcoal-soft: #211c18;
-  --gold: #a16207; /* acento acessível (texto/CTA) */
-  --gold-soft: #c7a26b; /* dourado decorativo (filetes, ornamentos) */
-  --line: #e6dfd4;
-  --line-dark: rgba(244, 240, 233, 0.14);
+  --bg: #f9f8f6; /* fundo marfim */
+  --ivory: #f0ece6; /* painel creme */
+  --cream: #f4f1eb;
+  --ink: #1a1a1a; /* texto quase-preto */
+  --ink-soft: #7e7367; /* taupe quente (secundário) */
+  --charcoal: #141414; /* seções escuras */
+  --charcoal-soft: #262626;
+  --gold: #8f734d; /* bronze fosco — acento da marca */
+  --gold-2: #b49764; /* fim do gradiente dourado */
+  --gold-soft: #caaa72; /* dourado claro decorativo */
+  --line: #e0dad1; /* filete/borda bege */
+  --line-dark: rgba(249, 248, 246, 0.14);
 
+  --gold-grad: linear-gradient(135deg, var(--gold), var(--gold-2));
   --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
@@ -49,9 +51,9 @@
   h2,
   h3 {
     font-family: var(--font-serif), Georgia, serif;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 1.08;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.06;
   }
 }
 
@@ -83,38 +85,41 @@
     }
   }
 
-  /* Filete fino dourado decorativo. */
+  /* Filete fino com gradiente dourado (assinatura da marca). */
   .hairline {
     height: 1px;
-    width: 3rem;
-    background: var(--gold-soft);
+    width: 3.5rem;
+    background: linear-gradient(90deg, var(--gold), var(--gold-soft), var(--gold));
   }
 
-  /* Botão primário — uma única CTA dominante por tela. */
+  /* Botão primário — gradiente dourado, cantos suaves (4px), letter-spacing. */
   .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 3rem;
-    padding: 0.875rem 1.5rem;
-    background: var(--gold);
+    min-height: 3.25rem;
+    padding: 1rem 2.5rem;
+    background: var(--gold-grad);
     color: #fff;
-    font-weight: 600;
-    border-radius: 999px;
-    transition: transform 0.2s var(--ease-soft), background-color 0.2s var(--ease-soft),
-      box-shadow 0.2s var(--ease-soft);
+    font-weight: 500;
+    letter-spacing: 0.45px;
+    border-radius: 4px;
+    transition: filter 0.25s var(--ease-soft), transform 0.2s var(--ease-soft),
+      box-shadow 0.25s var(--ease-soft);
   }
   .btn-primary:hover {
-    background: #8a5306;
-    box-shadow: 0 10px 30px -12px rgba(161, 98, 7, 0.6);
+    filter: brightness(0.95);
+    box-shadow: 0 14px 34px -16px rgba(143, 115, 77, 0.7);
   }
   .btn-primary:active {
-    transform: scale(0.985);
+    transform: scale(0.99);
   }
   .btn-primary:disabled {
-    background: #cdbfa3;
+    background: #cfc6b6;
+    color: #fff;
     cursor: not-allowed;
+    filter: none;
     box-shadow: none;
   }
 
@@ -124,18 +129,19 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 3rem;
-    padding: 0.875rem 1.5rem;
+    min-height: 3.25rem;
+    padding: 1rem 2rem;
     border: 1px solid var(--line);
     color: var(--ink);
     background: transparent;
-    border-radius: 999px;
+    border-radius: 4px;
     font-weight: 500;
-    transition: border-color 0.2s var(--ease-soft), background-color 0.2s var(--ease-soft);
+    letter-spacing: 0.3px;
+    transition: border-color 0.2s var(--ease-soft), color 0.2s var(--ease-soft);
   }
   .btn-ghost:hover {
-    border-color: var(--ink-soft);
-    background: rgba(0, 0, 0, 0.02);
+    border-color: var(--gold);
+    color: var(--gold);
   }
 
   /* Textura de grão sutil para seções cinematográficas escuras. */

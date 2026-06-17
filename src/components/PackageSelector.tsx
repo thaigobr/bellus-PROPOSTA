@@ -81,7 +81,7 @@ function PackageCard({
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
-        className={`mt-auto min-h-12 rounded-full px-5 py-3 font-semibold transition-colors ${
+        className={`mt-auto min-h-12 rounded px-5 py-3 font-medium tracking-wide transition-colors ${
           selected
             ? 'bg-ink text-cream'
             : 'border border-ink text-ink hover:bg-ink hover:text-cream'

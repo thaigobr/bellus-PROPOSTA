@@ -5,7 +5,7 @@ export function ValueSection({ manifesto }: { manifesto: Manifesto }) {
   return (
     <Section id="o-valor" eyebrow="Por que registrar">
       <div className="max-w-3xl">
-        <p className="text-balance font-serif text-4xl leading-[1.05] text-ink sm:text-5xl">
+        <p className="text-balance font-serif text-4xl font-light leading-[1.05] text-ink sm:text-5xl">
           {manifesto.lead}
         </p>
 

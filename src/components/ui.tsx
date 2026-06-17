@@ -40,7 +40,7 @@ export function Section({ id, eyebrow, title, intro, dark, className = '', child
             {eyebrow && <Eyebrow light={dark}>{eyebrow}</Eyebrow>}
             {title && (
               <h2
-                className={`mt-4 text-balance text-3xl sm:text-4xl ${
+                className={`mt-4 text-balance text-3xl font-light sm:text-[2.6rem] sm:leading-[1.08] ${
                   dark ? 'text-cream' : 'text-ink'
                 }`}
               >

@@ -105,7 +105,7 @@ export function PackageComparison({
       </div>
 
       <div className="mx-auto mt-12 max-w-2xl text-center">
-        <p className="text-balance font-serif text-2xl leading-snug text-ink sm:text-3xl">
+        <p className="text-balance font-serif text-2xl font-light leading-snug text-ink sm:text-3xl">
           Agora vocês já entendem o que está em jogo.
         </p>
         <p className="mt-3 text-ink-soft">

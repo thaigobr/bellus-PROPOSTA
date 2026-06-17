@@ -49,7 +49,7 @@ export function ProposalHero({ proposal }: { proposal: Proposal }) {
         <div className="max-w-3xl animate-fade-up">
           <Eyebrow light>Proposta para</Eyebrow>
 
-          <h1 className="mt-5 text-balance font-serif text-5xl leading-[1.05] text-cream sm:text-7xl">
+          <h1 className="mt-5 text-balance font-serif text-6xl font-light leading-[1.02] text-cream sm:text-[5.5rem]">
             {coupleName(proposal)}
           </h1>
 

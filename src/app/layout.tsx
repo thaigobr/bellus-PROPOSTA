@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Montserrat, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 
-const serif = Playfair_Display({
+// Tipografia espelhando noivadossonhos.com.br: serifa leve + Montserrat.
+const serif = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600'],
   variable: '--font-serif',
   display: 'swap',
 })
 
-const sans = Inter({
+const sans = Montserrat({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600'],
   variable: '--font-sans',
   display: 'swap',
 })

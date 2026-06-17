@@ -34,12 +34,13 @@ const config: Config = {
         content: '72rem',
       },
       borderRadius: {
-        xl2: '1.25rem',
+        xl2: '0.5rem',
       },
       boxShadow: {
-        soft: '0 1px 2px rgba(26, 23, 20, 0.04), 0 8px 24px -12px rgba(26, 23, 20, 0.18)',
-        lift: '0 2px 4px rgba(26, 23, 20, 0.05), 0 20px 50px -24px rgba(26, 23, 20, 0.30)',
-        bar: '0 -8px 28px -18px rgba(26, 23, 20, 0.45)',
+        // Anel dourado 1px + sombra suave — assinatura de cartão do site referência.
+        soft: '0 0 0 1px rgba(143, 115, 77, 0.10), 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.05)',
+        lift: '0 0 0 1px rgba(143, 115, 77, 0.16), 0 25px 50px -12px rgba(0, 0, 0, 0.22)',
+        bar: '0 -8px 28px -18px rgba(20, 20, 20, 0.45)',
       },
       transitionTimingFunction: {
         soft: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
