@@ -43,6 +43,8 @@ export interface Package {
   differentiator?: string
   /** Ancoragem de valor real (ex.: combo que sai mais barato que separado). */
   valueNote?: string
+  /** Destaque curto da economia, exibido em badge (ex.: "Economize R$ 1.670"). */
+  valueHighlight?: string
 }
 
 /** toggle: liga/desliga. quantity: passos somáveis. bonus: cortesia (sem preço). */

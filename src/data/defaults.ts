@@ -69,7 +69,7 @@ export const DEFAULT_FAQ: FaqItem[] = [
   {
     question: 'Quantas horas de cobertura estão incluídas?',
     answer:
-      'As experiências completas incluem até 10 horas contínuas de cobertura, com 1 hora de tolerância. Tempo além disso é combinado à parte.',
+      'Dependendo da experiência contratada, a cobertura vai de 6 a 10 horas contínuas, com 1 hora de tolerância. A Cerimônia, por registrar apenas a cerimônia, não exige todo esse tempo.',
   },
   {
     question: 'Qual é o prazo de entrega?',
@@ -117,7 +117,7 @@ export const DEFAULT_FAQ: FaqItem[] = [
   {
     question: 'Precisamos dirigir alguma cena ou posar?',
     answer:
-      'Não. Nosso olhar é documental: registramos o que acontece de verdade, sem pedir poses ou repetições. Vocês só precisam viver o seu dia.',
+      'Nosso olhar é documental: registramos o que acontece de verdade, sem pedir poses ou repetições. Vocês só precisam viver o seu dia.',
   },
 ]
 
@@ -151,7 +151,7 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Filme de 8 minutos', highlight: true },
       { label: 'Trailer de até 2 minutos' },
       { label: 'Preparativos da noiva' },
-      { label: 'Cerimônia' },
+      { label: 'Cerimônia (trechos)' },
       { label: 'Festa' },
       { label: 'Prévia em até 15 dias' },
       { label: 'Entrega digital' },
@@ -170,7 +170,7 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Filme cinematográfico de até 15 minutos', highlight: true },
       { label: 'Trailer de até 2 minutos' },
       { label: 'Preparativos completos' },
-      { label: 'Cerimônia' },
+      { label: 'Cerimônia (trechos)' },
       { label: 'Festa' },
       { label: 'Captação aprofundada de detalhes e conexões espontâneas', highlight: true },
       { label: 'Drone quando possível' },
@@ -200,6 +200,7 @@ export const DEFAULT_PACKAGES: Package[] = [
     deliveryTime: '60 a 90 dias (máximo 150)',
     differentiator: 'Soma a cerimônia na íntegra ao Diamante.',
     valueNote: 'Separado: Diamante R$ 5.970 mais Cerimônia R$ 2.670 daria R$ 8.640. Na Aliança, vocês economizam R$ 1.670.',
+    valueHighlight: 'Economize R$ 1.670',
   },
 ]
 
@@ -208,7 +209,7 @@ export const DEFAULT_ADDONS: Addon[] = [
   {
     id: 'tempo-extra-filme',
     name: 'Tempo extra de filme',
-    description: 'Mais minutos de edição no seu filme. A cada 5 minutos a mais, R$ 900.',
+    description: 'Mais minutos de edição no seu filme.',
     benefit: 'Seu filme com mais momentos e mais respiro narrativo.',
     kind: 'quantity',
     unitPrice: 900,

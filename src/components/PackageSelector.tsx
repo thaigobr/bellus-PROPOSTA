@@ -52,9 +52,14 @@ function PackageCard({
       </div>
 
       {pkg.valueNote && (
-        <p className="mb-4 rounded-md border border-gold/20 bg-gold/5 p-2.5 text-xs leading-relaxed text-gold">
-          {pkg.valueNote}
-        </p>
+        <div className="mb-4 rounded-lg border border-gold/40 bg-gold/[0.10] p-3 shadow-soft">
+          {pkg.valueHighlight && (
+            <span className="mb-1.5 inline-block rounded-full bg-gold px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-white">
+              {pkg.valueHighlight}
+            </span>
+          )}
+          <p className="text-[0.8rem] leading-relaxed text-ink">{pkg.valueNote}</p>
+        </div>
       )}
 
       <p className="mb-4 text-sm text-ink-soft">

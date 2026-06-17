@@ -13,11 +13,11 @@ type Cell = boolean | string
 const FEATURES: { label: string; v: Record<string, Cell> }[] = [
   { label: 'Filme do dia', v: { cerimonia: false, rubi: '8 min', diamante: 'até 15 min', alianca: 'até 15 min' } },
   { label: 'Trailer', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
-  { label: 'Preparativos', v: { cerimonia: false, rubi: 'Noiva', diamante: 'Completos', alianca: 'Completos' } },
+  { label: 'Preparativos (opcional)', v: { cerimonia: false, rubi: 'Noiva', diamante: 'Noivos', alianca: 'Noivos' } },
   { label: 'Festa', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
   { label: 'Captação aprofundada + drone', v: { cerimonia: false, rubi: false, diamante: true, alianca: true } },
   { label: 'Cerimônia na íntegra (editada)', v: { cerimonia: true, rubi: false, diamante: false, alianca: true } },
-  { label: 'Prévia em 2 semanas', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
+  { label: 'Prévia em 15 dias', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
   {
     label: 'Entrega',
     v: { cerimonia: 'Digital', rubi: 'Digital', diamante: 'Pendrive + digital', alianca: 'Pendrive + digital' },
@@ -57,7 +57,7 @@ export function PackageComparison({
               {packages.map((p) => {
                 const isSel = p.id === selectedId
                 return (
-                  <th key={p.id} className="p-2 text-center sm:p-4">
+                  <th key={p.id} className="border-l border-line/60 p-2 text-center sm:p-4">
                     <button
                       type="button"
                       onClick={() => onSelect(p.id)}
@@ -84,14 +84,14 @@ export function PackageComparison({
           </thead>
           <tbody>
             {FEATURES.map((f, i) => (
-              <tr key={f.label} className={i % 2 ? 'bg-cream/50' : ''}>
+              <tr key={f.label} className={`border-b border-line/70 ${i % 2 ? 'bg-cream/40' : ''}`}>
                 <th scope="row" className="p-3 text-left text-sm font-normal text-ink sm:p-4">
                   {f.label}
                 </th>
                 {packages.map((p) => (
                   <td
                     key={p.id}
-                    className={`p-3 text-center sm:p-4 ${
+                    className={`border-l border-line/50 p-3 text-center sm:p-4 ${
                       p.id === selectedId ? 'bg-gold/[0.06]' : ''
                     }`}
                   >

@@ -52,9 +52,25 @@ export function CheckoutButton({
           className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--gold)]"
         />
         <span>
-          Li e concordo com os termos de contratação{' '}
-          <PendingMark note="link dos termos" /> e a política de privacidade{' '}
-          <PendingMark note="link da política" />.
+          Li e concordo com os{' '}
+          <a
+            href="/termos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-gold underline underline-offset-2"
+          >
+            termos de contratação
+          </a>{' '}
+          e a{' '}
+          <a
+            href="/privacidade"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-gold underline underline-offset-2"
+          >
+            política de privacidade
+          </a>
+          .
         </span>
       </label>
 
