@@ -79,7 +79,7 @@ export function CheckoutButton({
         </p>
       ) : linkMissing ? (
         <p className="mt-3 text-center text-sm text-ink-soft">
-          Link de pagamento <PendingMark note="configurar checkoutUrl da condição" /> — por
+          Link de pagamento <PendingMark note="configurar checkoutUrl da condição" />. Por
           enquanto,{' '}
           <a
             href={buildWhatsAppUrl({ proposal, packageName: selectedPackage?.name })}

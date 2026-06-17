@@ -19,7 +19,7 @@ export function generateMetadata({ params }: Params): Metadata {
       : proposal.client.name
     : 'Proposta'
   return {
-    title: `${couple} — Proposta Bellus`,
+    title: `${couple} · Proposta Bellus`,
     robots: { index: false, follow: false, nocache: true },
   }
 }

@@ -1,5 +1,6 @@
 import { Proposal, isPending } from '@/data/types'
 import { formatDateShort } from '@/lib/format'
+import { Instagram } from './icons'
 
 export function ProposalFooter({ proposal }: { proposal: Proposal }) {
   const expires = proposal.meta.expiresAt
@@ -9,22 +10,29 @@ export function ProposalFooter({ proposal }: { proposal: Proposal }) {
       <div className="container-content relative py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-serif text-2xl tracking-[0.2em] text-cream">BELLUS</p>
-            <p className="mt-2 max-w-xs text-sm text-cream/65">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_bellus.png" alt="Bellus Eventos" className="h-16 w-auto sm:h-20" />
+            <p className="mt-3 max-w-xs text-sm text-cream/65">
               Filmes que revelam o que você não viu.
             </p>
           </div>
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-cream/75">
-            <a href="https://belluseventos.com.br" target="_blank" rel="noopener noreferrer" className="hover:text-gold-soft">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-cream/75">
+            <a
+              href="https://belluseventos.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gold-soft"
+            >
               belluseventos.com.br
             </a>
             <a
               href="https://www.instagram.com/belluscasamentos/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-gold-soft"
+              aria-label="Instagram @belluscasamentos"
+              className="transition-colors hover:text-gold-soft"
             >
-              @belluscasamentos
+              <Instagram width={24} height={24} />
             </a>
           </div>
         </div>

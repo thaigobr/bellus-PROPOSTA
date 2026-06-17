@@ -45,13 +45,24 @@ export interface Package {
   valueNote?: string
 }
 
+/** toggle: liga/desliga. quantity: passos somáveis. bonus: cortesia (sem preço). */
+export type AddonKind = 'toggle' | 'quantity' | 'bonus'
+
 export interface Addon {
   id: string
   name: string
   description: string
   /** Benefício percebido, uma linha. */
   benefit: string
-  price: Price
+  kind?: AddonKind
+  /** Preço único (toggle). */
+  price?: Price
+  /** quantity: preço por passo (ex.: 900 a cada 5 min). */
+  unitPrice?: number
+  /** quantity: minutos por passo (ex.: 5). */
+  unitMinutes?: number
+  /** quantity: número máximo de passos. */
+  maxUnits?: number
   /** true => já vem marcado (raro; use com parcimônia). */
   defaultSelected?: boolean
 }
@@ -168,8 +179,6 @@ export interface Proposal {
   brand: {
     /** Manifesto emocional ("o dia passa, o filme fica"). */
     manifesto: Manifesto
-    /** Método criativo: Entender · Observar · Construir. */
-    method: ProcessStep[]
     portfolio: PortfolioItem[]
     /** Processo operacional (reserva, alinhamento, entrega). */
     process: ProcessStep[]

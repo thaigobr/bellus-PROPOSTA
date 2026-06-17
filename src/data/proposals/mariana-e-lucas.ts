@@ -3,7 +3,6 @@ import {
   DEFAULT_ADDONS,
   DEFAULT_FAQ,
   DEFAULT_MANIFESTO,
-  DEFAULT_METHOD,
   DEFAULT_PACKAGES,
   DEFAULT_PAYMENT_OPTIONS,
   DEFAULT_PORTFOLIO,
@@ -14,8 +13,8 @@ import {
 /**
  * MODELO DE PROPOSTA (demonstração).
  *
- * Os PREÇOS e ENTREGAS são reais (tabela da Bellus, em src/data/defaults.ts).
- * O que é fictício aqui: os dados do casal (Mariana & Lucas) e os LINKS de
+ * Os preços e entregas são reais (tabela da Bellus, em src/data/defaults.ts).
+ * O que é fictício aqui: os dados do casal (Mariana e Lucas) e os links de
  * pagamento, que apontam para a página de confirmação interna só para demonstrar
  * o fluxo. Numa proposta real, use a URL do provedor (Pix/cartão). Veja o README.
  */
@@ -51,16 +50,13 @@ export const marianaELucas: Proposal = {
     createdAt: '2026-06-17',
     expiresAt: '2026-07-15',
     availabilityStatus: 'available',
-    recommendedPackageId: 'diamante',
-    recommendationReason:
-      'Pelo formato do seu dia — cerimônia e recepção no mesmo espaço, do fim de tarde à festa — o Diamante cobre preparativos, cerimônia e festa com a captação mais aprofundada. Se quiserem preservar também a cerimônia na íntegra, a Aliança soma as duas por R$ 1.670 a menos do que separadas.',
+    recommendedPackageId: 'alianca',
     personalMessage:
       'Mariana e Lucas, preparei esta proposta pensando no dia de vocês. Mais do que um vídeo, ela é sobre como vocês vão querer reviver o 18 de outubro daqui a alguns anos. Qualquer dúvida, estou por perto.',
   },
 
   brand: {
     manifesto: DEFAULT_MANIFESTO,
-    method: DEFAULT_METHOD,
     portfolio: DEFAULT_PORTFOLIO,
     process: DEFAULT_PROCESS,
   },

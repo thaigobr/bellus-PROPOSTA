@@ -1,20 +1,18 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Addon, Proposal, isPending } from '@/data/types'
-import { computeBreakdown } from '@/lib/pricing'
+import { Proposal } from '@/data/types'
+import { AddonLine, computeBreakdown } from '@/lib/pricing'
 import { track } from '@/lib/analytics'
 
 import { ProposalHero } from './ProposalHero'
 import { EventSummary } from './EventSummary'
 import { ValueSection } from './ValueSection'
-import { MethodSection } from './MethodSection'
+import { ProcessSection } from './ProcessSection'
 import { PortfolioSection } from './PortfolioSection'
 import { PackageSelector } from './PackageSelector'
 import { PackageComparison } from './PackageComparison'
 import { AddonSelector } from './AddonSelector'
-import { Testimonials } from './Testimonials'
-import { ProcessSection } from './ProcessSection'
 import { Faq } from './Faq'
 import { PaymentSelector } from './PaymentSelector'
 import { OrderSummary } from './OrderSummary'
@@ -25,20 +23,18 @@ import { ProposalFooter } from './ProposalFooter'
 import { DemoRibbon } from './DemoRibbon'
 
 export function ProposalShell({ proposal }: { proposal: Proposal }) {
-  // Pré-seleciona o pacote recomendado (ou o do meio) para reduzir esforço.
   const defaultPackageId =
     proposal.meta.recommendedPackageId ??
     proposal.packages[Math.floor(proposal.packages.length / 2)]?.id ??
     proposal.packages[0]?.id
 
   const [packageId, setPackageId] = useState<string>(defaultPackageId)
-  const [addonIds, setAddonIds] = useState<string[]>(
-    proposal.addons.filter((a) => a.defaultSelected && !isPending(a.price)).map((a) => a.id),
+  const [addonQty, setAddonQty] = useState<Record<string, number>>(() =>
+    Object.fromEntries(proposal.addons.filter((a) => a.defaultSelected).map((a) => [a.id, 1])),
   )
   const [paymentId, setPaymentId] = useState<string>(proposal.paymentOptions[0]?.id ?? '')
   const [termsAccepted, setTermsAccepted] = useState(false)
 
-  // Evento de visualização (sem PII).
   useEffect(() => {
     track('proposal_view', { proposal_id: proposal.proposalId, slug: proposal.slug })
   }, [proposal.proposalId, proposal.slug])
@@ -47,18 +43,19 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
     () => proposal.packages.find((p) => p.id === packageId),
     [proposal.packages, packageId],
   )
-  const selectedAddons: Addon[] = useMemo(
-    () => proposal.addons.filter((a) => addonIds.includes(a.id)),
-    [proposal.addons, addonIds],
+  const addonLines: AddonLine[] = useMemo(
+    () => proposal.addons.map((addon) => ({ addon, quantity: addonQty[addon.id] ?? 0 })),
+    [proposal.addons, addonQty],
   )
+  const selectedLines = useMemo(() => addonLines.filter((l) => l.quantity > 0), [addonLines])
   const selectedPayment = useMemo(
     () => proposal.paymentOptions.find((o) => o.id === paymentId),
     [proposal.paymentOptions, paymentId],
   )
 
   const breakdown = useMemo(
-    () => computeBreakdown(selectedPackage, selectedAddons, selectedPayment),
-    [selectedPackage, selectedAddons, selectedPayment],
+    () => computeBreakdown(selectedPackage, addonLines, selectedPayment),
+    [selectedPackage, addonLines, selectedPayment],
   )
 
   function selectPackage(id: string) {
@@ -66,12 +63,9 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
     track('package_select', { proposal_id: proposal.proposalId, package_id: id })
   }
 
-  function toggleAddon(id: string) {
-    setAddonIds((prev) => {
-      const selected = !prev.includes(id)
-      track('addon_select', { proposal_id: proposal.proposalId, addon_id: id, selected })
-      return selected ? [...prev, id] : prev.filter((x) => x !== id)
-    })
+  function setAddonQuantity(id: string, quantity: number) {
+    setAddonQty((prev) => ({ ...prev, [id]: Math.max(0, quantity) }))
+    track('addon_select', { proposal_id: proposal.proposalId, addon_id: id, selected: quantity > 0 })
   }
 
   function selectPayment(id: string) {
@@ -86,37 +80,26 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
       <ProposalHero proposal={proposal} />
       <EventSummary proposal={proposal} />
       <ValueSection manifesto={proposal.brand.manifesto} />
-      <MethodSection steps={proposal.brand.method} />
+      <ProcessSection steps={proposal.brand.process} />
       <PortfolioSection proposal={proposal} />
 
-      <PackageSelector
-        proposal={proposal}
-        selectedId={packageId}
-        onSelect={selectPackage}
-      />
+      <PackageSelector proposal={proposal} selectedId={packageId} onSelect={selectPackage} />
       <PackageComparison
         packages={proposal.packages}
         selectedId={packageId}
         recommendedId={proposal.meta.recommendedPackageId}
         onSelect={selectPackage}
       />
-      <AddonSelector
-        proposal={proposal}
-        addons={proposal.addons}
-        selectedIds={addonIds}
-        onToggle={toggleAddon}
-      />
+      <AddonSelector addons={proposal.addons} quantities={addonQty} onChange={setAddonQuantity} />
 
-      <Testimonials testimonials={proposal.testimonials} />
-      <ProcessSection steps={proposal.brand.process} />
       <Faq items={proposal.faq} />
 
-      {/* ── Resumo da contratação + pagamento ── */}
+      {/* Resumo da contratação + pagamento */}
       <section id="contratacao" className="scroll-mt-20 bg-ivory py-16 sm:py-24">
         <div className="container-content">
           <header className="mb-10 max-w-2xl">
             <p className="eyebrow">Resumo da contratação</p>
-            <h2 className="mt-4 text-3xl text-ink sm:text-4xl">
+            <h2 className="mt-4 font-serif text-3xl font-light text-ink sm:text-[2.6rem]">
               Tudo claro, antes do próximo passo
             </h2>
             <p className="mt-4 text-lg text-ink-soft">
@@ -138,7 +121,7 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
               <OrderSummary
                 proposal={proposal}
                 selectedPackage={selectedPackage}
-                selectedAddons={selectedAddons}
+                selectedLines={selectedLines}
                 selectedPayment={selectedPayment}
                 breakdown={breakdown}
               />
@@ -158,10 +141,7 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
       <WhatsAppFallback proposal={proposal} selectedPackageName={selectedPackage?.name} />
       <ProposalFooter proposal={proposal} />
 
-      <MobileSummaryBar
-        selectedPackage={selectedPackage}
-        breakdown={breakdown}
-      />
+      <MobileSummaryBar selectedPackage={selectedPackage} breakdown={breakdown} />
     </main>
   )
 }

@@ -47,6 +47,8 @@ export function ProposalHero({ proposal }: { proposal: Proposal }) {
 
       <div className="container-content flex min-h-[88dvh] flex-col justify-center py-20 sm:min-h-[92dvh]">
         <div className="max-w-3xl animate-fade-up">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo_bellus.png" alt="Bellus Eventos" className="mb-8 h-20 w-auto sm:h-24" />
           <Eyebrow light>Proposta para</Eyebrow>
 
           <h1 className="mt-5 text-balance font-serif text-6xl font-light leading-[1.02] text-cream sm:text-[5.5rem]">
@@ -71,16 +73,10 @@ export function ProposalHero({ proposal }: { proposal: Proposal }) {
             <Availability proposal={proposal} />
           </div>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <a href="#experiencias" className="btn-primary">
-              Conhecer as experiências
+          <div className="mt-10">
+            <a href="#seu-evento" className="btn-primary">
+              Ver Proposta
               <ArrowRight width={18} height={18} />
-            </a>
-            <a
-              href="#contratacao"
-              className="btn-ghost border-cream/25 text-cream hover:border-cream/60"
-            >
-              Ver o resumo
             </a>
           </div>
         </div>

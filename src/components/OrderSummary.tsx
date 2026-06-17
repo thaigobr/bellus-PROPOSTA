@@ -1,7 +1,7 @@
 'use client'
 
-import { Addon, Package, PaymentOption, Proposal, isPending } from '@/data/types'
-import { PriceBreakdown } from '@/lib/pricing'
+import { Package, PaymentOption, Proposal, isPending } from '@/data/types'
+import { AddonLine, PriceBreakdown, addonLineMinutes, addonLineTotal } from '@/lib/pricing'
 import { formatBRL, formatBRLCents, formatDateShort } from '@/lib/format'
 import { PendingMark } from './ui'
 
@@ -33,13 +33,13 @@ function Line({
 export function OrderSummary({
   proposal,
   selectedPackage,
-  selectedAddons,
+  selectedLines,
   selectedPayment,
   breakdown,
 }: {
   proposal: Proposal
   selectedPackage?: Package
-  selectedAddons: Addon[]
+  selectedLines: AddonLine[]
   selectedPayment?: PaymentOption
   breakdown: PriceBreakdown
 }) {
@@ -65,21 +65,19 @@ export function OrderSummary({
                 formatBRL(selectedPackage.price)
               )
             ) : (
-              '—'
+              ''
             )
           }
           strong
         />
 
-        {selectedAddons.length > 0 && (
+        {selectedLines.length > 0 && (
           <div className="space-y-2 border-l-2 border-line pl-3">
-            {selectedAddons.map((a) => (
-              <Line
-                key={a.id}
-                label={a.name}
-                value={isPending(a.price) ? '—' : `+ ${formatBRL(a.price)}`}
-              />
-            ))}
+            {selectedLines.map((line) => {
+              const min = addonLineMinutes(line)
+              const label = min > 0 ? `${line.addon.name} (${min} min)` : line.addon.name
+              return <Line key={line.addon.id} label={label} value={`+ ${formatBRL(addonLineTotal(line))}`} />
+            })}
           </div>
         )}
       </div>
@@ -95,7 +93,7 @@ export function OrderSummary({
         <div className="space-y-3">
           <Line label="Subtotal" value={formatBRL(breakdown.subtotal)} />
           {breakdown.discount > 0 && (
-            <Line label="Desconto à vista" value={`− ${formatBRL(breakdown.discount)}`} accent />
+            <Line label="Desconto à vista" value={`menos ${formatBRL(breakdown.discount)}`} accent />
           )}
 
           <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
@@ -109,10 +107,7 @@ export function OrderSummary({
             <div className="mt-3 rounded-lg bg-ivory p-3 text-sm">
               <Line label="Sinal para reservar a data" value={formatBRL(breakdown.signal)} strong />
               <div className="mt-1.5">
-                <Line
-                  label="Saldo até o casamento"
-                  value={formatBRL(breakdown.balance ?? 0)}
-                />
+                <Line label="Saldo até o casamento" value={formatBRL(breakdown.balance ?? 0)} />
               </div>
             </div>
           )}

@@ -71,7 +71,7 @@ function PackageCard({
             />
             <span className={d.highlight ? 'font-medium text-ink' : 'text-ink-soft'}>
               {d.label}
-              {d.detail && <span className="text-ink-soft"> — {d.detail}</span>}
+              {d.detail && <span className="text-ink-soft"> · {d.detail}</span>}
             </span>
           </li>
         ))}
@@ -108,24 +108,15 @@ export function PackageSelector({
   selectedId: string
   onSelect: (id: string) => void
 }) {
-  const { recommendedPackageId, recommendationReason } = proposal.meta
+  const { recommendedPackageId } = proposal.meta
 
   return (
     <Section
       id="experiencias"
       eyebrow="As experiências"
       title="Quatro formas de guardar o seu dia"
-      intro="Cada uma é um nível diferente de profundidade e de memória preservada. Os preços estão à mostra — sem letras miúdas."
+      intro="Cada uma é um nível diferente de profundidade e de memória preservada. Os preços estão à mostra, sem letras miúdas."
     >
-      {recommendedPackageId && recommendationReason && (
-        <div className="mb-8 flex items-start gap-3 rounded-xl2 border border-gold/30 bg-gold/5 p-5">
-          <span className="mt-0.5 shrink-0 text-gold">
-            <RecommendedBadge />
-          </span>
-          <p className="text-[0.975rem] leading-relaxed text-ink">{recommendationReason}</p>
-        </div>
-      )}
-
       <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {proposal.packages.map((pkg) => (
           <PackageCard

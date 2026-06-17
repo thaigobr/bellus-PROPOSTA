@@ -1,36 +1,45 @@
 /**
- * Toda a matemática financeira da proposta vive aqui — fonte única de verdade.
+ * Toda a matemática financeira da proposta vive aqui, fonte única de verdade.
  * Componentes nunca calculam preço por conta própria.
  */
-import { Addon, Package, PaymentOption, Price, isPending } from '@/data/types'
+import { Addon, Package, PaymentOption, isPending } from '@/data/types'
 
-export interface PriceBreakdown {
-  /** true quando o pacote não tem preço definido (PENDENTE) — não dá para calcular. */
-  pending: boolean
-  /** Pacote + adicionais selecionados (com preço numérico). */
-  subtotal: number
-  /** Desconto aplicado pela condição de pagamento (ex.: à vista). */
-  discount: number
-  /** Valor final a pagar nesta condição. */
-  total: number
-  /** Valor do sinal para reservar a data (condição 'signal'), senão null. */
-  signal: number | null
-  /** Saldo após o sinal, senão null. */
-  balance: number | null
-  /** Nº de parcelas (condição 'installments'), senão null. */
-  installmentCount: number | null
-  /** Valor de cada parcela, senão null. */
-  installmentValue: number | null
+/** Um adicional selecionado, com a quantidade escolhida (passos para 'quantity'). */
+export interface AddonLine {
+  addon: Addon
+  quantity: number
 }
 
-/** Soma segura: ignora preços pendentes (que não são selecionáveis para cálculo). */
-function numericPrice(price: Price): number {
-  return isPending(price) ? 0 : price
+/** Valor total de uma linha de adicional. */
+export function addonLineTotal(line: AddonLine): number {
+  const { addon, quantity } = line
+  if (quantity <= 0) return 0
+  if (addon.kind === 'quantity') return quantity * (addon.unitPrice ?? 0)
+  if (addon.kind === 'bonus') return 0
+  return addon.price && !isPending(addon.price) ? addon.price : 0
+}
+
+/** Minutos representados por uma linha 'quantity' (ex.: 3 passos de 5 min = 15). */
+export function addonLineMinutes(line: AddonLine): number {
+  if (line.addon.kind !== 'quantity') return 0
+  return line.quantity * (line.addon.unitMinutes ?? 0)
+}
+
+export interface PriceBreakdown {
+  /** true quando o pacote não tem preço definido (PENDENTE), não dá para calcular. */
+  pending: boolean
+  subtotal: number
+  discount: number
+  total: number
+  signal: number | null
+  balance: number | null
+  installmentCount: number | null
+  installmentValue: number | null
 }
 
 export function computeBreakdown(
   pkg: Package | undefined,
-  selectedAddons: Addon[],
+  lines: AddonLine[],
   payment: PaymentOption | undefined,
 ): PriceBreakdown {
   const empty: PriceBreakdown = {
@@ -47,7 +56,7 @@ export function computeBreakdown(
   if (!pkg) return empty
   if (isPending(pkg.price)) return { ...empty, pending: true }
 
-  const addonsTotal = selectedAddons.reduce((sum, a) => sum + numericPrice(a.price), 0)
+  const addonsTotal = lines.reduce((sum, l) => sum + addonLineTotal(l), 0)
   const subtotal = pkg.price + addonsTotal
 
   const discountRate = payment?.discountRate ?? 0
@@ -68,14 +77,5 @@ export function computeBreakdown(
     installmentValue = Math.round((total / payment.maxInstallments) * 100) / 100
   }
 
-  return {
-    pending: false,
-    subtotal,
-    discount,
-    total,
-    signal,
-    balance,
-    installmentCount,
-    installmentValue,
-  }
+  return { pending: false, subtotal, discount, total, signal, balance, installmentCount, installmentValue }
 }

@@ -1,10 +1,10 @@
 /**
- * Conteúdo padrão da marca Bellus — reutilizável por todas as propostas.
+ * Conteúdo padrão da marca Bellus, reutilizável por todas as propostas.
  *
- * Posicionamento, FAQ, prazos, condições de pagamento, NOMES, PREÇOS e
- * ENTREGAS dos pacotes foram fornecidos pela empresa (tabela vigente).
- * Como são padrão da casa, vivem aqui no catálogo central — uma nova proposta
- * herda tudo isto e só ajusta cliente/evento/recomendação/links.
+ * Posicionamento, FAQ, prazos, condições de pagamento, nomes, preços e entregas
+ * foram fornecidos pela empresa (tabela vigente). Como são padrão da casa, vivem
+ * aqui no catálogo central; uma nova proposta herda tudo isto e só ajusta
+ * cliente, evento, recomendação e links.
  */
 import {
   Addon,
@@ -18,63 +18,44 @@ import {
   PENDENTE,
 } from './types'
 
-// ── Manifesto (texto real da marca) ─────────────────────────────────────────
+// Manifesto (texto real da marca)
 export const DEFAULT_MANIFESTO: Manifesto = {
   lead: 'O dia passa. O filme fica.',
   lines: [
     'Enquanto vocês vivem o dia, outras coisas estão acontecendo. Um olhar distante. Uma reação inesperada. Um momento que não volta.',
-    'A maioria deles vocês nunca vão saber que existiu — a não ser que alguém tenha registrado.',
+    'A maioria deles vocês nunca vão saber que existiu, a não ser que alguém tenha registrado.',
     'O que vocês não viram só existe no filme.',
   ],
   emphasis:
-    'O que vocês sentem assistindo não é o mesmo que viveram. Porque agora vocês conseguem ver tudo — os detalhes, as reações, as emoções que passaram despercebidas enquanto o dia acontecia.',
+    'O que vocês sentem assistindo não é o mesmo que viveram. Porque agora vocês conseguem ver tudo: os detalhes, as reações, as emoções que passaram despercebidas enquanto o dia acontecia.',
   close:
     'A Bellus existe para transformar o casamento de vocês em uma memória viva. Uma forma de reviver esse dia, daqui a muitos anos, da maneira mais verdadeira possível.',
 }
 
-// ── Método criativo (texto real): Entender · Observar · Construir ────────────
-export const DEFAULT_METHOD: ProcessStep[] = [
-  {
-    title: 'Entender',
-    description:
-      'Antes de filmar, entendemos a história de vocês. Cada casal vive esse momento de um jeito único — e é isso que guia a forma como o filme será construído.',
-  },
-  {
-    title: 'Observar',
-    description:
-      'O casamento acontece naturalmente. Nosso trabalho é perceber o que normalmente passa despercebido: os olhares, os silêncios, as reações espontâneas. Os detalhes que o tempo inevitavelmente apaga.',
-  },
-  {
-    title: 'Construir',
-    description:
-      'Transformamos o dia em um filme emocional, cinematográfico e atemporal. Uma lembrança que poderá ser revivida sempre que vocês quiserem sentir tudo outra vez.',
-  },
-]
-
-// ── Depoimentos reais (com autorização da empresa) ──────────────────────────
+// Depoimentos reais (com autorização da empresa). Não exibidos no momento.
 export const DEFAULT_TESTIMONIALS: Testimonial[] = [
   { quote: 'Foram alguns dos períodos mais importantes das nossas vidas.', author: 'Gabi & Michael' },
   { quote: 'Superou todas as nossas expectativas.', author: 'Ludmila & Wallace' },
 ]
 
-// ── Portfólio: usar materiais reais (YouTube @belluseventos). Cole o ID. ─────
+// Portfólio: vídeos reais da Bellus (YouTube), tocam dentro da própria página.
 export const DEFAULT_PORTFOLIO: PortfolioItem[] = [
-  { title: 'A cerimônia, sem interrupções', proves: 'Emoção real e reações espontâneas no momento mais importante.' },
-  { title: 'Os detalhes que passam despercebidos', proves: 'O olhar treinado para o que ninguém anuncia.' },
-  { title: 'A história do dia inteiro', proves: 'Narrativa com profundidade, dos preparativos à festa.' },
+  { title: 'A cerimônia, sem interrupções', proves: 'Emoção real e reações espontâneas no momento mais importante.', youtubeId: 'ePwx8bsoztI' },
+  { title: 'Os detalhes que passam despercebidos', proves: 'O olhar treinado para o que ninguém anuncia.', youtubeId: 'We-jTlYiLC4' },
+  { title: 'A história do dia inteiro', proves: 'Narrativa com profundidade, dos preparativos à festa.', youtubeId: '_O0Kialgkzo' },
 ]
 
-// ── Como funciona (processo operacional — reduz insegurança) ─────────────────
+// Como funciona (processo operacional, reduz insegurança)
 export const DEFAULT_PROCESS: ProcessStep[] = [
   { title: 'Escolha da experiência', description: 'Você seleciona a experiência que combina com o seu dia.' },
   { title: 'Reserva com sinal', description: 'A data é garantida após a assinatura e o pagamento do sinal. O saldo é parcelado até o casamento.' },
   { title: 'Alinhamento', description: 'Conversamos sobre a história de vocês, o roteiro do dia e o que é importante.' },
-  { title: 'Cobertura do evento', description: 'Estamos presentes com discrição, atentos ao que acontece de verdade — sem conduzir.' },
+  { title: 'Cobertura do evento', description: 'Estamos presentes com discrição, atentos ao que acontece de verdade, sem conduzir.' },
   { title: 'Produção', description: 'Selecionamos, montamos e damos forma à narrativa do seu dia.' },
   { title: 'Entrega', description: 'Prévia em até 2 semanas; filme e trailer entre 90 e 180 dias, por link ou pendrive.' },
 ]
 
-// ── FAQ — respostas REAIS (verbatim do site). Pendências = PENDENTE. ─────────
+// FAQ: respostas reais. Pendências marcadas com PENDENTE.
 export const DEFAULT_FAQ: FaqItem[] = [
   {
     question: 'Quais são as formas de pagamento?',
@@ -85,6 +66,11 @@ export const DEFAULT_FAQ: FaqItem[] = [
     question: 'Como funciona a reserva da data?',
     answer:
       'A data é confirmada após a assinatura do contrato e o pagamento do sinal. Até lá, ela permanece disponível, mas não reservada.',
+  },
+  {
+    question: 'Como funciona o custo de deslocamento?',
+    answer:
+      'A partir de Teresópolis (RJ), o deslocamento é calculado em R$ 1,00 por km rodado, considerando ida e volta, dentro do estado do Rio de Janeiro, mais hospedagem quando necessário. Para eventos fora do estado do Rio de Janeiro, soma-se também o translado aéreo.',
   },
   {
     question: 'Qual é o prazo de entrega da prévia?',
@@ -103,13 +89,7 @@ export const DEFAULT_FAQ: FaqItem[] = [
   {
     question: 'Qual a diferença entre a Cerimônia e as outras experiências?',
     answer:
-      'A experiência Cerimônia preserva a cerimônia na íntegra — entradas, votos, troca de alianças e o "sim" completo. As experiências Rubi e Diamante focam no filme cinematográfico do dia. A Aliança une as duas coisas.',
-  },
-  {
-    question: 'Vocês atendem em quais localidades? Há custo de deslocamento?',
-    answer: PENDENTE(
-      'confirmar política de deslocamento/diária. Base: Teresópolis (RJ); atende todo o RJ, outras regiões do Brasil e destination weddings.',
-    ),
+      'A experiência Cerimônia preserva a cerimônia na íntegra: entradas, votos, troca de alianças e o "sim" completo. As experiências Rubi e Diamante focam no filme cinematográfico do dia. A Aliança une as duas coisas.',
   },
   {
     question: 'Quantas horas de cobertura estão incluídas?',
@@ -134,14 +114,14 @@ export const DEFAULT_FAQ: FaqItem[] = [
   },
 ]
 
-// ── Catálogo de experiências (tabela real da Bellus) ────────────────────────
+// Catálogo de experiências (tabela real da Bellus)
 export const DEFAULT_PACKAGES: Package[] = [
   {
     id: 'cerimonia',
     name: 'Cerimônia',
     positioning: 'Momento na íntegra.',
     bestFor: 'Para casais que desejam reviver cada detalhe da cerimônia com autenticidade e emoção.',
-    promise: 'Existem partes do casamento que não são sobre imagem — são sobre palavras. E merecem ser lembradas exatamente como aconteceram.',
+    promise: 'Existem partes do casamento que não são sobre imagem, são sobre palavras. E merecem ser lembradas exatamente como aconteceram.',
     deliverables: [
       { label: 'Cerimônia completa editada', highlight: true },
       { label: 'Entradas' },
@@ -188,7 +168,7 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Captação aprofundada de detalhes e conexões espontâneas', highlight: true },
       { label: 'Drone quando possível' },
       { label: 'Prévia em até 2 semanas' },
-      { label: 'Pendrive personalizado + entrega digital' },
+      { label: 'Pendrive personalizado mais entrega digital' },
     ],
     price: 5970,
     deliveryTime: '90 a 180 dias',
@@ -212,29 +192,32 @@ export const DEFAULT_PACKAGES: Package[] = [
     price: 6970,
     deliveryTime: '90 a 180 dias',
     differentiator: 'Soma a cerimônia na íntegra ao Diamante.',
-    valueNote: 'Separado: Diamante R$ 5.970 + Cerimônia R$ 2.670 = R$ 8.640. Na Aliança, vocês economizam R$ 1.670.',
+    valueNote: 'Separado: Diamante R$ 5.970 mais Cerimônia R$ 2.670 daria R$ 8.640. Na Aliança, vocês economizam R$ 1.670.',
   },
 ]
 
-// ── Serviços adicionais (opcionais) — sob consulta até confirmação ──────────
+// Serviços adicionais
 export const DEFAULT_ADDONS: Addon[] = [
   {
-    id: 'hora-extra',
-    name: 'Hora adicional de cobertura',
-    description: 'Estende o tempo de registro no seu evento.',
-    benefit: 'Garante que nenhum momento importante fique de fora.',
-    price: PENDENTE('valor da hora adicional'),
+    id: 'tempo-extra-filme',
+    name: 'Tempo extra de filme',
+    description: 'Mais minutos de edição no seu filme. A cada 5 minutos a mais, R$ 900.',
+    benefit: 'Seu filme com mais momentos e mais respiro narrativo.',
+    kind: 'quantity',
+    unitPrice: 900,
+    unitMinutes: 5,
+    maxUnits: 6,
   },
   {
-    id: 'social-vertical',
-    name: 'Versão vertical para redes sociais',
-    description: 'Um corte vertical do filme, pensado para compartilhar. [PREENCHER: confirmar se a empresa oferece.]',
-    benefit: 'Fácil de mostrar para quem você ama.',
-    price: PENDENTE('confirmar disponibilidade e valor'),
+    id: 'previa',
+    name: 'Prévia',
+    description: 'Um primeiro recorte do filme, entregue em até 2 semanas após o casamento.',
+    benefit: 'A emoção mais recente, enquanto ainda está viva.',
+    kind: 'bonus',
   },
 ]
 
-// ── Condições de pagamento (reais). checkoutUrl = preenchido por proposta. ──
+// Condições de pagamento (reais). checkoutUrl é preenchido por proposta.
 export const DEFAULT_PAYMENT_OPTIONS: PaymentOption[] = [
   {
     id: 'sinal',

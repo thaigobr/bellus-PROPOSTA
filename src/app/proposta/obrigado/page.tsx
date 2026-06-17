@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Recebemos sua reserva — Bellus Eventos',
+  title: 'Recebemos sua reserva · Bellus Eventos',
   robots: { index: false, follow: false },
 }
 

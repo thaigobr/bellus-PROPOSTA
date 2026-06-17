@@ -11,7 +11,7 @@ import { Check } from './icons'
  */
 type Cell = boolean | string
 const FEATURES: { label: string; v: Record<string, Cell> }[] = [
-  { label: 'Filme do dia', v: { cerimonia: '—', rubi: '8 min', diamante: 'até 15 min', alianca: 'até 15 min' } },
+  { label: 'Filme do dia', v: { cerimonia: false, rubi: '8 min', diamante: 'até 15 min', alianca: 'até 15 min' } },
   { label: 'Trailer', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
   { label: 'Preparativos', v: { cerimonia: false, rubi: 'Noiva', diamante: 'Completos', alianca: 'Completos' } },
   { label: 'Festa', v: { cerimonia: false, rubi: true, diamante: true, alianca: true } },
@@ -27,7 +27,7 @@ const FEATURES: { label: string; v: Record<string, Cell> }[] = [
 function CellView({ value }: { value: Cell | undefined }) {
   if (value === true) return <Check width={18} height={18} className="mx-auto text-gold" aria-label="incluído" />
   if (value === false || value === undefined)
-    return <span className="text-ink-soft/40" aria-label="não incluído">—</span>
+    return <span className="text-xs font-medium text-ink-soft/50" aria-label="não incluído">Não</span>
   return <span className="text-xs text-ink-soft sm:text-sm">{value}</span>
 }
 

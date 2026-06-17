@@ -19,7 +19,7 @@ const sans = Montserrat({
 
 // Propostas são privadas: noindex/nofollow em todo o site.
 export const metadata: Metadata = {
-  title: 'Proposta — Bellus Eventos',
+  title: 'Proposta · Bellus Eventos',
   description: 'Proposta personalizada de filme de casamento.',
   robots: { index: false, follow: false, nocache: true },
 }

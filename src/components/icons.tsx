@@ -20,6 +20,22 @@ export function Check(p: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function Plus(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+export function Minus(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
 export function ChevronDown(p: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...p}>
@@ -66,6 +82,16 @@ export function Shield(p: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...p}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+export function Instagram(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...p}>
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
     </svg>
   )
 }

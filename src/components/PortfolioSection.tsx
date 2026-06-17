@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { PortfolioItem, Proposal } from '@/data/types'
 import { track } from '@/lib/analytics'
-import { Section, PendingMark } from './ui'
-import { Play } from './icons'
+import { Section } from './ui'
+import { Play, Instagram } from './icons'
 
 const INSTAGRAM = 'https://www.instagram.com/belluscasamentos/'
 const YOUTUBE = 'https://www.youtube.com/@belluseventos'
@@ -33,7 +33,7 @@ function PortfolioTile({
         {playing && item.youtubeId ? (
           <iframe
             className="absolute inset-0 h-full w-full"
-            src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0`}
+            src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&playsinline=1`}
             title={item.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -43,30 +43,35 @@ function PortfolioTile({
             type="button"
             onClick={play}
             disabled={!hasVideo}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-cream/80 disabled:cursor-default"
+            className="absolute inset-0 flex items-center justify-center disabled:cursor-default"
             aria-label={hasVideo ? `Assistir: ${item.title}` : item.title}
           >
-            {/* moldura de filme sutil quando não há mídia ainda */}
-            <span
-              className="absolute inset-0 opacity-30 transition-opacity group-hover:opacity-50"
-              style={{
-                background:
-                  'radial-gradient(60% 60% at 50% 40%, rgba(199,162,107,0.12), transparent), repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,0.03) 22px 24px)',
-              }}
-              aria-hidden
-            />
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-gold-soft/50 bg-black/20 transition-transform duration-300 group-hover:scale-105">
+            {item.youtubeId ? (
+              // object-cover recorta a tarja preta da miniatura 4:3, ficando 16:9 limpo
+              <img
+                src={`https://i.ytimg.com/vi/${item.youtubeId}/hqdefault.jpg`}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <span
+                className="absolute inset-0 opacity-30"
+                style={{
+                  background:
+                    'radial-gradient(60% 60% at 50% 40%, rgba(199,162,107,0.12), transparent), repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,0.03) 22px 24px)',
+                }}
+                aria-hidden
+              />
+            )}
+            <span className="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/15" aria-hidden />
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-gold-soft/60 bg-black/35 transition-transform duration-300 group-hover:scale-105">
               <Play width={22} height={22} className="ml-0.5 text-gold-soft" />
             </span>
-            {!hasVideo && (
-              <span className="relative mt-1">
-                <PendingMark note="vídeo real da Bellus" light />
-              </span>
-            )}
           </button>
         )}
       </div>
-      <figcaption className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-10">
+      <figcaption className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-10">
         <h3 className="text-lg font-medium text-cream">{item.title}</h3>
         {item.proves && <p className="mt-1 text-sm text-cream/65">{item.proves}</p>}
       </figcaption>
@@ -89,22 +94,23 @@ export function PortfolioSection({ proposal }: { proposal: Proposal }) {
         ))}
       </div>
 
-      <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div className="mt-10 flex items-center gap-5">
         <a
           href={INSTAGRAM}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-cream/80 underline-offset-4 hover:text-gold-soft hover:underline"
+          aria-label="Instagram @belluscasamentos"
+          className="text-cream/80 transition-colors hover:text-gold-soft"
         >
-          Ver mais no Instagram @belluscasamentos
+          <Instagram width={26} height={26} />
         </a>
         <a
           href={YOUTUBE}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-cream/80 underline-offset-4 hover:text-gold-soft hover:underline"
+          className="text-sm text-cream/80 underline-offset-4 transition-colors hover:text-gold-soft hover:underline"
         >
-          Filmes no YouTube
+          Ver mais filmes no YouTube
         </a>
       </div>
     </Section>
