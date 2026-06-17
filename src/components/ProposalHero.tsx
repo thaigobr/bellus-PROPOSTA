@@ -2,6 +2,7 @@ import { Proposal, isPending } from '@/data/types'
 import { formatDateLong } from '@/lib/format'
 import { Eyebrow } from './ui'
 import { ArrowRight } from './icons'
+import { ParticlesCanvas } from './ParticlesCanvas'
 
 function coupleName(p: Proposal) {
   return p.client.partnerName ? `${p.client.name} & ${p.client.partnerName}` : p.client.name
@@ -44,8 +45,9 @@ export function ProposalHero({ proposal }: { proposal: Proposal }) {
         style={{ background: 'radial-gradient(50% 60% at 50% 0%, rgba(199,162,107,0.25), transparent)' }}
         aria-hidden
       />
+      <ParticlesCanvas className="pointer-events-none absolute inset-0 h-full w-full" fadeBottom={0.6} />
 
-      <div className="container-content flex min-h-[88dvh] flex-col justify-center py-20 sm:min-h-[92dvh]">
+      <div className="container-content relative z-10 flex min-h-[88dvh] flex-col justify-center py-20 sm:min-h-[92dvh]">
         <div className="max-w-3xl animate-fade-up">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo_bellus.png" alt="Bellus Eventos" className="mb-8 h-20 w-auto sm:h-24" />
@@ -82,7 +84,7 @@ export function ProposalHero({ proposal }: { proposal: Proposal }) {
         </div>
       </div>
 
-      <div className="container-content pb-8">
+      <div className="container-content relative z-10 pb-8">
         <div className="hairline" />
       </div>
     </header>

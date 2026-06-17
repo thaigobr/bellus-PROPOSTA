@@ -2,6 +2,7 @@
 import { ReactNode } from 'react'
 import { Price, isPending } from '@/data/types'
 import { formatBRL } from '@/lib/format'
+import { ParticlesCanvas } from './ParticlesCanvas'
 
 export function Eyebrow({
   children,
@@ -31,10 +32,16 @@ export function Section({ id, eyebrow, title, intro, dark, className = '', child
     <section
       id={id}
       className={`relative scroll-mt-20 py-16 sm:py-24 ${
-        dark ? 'bg-charcoal text-cream' : ''
+        dark ? 'overflow-hidden bg-charcoal text-cream' : ''
       } ${className}`}
     >
-      <div className="container-content">
+      {dark && (
+        <ParticlesCanvas
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          fadeBottom={0.6}
+        />
+      )}
+      <div className="container-content relative z-10">
         {(eyebrow || title || intro) && (
           <header className="mb-10 max-w-2xl sm:mb-14">
             {eyebrow && <Eyebrow light={dark}>{eyebrow}</Eyebrow>}

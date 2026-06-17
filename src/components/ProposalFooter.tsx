@@ -1,13 +1,15 @@
 import { Proposal, isPending } from '@/data/types'
 import { formatDateShort } from '@/lib/format'
 import { Instagram } from './icons'
+import { ParticlesCanvas } from './ParticlesCanvas'
 
 export function ProposalFooter({ proposal }: { proposal: Proposal }) {
   const expires = proposal.meta.expiresAt
   return (
     <footer className="relative overflow-hidden bg-charcoal text-cream">
       <div className="grain absolute inset-0" aria-hidden />
-      <div className="container-content relative py-14">
+      <ParticlesCanvas className="pointer-events-none absolute inset-0 h-full w-full" fadeBottom={0.6} />
+      <div className="container-content relative z-10 py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}

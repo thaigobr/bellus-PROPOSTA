@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ParticlesCanvas } from '@/components/ParticlesCanvas'
 
 export const metadata: Metadata = {
   title: 'Recebemos sua reserva · Bellus Eventos',
@@ -22,7 +23,8 @@ export default function Obrigado({
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-charcoal px-6 text-center text-cream">
       <div className="grain absolute inset-0" aria-hidden />
-      <div className="relative animate-fade-up">
+      <ParticlesCanvas className="pointer-events-none absolute inset-0 h-full w-full" fadeBottom={0.7} />
+      <div className="relative z-10 animate-fade-up">
         <span
           className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-gold-soft/40"
           aria-hidden
