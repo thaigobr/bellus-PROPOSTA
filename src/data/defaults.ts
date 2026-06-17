@@ -15,7 +15,6 @@ import {
   PortfolioItem,
   ProcessStep,
   Testimonial,
-  PENDENTE,
 } from './types'
 
 // Manifesto (texto real da marca)
@@ -52,7 +51,7 @@ export const DEFAULT_PROCESS: ProcessStep[] = [
   { title: 'Alinhamento', description: 'Conversamos sobre a história de vocês, o roteiro do dia e o que é importante.' },
   { title: 'Cobertura do evento', description: 'Estamos presentes com discrição, atentos ao que acontece de verdade, sem conduzir.' },
   { title: 'Produção', description: 'Selecionamos, montamos e damos forma à narrativa do seu dia.' },
-  { title: 'Entrega', description: 'Prévia em até 2 semanas; filme e trailer entre 90 e 180 dias, por link ou pendrive.' },
+  { title: 'Entrega', description: 'Prévia em até 15 dias; filme e trailer entre 60 e 90 dias (prazo máximo de 150), por link ou pendrive.' },
 ]
 
 // FAQ: respostas reais. Pendências marcadas com PENDENTE.
@@ -68,49 +67,57 @@ export const DEFAULT_FAQ: FaqItem[] = [
       'A data é confirmada após a assinatura do contrato e o pagamento do sinal. Até lá, ela permanece disponível, mas não reservada.',
   },
   {
-    question: 'Como funciona o custo de deslocamento?',
+    question: 'Quantas horas de cobertura estão incluídas?',
     answer:
-      'A partir de Teresópolis (RJ), o deslocamento é calculado em R$ 1,00 por km rodado, considerando ida e volta, dentro do estado do Rio de Janeiro, mais hospedagem quando necessário. Para eventos fora do estado do Rio de Janeiro, soma-se também o translado aéreo.',
+      'As experiências completas incluem até 10 horas contínuas de cobertura, com 1 hora de tolerância. Tempo além disso é combinado à parte.',
   },
   {
-    question: 'Qual é o prazo de entrega da prévia?',
+    question: 'Qual é o prazo de entrega?',
     answer:
-      'A prévia é entregue em até 2 semanas após o casamento. Ela funciona como um primeiro contato com o filme, trazendo as emoções mais recentes enquanto ainda estão vivas.',
+      'A prévia sai em até 15 dias. O filme e o trailer são entregues, em média, entre 60 e 90 dias, com prazo máximo de 150 dias.',
   },
   {
-    question: 'Qual é o prazo de entrega do filme e do trailer?',
+    question: 'Posso pedir ajustes no filme?',
     answer:
-      'O filme é entregue entre 90 e 180 dias após o casamento. O trailer é entregue junto com o filme, dentro do mesmo prazo.',
+      'Sim. Uma rodada de ajustes está inclusa, em até 15 dias após a entrega, para correções pontuais como troca de trilha, reordenação de cenas ou cortes específicos.',
+  },
+  {
+    question: 'Posso escolher as músicas?',
+    answer: 'Sim. A trilha pode ser combinada e ainda ajustada na rodada de revisão inclusa.',
   },
   {
     question: 'Como vou receber meus vídeos?',
-    answer: 'Por link para download, ou com a experiência de receber um pendrive personalizado (Diamante e Aliança).',
+    answer: 'Por link para download, com um pendrive de cortesia nas experiências completas.',
+  },
+  {
+    question: 'Como funciona o custo de deslocamento?',
+    answer:
+      'Em Teresópolis (RJ), o deslocamento está incluso. Para outros locais do estado do Rio de Janeiro, calcula-se R$ 1,00 por km rodado (ida e volta), mais hospedagem quando necessário. Fora do estado, soma-se também o transporte aéreo.',
+  },
+  {
+    question: 'E se precisarmos mudar a data?',
+    answer:
+      'É possível conforme a disponibilidade da agenda, com taxa de remarcação de 10% do valor total. Em casos de força maior, a taxa pode ser isenta.',
+  },
+  {
+    question: 'Como funciona o cancelamento?',
+    answer:
+      'No cancelamento sem justa causa há multa progressiva conforme a proximidade do evento, de 10% (até 300 dias antes) a 70% (a menos de 59 dias). A escala completa fica no contrato.',
+  },
+  {
+    question: 'Vocês usam o nosso vídeo nas redes sociais?',
+    answer:
+      'Podemos usar trechos no portfólio e nas redes da Bellus. Se preferirem restringir, basta pedir por escrito na assinatura.',
   },
   {
     question: 'Qual a diferença entre a Cerimônia e as outras experiências?',
     answer:
-      'A experiência Cerimônia preserva a cerimônia na íntegra: entradas, votos, troca de alianças e o "sim" completo. As experiências Rubi e Diamante focam no filme cinematográfico do dia. A Aliança une as duas coisas.',
+      'A experiência Cerimônia preserva a cerimônia na íntegra: entradas, votos, troca de alianças e o "sim" completo. Rubi e Diamante focam no filme cinematográfico do dia. A Aliança une as duas coisas.',
   },
   {
-    question: 'Quantas horas de cobertura estão incluídas?',
-    answer: PENDENTE('definir as horas de cobertura de cada experiência'),
-  },
-  {
-    question: 'E se eu precisar alterar a data do casamento?',
-    answer: PENDENTE('política de alteração de data'),
-  },
-  {
-    question: 'Como funciona o cancelamento?',
-    answer: PENDENTE('política de cancelamento e reembolso do sinal'),
-  },
-  {
-    question: 'Eu posso escolher as músicas do filme?',
-    answer: PENDENTE('política sobre escolha/sugestão de trilha sonora'),
-  },
-  {
-    question: 'Preciso dirigir alguma cena ou posar?',
+    question: 'Precisamos dirigir alguma cena ou posar?',
     answer:
-      'Não. Nosso olhar é documental: registramos o que acontece de verdade, sem pedir poses ou repetições. Você só precisa viver o seu dia.',
+      'Não. Nosso olhar é documental: registramos o que acontece de verdade, sem pedir poses ou repetições. Vocês só precisam viver o seu dia.',
   },
 ]
 
@@ -132,7 +139,7 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Entrega digital' },
     ],
     price: 2670,
-    deliveryTime: '90 a 180 dias',
+    deliveryTime: '60 a 90 dias (máximo 150)',
   },
   {
     id: 'rubi',
@@ -146,11 +153,11 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Preparativos da noiva' },
       { label: 'Cerimônia' },
       { label: 'Festa' },
-      { label: 'Prévia em até 2 semanas' },
+      { label: 'Prévia em até 15 dias' },
       { label: 'Entrega digital' },
     ],
     price: 4470,
-    deliveryTime: '90 a 180 dias',
+    deliveryTime: '60 a 90 dias (máximo 150)',
     differentiator: 'Acrescenta filme, trailer, preparativos e festa à cobertura.',
   },
   {
@@ -167,11 +174,11 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Festa' },
       { label: 'Captação aprofundada de detalhes e conexões espontâneas', highlight: true },
       { label: 'Drone quando possível' },
-      { label: 'Prévia em até 2 semanas' },
+      { label: 'Prévia em até 15 dias' },
       { label: 'Pendrive personalizado mais entrega digital' },
     ],
     price: 5970,
-    deliveryTime: '90 a 180 dias',
+    deliveryTime: '60 a 90 dias (máximo 150)',
     differentiator: 'Filme mais longo, captação aprofundada, drone e pendrive.',
   },
   {
@@ -190,7 +197,7 @@ export const DEFAULT_PACKAGES: Package[] = [
       { label: 'Preservação integral da cerimônia', highlight: true },
     ],
     price: 6970,
-    deliveryTime: '90 a 180 dias',
+    deliveryTime: '60 a 90 dias (máximo 150)',
     differentiator: 'Soma a cerimônia na íntegra ao Diamante.',
     valueNote: 'Separado: Diamante R$ 5.970 mais Cerimônia R$ 2.670 daria R$ 8.640. Na Aliança, vocês economizam R$ 1.670.',
   },

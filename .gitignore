@@ -35,4 +35,8 @@ next-env.d.ts
 # Claude Code (configuração local, não necessária no deploy)
 .claude/
 
+# documentos internos (contrato contém dados bancários, não versionar)
+*.docx
+_contrato_extraido.txt
+
 .vercel
