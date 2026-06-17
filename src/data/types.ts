@@ -120,6 +120,11 @@ export interface PortfolioItem {
   poster?: string
   /** O que esta cena comprova (naturalidade, emoção, discrição...). */
   proves?: string
+  /**
+   * Zoom na miniatura (ex.: 1.35) para cortar tarjas pretas embutidas no vídeo
+   * (corte cinematográfico). Use só nos vídeos que têm letterbox. Default 1.
+   */
+  posterZoom?: number
 }
 
 export interface ProcessStep {

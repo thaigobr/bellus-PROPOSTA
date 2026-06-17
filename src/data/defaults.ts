@@ -39,8 +39,8 @@ export const DEFAULT_TESTIMONIALS: Testimonial[] = [
 
 // Portfólio: vídeos reais da Bellus (YouTube), tocam dentro da própria página.
 export const DEFAULT_PORTFOLIO: PortfolioItem[] = [
-  { title: 'A cerimônia, sem interrupções', proves: 'Emoção real e reações espontâneas no momento mais importante.', youtubeId: 'ePwx8bsoztI' },
-  { title: 'Os detalhes que passam despercebidos', proves: 'O olhar treinado para o que ninguém anuncia.', youtubeId: 'We-jTlYiLC4' },
+  { title: 'A cerimônia, sem interrupções', proves: 'Emoção real e reações espontâneas no momento mais importante.', youtubeId: 'ePwx8bsoztI', posterZoom: 1.35 },
+  { title: 'Os detalhes que passam despercebidos', proves: 'O olhar treinado para o que ninguém anuncia.', youtubeId: 'We-jTlYiLC4', posterZoom: 1.35 },
   { title: 'A história do dia inteiro', proves: 'Narrativa com profundidade, dos preparativos à festa.', youtubeId: '_O0Kialgkzo' },
 ]
 

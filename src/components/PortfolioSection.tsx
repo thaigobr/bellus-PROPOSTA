@@ -52,6 +52,7 @@ function PortfolioTile({
                 src={`https://i.ytimg.com/vi/${item.youtubeId}/hqdefault.jpg`}
                 alt=""
                 loading="lazy"
+                style={item.posterZoom ? { transform: `scale(${item.posterZoom})` } : undefined}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ) : (
