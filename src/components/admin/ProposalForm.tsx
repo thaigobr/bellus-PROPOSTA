@@ -1,6 +1,7 @@
 import { StoredProposal } from '@/data/crm'
 import { DEFAULT_PACKAGES, DEFAULT_PAYMENT_OPTIONS } from '@/data/defaults'
 import { formatBRL, formatDateShort } from '@/lib/format'
+import { MessageAutofill } from './MessageAutofill'
 
 type BookedDate = { date: string; couple: string }
 
@@ -19,6 +20,7 @@ export function ProposalForm({
   return (
     <form action={action} className="space-y-6">
       {initial && <input type="hidden" name="id" value={initial.id} />}
+      <MessageAutofill />
 
       {/* Casal */}
       <fieldset className="adm-card">
@@ -100,8 +102,8 @@ export function ProposalForm({
             <textarea name="recommendationReason" rows={2} defaultValue={v?.recommendationReason} className="adm-field" />
           </label>
           <label className="adm-label">
-            Mensagem pessoal de abertura
-            <textarea name="personalMessage" rows={3} defaultValue={v?.personalMessage} className="adm-field" />
+            Mensagem pessoal de abertura (preenchida sozinha; edite se quiser)
+            <textarea name="personalMessage" rows={4} defaultValue={v?.personalMessage} className="adm-field" />
           </label>
         </div>
       </fieldset>

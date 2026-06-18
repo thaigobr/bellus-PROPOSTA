@@ -59,8 +59,10 @@ export interface Addon {
   kind?: AddonKind
   /** Preço único (toggle). */
   price?: Price
-  /** quantity: preço por passo (ex.: 900 a cada 5 min). */
+  /** quantity: preço por passo (ex.: 990 a cada 5 min). */
   unitPrice?: number
+  /** quantity: preço por passo no downsell, quando a cliente reduz após ter escolhido. */
+  downsellPrice?: number
   /** quantity: minutos por passo (ex.: 5). */
   unitMinutes?: number
   /** quantity: número máximo de passos. */

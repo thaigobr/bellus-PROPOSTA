@@ -20,10 +20,16 @@ export default function LoginPage({
 
         <input type="hidden" name="next" value={searchParams.next ?? '/admin'} />
         <label className="adm-label mt-6">
-          Senha
-          <input name="password" type="password" autoFocus required className="adm-field" />
+          Usuário ou e-mail
+          <input name="login" autoFocus required autoComplete="username" className="adm-field" />
         </label>
-        {searchParams.erro && <p className="mt-2 text-sm text-rose-600">Senha incorreta.</p>}
+        <label className="adm-label mt-4">
+          Senha
+          <input name="password" type="password" required autoComplete="current-password" className="adm-field" />
+        </label>
+        {searchParams.erro && (
+          <p className="mt-2 text-sm text-rose-600">Usuário ou senha incorretos.</p>
+        )}
         <button type="submit" className="btn-primary mt-5 w-full">
           Entrar
         </button>

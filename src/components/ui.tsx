@@ -110,3 +110,23 @@ export function RecommendedBadge({ light }: { light?: boolean }) {
     </span>
   )
 }
+
+/** Aviso visível do downsell: 5 min por R$ 900 em vez de R$ 990. */
+export function DownsellBanner() {
+  return (
+    <div className="mb-4 flex items-start gap-3 rounded-lg border border-[var(--green)]/35 bg-[var(--green)]/[0.08] p-3.5">
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--green)] text-white"
+        aria-hidden
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <p className="text-sm leading-relaxed text-ink">
+        <span className="font-semibold text-[var(--green)]">Condição especial liberada:</span> agora cada
+        5 minutos de filme sai por <strong>R$ 900</strong>, em vez de R$ 990. É só adicionar.
+      </p>
+    </div>
+  )
+}

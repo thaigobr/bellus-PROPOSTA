@@ -72,7 +72,7 @@ function PackageCard({
             <Check
               width={17}
               height={17}
-              className={`mt-0.5 shrink-0 ${d.highlight ? 'text-gold' : 'text-ink-soft'}`}
+              className={`mt-0.5 shrink-0 ${d.highlight ? 'text-[var(--green)]' : 'text-[var(--green)]/70'}`}
             />
             <span className={d.highlight ? 'font-medium text-ink' : 'text-ink-soft'}>
               {d.label}
@@ -88,8 +88,8 @@ function PackageCard({
         aria-pressed={selected}
         className={`mt-auto min-h-12 rounded px-5 py-3 font-medium tracking-wide transition-colors ${
           selected
-            ? 'bg-ink text-cream'
-            : 'border border-ink text-ink hover:bg-ink hover:text-cream'
+            ? 'bg-[var(--green)] text-white'
+            : 'border border-[var(--green)] text-[var(--green)] hover:bg-[var(--green)] hover:text-white'
         }`}
       >
         {selected ? (

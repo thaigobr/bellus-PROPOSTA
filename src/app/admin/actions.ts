@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { createProposal, setStatus, updateProposal } from '@/lib/store'
 import { DEFAULT_PACKAGES, DEFAULT_PAYMENT_OPTIONS } from '@/data/defaults'
 import { ProposalStatus, StoredProposal } from '@/data/crm'
+import { defaultPersonalMessage } from '@/lib/messages'
+import { requireUser } from '@/lib/auth'
 
 function str(fd: FormData, k: string): string | undefined {
   const v = fd.get(k)
@@ -30,16 +32,27 @@ function parseForm(fd: FormData) {
   const availabilityStatus =
     availRaw === 'available' || availRaw === 'on_hold' || availRaw === 'unavailable' ? availRaw : undefined
 
+  const name = str(fd, 'name') ?? 'Cliente'
+  const partnerName = str(fd, 'partnerName')
+  const date = str(fd, 'date') ?? ''
+  // Garante mensagem personalizada: se vier vazia ou no modelo genérico, gera
+  // a partir dos dados reais do casal e da data.
+  const rawMsg = str(fd, 'personalMessage')
+  const personalMessage =
+    !rawMsg || rawMsg === defaultPersonalMessage()
+      ? defaultPersonalMessage(name, partnerName, date)
+      : rawMsg
+
   const data: Omit<StoredProposal, 'id' | 'slug' | 'status' | 'createdAt' | 'updatedAt' | 'viewCount'> = {
     client: {
-      name: str(fd, 'name') ?? 'Cliente',
-      partnerName: str(fd, 'partnerName'),
+      name,
+      partnerName,
       email: str(fd, 'email'),
       phone: str(fd, 'phone'),
     },
     event: {
       type: str(fd, 'type') ?? 'Casamento',
-      date: str(fd, 'date') ?? '',
+      date,
       venue: str(fd, 'venue') ?? '',
       city: str(fd, 'city') ?? '',
       guestCount: str(fd, 'guestCount'),
@@ -47,7 +60,7 @@ function parseForm(fd: FormData) {
     },
     recommendedPackageId: str(fd, 'recommendedPackageId'),
     recommendationReason: str(fd, 'recommendationReason'),
-    personalMessage: str(fd, 'personalMessage'),
+    personalMessage,
     availabilityStatus,
     expiresAt: str(fd, 'expiresAt'),
     priceOverrides: Object.keys(priceOverrides).length ? priceOverrides : undefined,
@@ -59,6 +72,7 @@ function parseForm(fd: FormData) {
 }
 
 export async function createProposalAction(formData: FormData) {
+  await requireUser()
   const data = parseForm(formData)
   const p = await createProposal(data)
   revalidatePath('/admin')
@@ -66,6 +80,7 @@ export async function createProposalAction(formData: FormData) {
 }
 
 export async function updateProposalAction(formData: FormData) {
+  await requireUser()
   const id = String(formData.get('id') ?? '')
   const data = parseForm(formData)
   await updateProposal(id, data)
@@ -75,6 +90,7 @@ export async function updateProposalAction(formData: FormData) {
 }
 
 export async function setStatusAction(formData: FormData) {
+  await requireUser()
   const id = String(formData.get('id') ?? '')
   const status = String(formData.get('status') ?? '') as ProposalStatus
   await setStatus(id, status)

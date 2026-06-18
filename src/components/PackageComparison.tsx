@@ -25,7 +25,7 @@ const FEATURES: { label: string; v: Record<string, Cell> }[] = [
 ]
 
 function CellView({ value }: { value: Cell | undefined }) {
-  if (value === true) return <Check width={18} height={18} className="mx-auto text-gold" aria-label="incluído" />
+  if (value === true) return <Check width={18} height={18} className="mx-auto text-[var(--green)]" aria-label="incluído" />
   if (value === false || value === undefined)
     return <span className="text-xs font-medium text-ink-soft/50" aria-label="não incluído">Não</span>
   return <span className="text-xs text-ink-soft sm:text-sm">{value}</span>
@@ -63,14 +63,14 @@ export function PackageComparison({
                       onClick={() => onSelect(p.id)}
                       aria-pressed={isSel}
                       className={`mx-auto flex w-full flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-colors ${
-                        isSel ? 'bg-ink text-cream' : 'text-ink hover:bg-ivory'
+                        isSel ? 'bg-[var(--green)] text-white' : 'text-ink hover:bg-ivory'
                       }`}
                     >
                       <span className="text-sm font-semibold sm:text-base">{p.name}</span>
                       {p.id === recommendedId && (
                         <span
                           className={`text-[0.62rem] font-semibold uppercase tracking-wider ${
-                            isSel ? 'text-gold-soft' : 'text-gold'
+                            isSel ? 'text-white/85' : 'text-gold'
                           }`}
                         >
                           Recomendado

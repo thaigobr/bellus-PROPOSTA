@@ -2,7 +2,7 @@
 
 import { Addon } from '@/data/types'
 import { formatBRL } from '@/lib/format'
-import { Section } from './ui'
+import { Section, DownsellBanner } from './ui'
 import { Check, Plus, Minus } from './icons'
 
 function QuantityRow({
@@ -30,6 +30,9 @@ function QuantityRow({
           <h3 className="font-medium text-ink">{addon.name}</h3>
           <p className="mt-1 text-sm text-ink-soft">{addon.description}</p>
           <p className="mt-0.5 text-sm text-gold/90">{addon.benefit}</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {formatBRL(addon.unitPrice ?? 0)} a cada {addon.unitMinutes ?? 5} min
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-4">
@@ -39,7 +42,7 @@ function QuantityRow({
               onClick={() => onChange(Math.max(0, quantity - 1))}
               disabled={quantity <= 0}
               aria-label="Diminuir minutos"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition-colors hover:border-ink disabled:opacity-30"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition-colors hover:border-[var(--green)] disabled:opacity-30"
             >
               <Minus width={16} height={16} />
             </button>
@@ -49,7 +52,7 @@ function QuantityRow({
               onClick={() => onChange(Math.min(max, quantity + 1))}
               disabled={quantity >= max}
               aria-label="Aumentar minutos"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition-colors hover:border-ink disabled:opacity-30"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition-colors hover:border-[var(--green)] disabled:opacity-30"
             >
               <Plus width={16} height={16} />
             </button>
@@ -124,10 +127,12 @@ export function AddonSelector({
   addons,
   quantities,
   onChange,
+  downsell,
 }: {
   addons: Addon[]
   quantities: Record<string, number>
   onChange: (id: string, quantity: number) => void
+  downsell?: boolean
 }) {
   if (!addons.length) return null
   return (
@@ -137,6 +142,7 @@ export function AddonSelector({
       title="Serviços adicionais"
       intro="Opcionais para complementar a sua experiência. O valor se ajusta na hora."
     >
+      {downsell && <DownsellBanner />}
       <div className="grid gap-3">
         {addons.map((addon) => {
           const qty = quantities[addon.id] ?? 0

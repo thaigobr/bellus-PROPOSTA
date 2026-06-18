@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const ADMIN_COOKIE = 'bellus_admin'
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'dev-bellus-token'
+const SESSION_COOKIE = 'bellus_session'
 
-/** Protege /admin/*. A tela de login fica acessível para autenticar. */
+/**
+ * Porteiro leve de /admin/*: exige um cookie de sessão. A verificação real
+ * (assinatura + usuário + papel) é feita no layout/ações do admin.
+ */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   if (pathname.startsWith('/admin/login')) return NextResponse.next()
 
-  const token = req.cookies.get(ADMIN_COOKIE)?.value
-  if (token !== ADMIN_TOKEN) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value
+  if (!token) {
     const url = req.nextUrl.clone()
     url.pathname = '/admin/login'
     url.searchParams.set('next', pathname)

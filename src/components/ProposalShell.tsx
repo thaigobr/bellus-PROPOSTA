@@ -32,6 +32,7 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
   const [addonQty, setAddonQty] = useState<Record<string, number>>(() =>
     Object.fromEntries(proposal.addons.filter((a) => a.defaultSelected).map((a) => [a.id, 1])),
   )
+  const [downsell, setDownsell] = useState(false)
   const [paymentId, setPaymentId] = useState<string>(proposal.paymentOptions[0]?.id ?? '')
   const [termsAccepted, setTermsAccepted] = useState(false)
 
@@ -43,9 +44,19 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
     () => proposal.packages.find((p) => p.id === packageId),
     [proposal.packages, packageId],
   )
+  // Downsell: o preço por minuto cai de 990 para 900 quando a cliente reduz
+  // um adicional por minutagem que já havia escolhido.
+  const effectiveAddons = useMemo(
+    () =>
+      proposal.addons.map((a) =>
+        downsell && a.kind === 'quantity' && a.downsellPrice ? { ...a, unitPrice: a.downsellPrice } : a,
+      ),
+    [proposal.addons, downsell],
+  )
+
   const addonLines: AddonLine[] = useMemo(
-    () => proposal.addons.map((addon) => ({ addon, quantity: addonQty[addon.id] ?? 0 })),
-    [proposal.addons, addonQty],
+    () => effectiveAddons.map((addon) => ({ addon, quantity: addonQty[addon.id] ?? 0 })),
+    [effectiveAddons, addonQty],
   )
   const selectedLines = useMemo(() => addonLines.filter((l) => l.quantity > 0), [addonLines])
   const selectedPayment = useMemo(
@@ -64,8 +75,16 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
   }
 
   function setAddonQuantity(id: string, quantity: number) {
-    setAddonQty((prev) => ({ ...prev, [id]: Math.max(0, quantity) }))
-    track('addon_select', { proposal_id: proposal.proposalId, addon_id: id, selected: quantity > 0 })
+    const q = Math.max(0, quantity)
+    setAddonQty((prev) => {
+      const prevQ = prev[id] ?? 0
+      const addon = proposal.addons.find((a) => a.id === id)
+      if (addon?.kind === 'quantity' && addon.downsellPrice && q < prevQ && prevQ > 0) {
+        setDownsell(true)
+      }
+      return { ...prev, [id]: q }
+    })
+    track('addon_select', { proposal_id: proposal.proposalId, addon_id: id, selected: q > 0 })
   }
 
   function selectPayment(id: string) {
@@ -90,7 +109,12 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
         recommendedId={proposal.meta.recommendedPackageId}
         onSelect={selectPackage}
       />
-      <AddonSelector addons={proposal.addons} quantities={addonQty} onChange={setAddonQuantity} />
+      <AddonSelector
+        addons={effectiveAddons}
+        quantities={addonQty}
+        onChange={setAddonQuantity}
+        downsell={downsell}
+      />
 
       <Faq items={proposal.faq} />
 
@@ -121,9 +145,12 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
               <OrderSummary
                 proposal={proposal}
                 selectedPackage={selectedPackage}
-                selectedLines={selectedLines}
                 selectedPayment={selectedPayment}
                 breakdown={breakdown}
+                addons={effectiveAddons}
+                quantities={addonQty}
+                onAddonChange={setAddonQuantity}
+                downsell={downsell}
               />
               <CheckoutButton
                 proposal={proposal}

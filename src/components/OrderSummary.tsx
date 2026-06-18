@@ -1,9 +1,10 @@
 'use client'
 
-import { Package, PaymentOption, Proposal, isPending } from '@/data/types'
-import { AddonLine, PriceBreakdown, addonLineMinutes, addonLineTotal } from '@/lib/pricing'
+import { Addon, Package, PaymentOption, Proposal, isPending } from '@/data/types'
+import { PriceBreakdown, addonLineMinutes, addonLineTotal } from '@/lib/pricing'
 import { formatBRL, formatBRLCents, formatDateShort } from '@/lib/format'
-import { PendingMark } from './ui'
+import { PendingMark, DownsellBanner } from './ui'
+import { Plus, Minus } from './icons'
 
 function Line({
   label,
@@ -21,7 +22,7 @@ function Line({
       <span className={strong ? 'font-medium text-ink' : 'text-ink-soft'}>{label}</span>
       <span
         className={`tabular-nums ${
-          accent ? 'text-emerald-700' : strong ? 'font-medium text-ink' : 'text-ink'
+          accent ? 'text-[var(--green)]' : strong ? 'font-medium text-ink' : 'text-ink'
         }`}
       >
         {value}
@@ -30,20 +31,91 @@ function Line({
   )
 }
 
+function StepBtn({
+  onClick,
+  disabled,
+  children,
+  label,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children: React.ReactNode
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--green)] text-[var(--green)] transition-colors hover:bg-[var(--green)] hover:text-white disabled:opacity-30"
+    >
+      {children}
+    </button>
+  )
+}
+
+/** Stepper de adicional por minutagem dentro do resumo (adicionar/retirar aqui). */
+function SummaryStepper({
+  addon,
+  quantity,
+  onChange,
+}: {
+  addon: Addon
+  quantity: number
+  onChange: (id: string, q: number) => void
+}) {
+  const max = addon.maxUnits ?? 6
+  const minutes = addonLineMinutes({ addon, quantity })
+  const total = addonLineTotal({ addon, quantity })
+  return (
+    <div className="rounded-lg bg-ivory/70 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-ink">{addon.name}</span>
+        <span className="text-sm font-semibold tabular-nums text-ink">
+          {quantity > 0 ? `+ ${formatBRL(total)}` : formatBRL(0)}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <StepBtn onClick={() => onChange(addon.id, quantity - 1)} disabled={quantity <= 0} label="Retirar minutos">
+          <Minus width={15} height={15} />
+        </StepBtn>
+        <span className="w-14 text-center text-sm tabular-nums text-ink">{minutes} min</span>
+        <StepBtn onClick={() => onChange(addon.id, quantity + 1)} disabled={quantity >= max} label="Adicionar minutos">
+          <Plus width={15} height={15} />
+        </StepBtn>
+      </div>
+    </div>
+  )
+}
+
 export function OrderSummary({
   proposal,
   selectedPackage,
-  selectedLines,
   selectedPayment,
   breakdown,
+  addons,
+  quantities,
+  onAddonChange,
+  downsell,
 }: {
   proposal: Proposal
   selectedPackage?: Package
-  selectedLines: AddonLine[]
   selectedPayment?: PaymentOption
   breakdown: PriceBreakdown
+  addons: Addon[]
+  quantities: Record<string, number>
+  onAddonChange: (id: string, q: number) => void
+  downsell?: boolean
 }) {
   const expires = proposal.meta.expiresAt
+  const quantityAddons = addons.filter((a) => a.kind === 'quantity')
+  const toggleLines = addons
+    .filter((a) => (a.kind ?? 'toggle') === 'toggle')
+    .map((a) => ({ addon: a, quantity: quantities[a.id] ?? 0 }))
+    .filter((l) => l.quantity > 0)
+  // Inclui prévia: pacotes com "Prévia" ou que herdam o Diamante (que tem prévia).
+  const incluiPrevia = selectedPackage?.deliverables.some((d) => /pr[ée]via|diamante/i.test(d.label))
 
   return (
     <div className="rounded-xl2 border border-line bg-bg p-6 shadow-soft">
@@ -71,16 +143,36 @@ export function OrderSummary({
           strong
         />
 
-        {selectedLines.length > 0 && (
-          <div className="space-y-2 border-l-2 border-line pl-3">
-            {selectedLines.map((line) => {
-              const min = addonLineMinutes(line)
-              const label = min > 0 ? `${line.addon.name} (${min} min)` : line.addon.name
-              return <Line key={line.addon.id} label={label} value={`+ ${formatBRL(addonLineTotal(line))}`} />
-            })}
+        {incluiPrevia && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--green)]/30 bg-[var(--green)]/[0.07] px-3 py-2">
+            <span className="flex items-center gap-2 text-sm text-ink">
+              <span className="rounded-full bg-[var(--green)] px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-white">
+                Bônus
+              </span>
+              Prévia em até 15 dias
+            </span>
+            <span className="text-sm font-medium text-[var(--green)]">Cortesia</span>
           </div>
         )}
+
+        {toggleLines.map((l) => (
+          <Line
+            key={l.addon.id}
+            label={l.addon.name}
+            value={`+ ${formatBRL(addonLineTotal(l))}`}
+          />
+        ))}
       </div>
+
+      {/* Tempo extra: adicionar/retirar aqui mesmo */}
+      {quantityAddons.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {downsell && <DownsellBanner />}
+          {quantityAddons.map((a) => (
+            <SummaryStepper key={a.id} addon={a} quantity={quantities[a.id] ?? 0} onChange={onAddonChange} />
+          ))}
+        </div>
+      )}
 
       <hr className="my-5 border-line" />
 
@@ -98,9 +190,7 @@ export function OrderSummary({
 
           <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
             <span className="font-medium text-ink">Total</span>
-            <span className="text-2xl font-semibold tabular-nums text-ink">
-              {formatBRL(breakdown.total)}
-            </span>
+            <span className="text-2xl font-semibold tabular-nums text-ink">{formatBRL(breakdown.total)}</span>
           </div>
 
           {selectedPayment?.kind === 'signal' && breakdown.signal != null && (
