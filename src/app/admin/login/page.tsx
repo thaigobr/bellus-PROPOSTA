@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { loginAction } from '../actions'
 
 export const metadata: Metadata = {
   title: 'Painel · Bellus',
@@ -13,7 +12,7 @@ export default function LoginPage({
 }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-charcoal px-6">
-      <form action={loginAction} className="w-full max-w-sm rounded-xl2 border border-line-dark bg-bg p-7 shadow-lift">
+      <form method="post" action="/api/admin/login" className="w-full max-w-sm rounded-xl2 border border-line-dark bg-bg p-7 shadow-lift">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo_bellus.png" alt="Bellus Eventos" className="mx-auto h-14 w-auto" />
         <h1 className="mt-5 text-center text-lg font-semibold text-ink">Painel de propostas</h1>

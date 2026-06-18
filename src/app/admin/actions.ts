@@ -1,9 +1,7 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { ADMIN_COOKIE, ADMIN_PASSWORD, ADMIN_TOKEN } from '@/lib/admin-auth'
 import { createProposal, setStatus, updateProposal } from '@/lib/store'
 import { DEFAULT_PACKAGES, DEFAULT_PAYMENT_OPTIONS } from '@/data/defaults'
 import { ProposalStatus, StoredProposal } from '@/data/crm'
@@ -58,27 +56,6 @@ function parseForm(fd: FormData) {
     whatsapp: str(fd, 'whatsapp'),
   }
   return data
-}
-
-export async function loginAction(formData: FormData) {
-  const password = String(formData.get('password') ?? '')
-  const next = String(formData.get('next') ?? '/admin')
-  const safeNext = next.startsWith('/admin') ? next : '/admin'
-  if (password !== ADMIN_PASSWORD) {
-    redirect(`/admin/login?erro=1&next=${encodeURIComponent(safeNext)}`)
-  }
-  cookies().set(ADMIN_COOKIE, ADMIN_TOKEN, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  })
-  redirect(safeNext)
-}
-
-export async function logoutAction() {
-  cookies().delete(ADMIN_COOKIE)
-  redirect('/admin/login')
 }
 
 export async function createProposalAction(formData: FormData) {

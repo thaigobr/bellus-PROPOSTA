@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { logoutAction } from '../actions'
 
 export const metadata: Metadata = {
   title: 'Painel · Bellus',
@@ -27,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             </nav>
           </div>
-          <form action={logoutAction}>
+          <form method="post" action="/api/admin/logout">
             <button type="submit" className="text-sm text-ink-soft hover:text-ink">
               Sair
             </button>
