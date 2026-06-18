@@ -13,6 +13,9 @@
 # vercel
 .vercel
 
+# dados locais do CRM (substituidos por Supabase em producao)
+/.data
+
 # misc
 .DS_Store
 *.pem

@@ -1,22 +1,22 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getAllProposalSlugs, getProposal } from '@/data/proposals'
+import { dateConflict, getBySlug } from '@/lib/store'
+import { composeProposal } from '@/lib/compose'
 import { ProposalShell } from '@/components/ProposalShell'
+import { ViewBeacon } from '@/components/ViewBeacon'
+
+export const dynamic = 'force-dynamic'
 
 interface Params {
   params: { slug: string }
 }
 
-export function generateStaticParams() {
-  return getAllProposalSlugs().map((slug) => ({ slug }))
-}
-
-export function generateMetadata({ params }: Params): Metadata {
-  const proposal = getProposal(params.slug)
-  const couple = proposal
-    ? proposal.client.partnerName
-      ? `${proposal.client.name} & ${proposal.client.partnerName}`
-      : proposal.client.name
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const s = await getBySlug(params.slug)
+  const couple = s
+    ? s.client.partnerName
+      ? `${s.client.name} & ${s.client.partnerName}`
+      : s.client.name
     : 'Proposta'
   return {
     title: `${couple} · Proposta Bellus`,
@@ -24,8 +24,22 @@ export function generateMetadata({ params }: Params): Metadata {
   }
 }
 
-export default function ProposalPage({ params }: Params) {
-  const proposal = getProposal(params.slug)
-  if (!proposal) notFound()
-  return <ProposalShell proposal={proposal} />
+export default async function ProposalPage({ params }: Params) {
+  const stored = await getBySlug(params.slug)
+  if (!stored) notFound()
+
+  const proposal = composeProposal(stored)
+
+  // Disponibilidade automática pela agenda quando não há override manual.
+  if (!stored.availabilityStatus) {
+    const conflict = await dateConflict(stored.event.date, stored.id)
+    if (conflict) proposal.meta.availabilityStatus = 'unavailable'
+  }
+
+  return (
+    <>
+      <ViewBeacon slug={stored.slug} />
+      <ProposalShell proposal={proposal} />
+    </>
+  )
 }

@@ -151,6 +151,33 @@
     color: var(--gold);
   }
 
+  /* Campos do painel admin. */
+  .adm-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .adm-field {
+    margin-top: 0.25rem;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 0.625rem 0.75rem;
+    color: var(--ink);
+    outline: none;
+  }
+  .adm-field:focus {
+    border-color: var(--gold);
+  }
+  .adm-card {
+    border-radius: 0.5rem;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 1.25rem;
+  }
+
   /* Textura de grão sutil para seções cinematográficas escuras. */
   .grain::before {
     content: '';
