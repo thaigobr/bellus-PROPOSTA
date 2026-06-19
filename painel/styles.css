@@ -47,6 +47,10 @@ a { color:inherit; }
 
 /* lista */
 .plist { display:grid; gap:.7rem; }
+.lista-busca { width:100%; font-family:var(--sans); font-size:.95rem; color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:9px; padding:.7rem .85rem; margin-bottom:1.4rem; }
+.lista-busca:focus { outline:none; border-color:var(--gold); }
+.month-group { margin-bottom:1.6rem; }
+.month-head { font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:var(--gold); font-weight:600; margin:0 0 .7rem; }
 .pitem { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.15rem; background:#fff; border:1px solid var(--line); border-radius:12px; }
 .pitem .nome { font-weight:500; }
 .pitem .meta { font-size:.82rem; color:var(--ink-soft); margin-top:.15rem; }

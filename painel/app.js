@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], editing: null, current: null, recovery: false };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -188,8 +188,8 @@ function viewDashboard(){
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
   <div class="dcards">${cardsHTML}</div>
-  <div class="section-label" style="margin-top:1.8rem">Follow-up · quem precisa de atenção</div>
-  <p class="muted" style="margin:-.4rem 0 1rem">Por prioridade: quem visualizou e ainda não reservou, depois quem ainda não abriu a proposta.</p>
+  <div class="section-label" style="margin-top:1.8rem">Follow-up · ${followup.length} ${followup.length===1?"precisa":"precisam"} de atenção</div>
+  <p class="muted" style="margin:-.4rem 0 1rem">Aqui aparecem só as que precisam de ação agora (de ${ps.length} no total; veja todas em Propostas). Por prioridade: visualizou e não reservou, depois ainda não abriu.</p>
   ${fuBlock}`;
 }
 // ---------- recuperação de senha ----------
@@ -208,16 +208,26 @@ function viewRecovery(){
     </form>
   </main></div>`;
 }
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+function mesAno(k){ if(!/^\d{4}-\d{2}$/.test(k)) return "Sem data"; const p=k.split("-"); const m=MESES[parseInt(p[1],10)-1]||""; return m.charAt(0).toUpperCase()+m.slice(1)+" de "+p[0]; }
+function propRow(p){
+  return `<div class="pitem" data-open="${p.id}" style="cursor:pointer"><div><div class="nome">${esc(nomes(p))}</div><div class="meta">${fmtData(p.evento_data)} · ${esc(p.slug)}</div></div><span class="badge ${esc(p.status)}">${esc(statusTxt(p.status))}</span></div>`;
+}
+function listaContHTML(q){
+  q=(q||"").trim().toLowerCase();
+  const ps=state.propostas.filter((p)=> !q || [p.cliente_nome,p.cliente_parceiro,p.cliente_email,p.slug].some((x)=>(x||"").toLowerCase().includes(q)));
+  if(!ps.length) return `<div class="empty"><p>${q?`Nada encontrado para "${esc(q)}".`:"Nenhuma proposta ainda."}</p></div>`;
+  const groups={};
+  ps.forEach((p)=>{ const k=(p.criado_em||"").slice(0,7); (groups[k]=groups[k]||[]).push(p); });
+  return Object.keys(groups).sort().reverse().map((k)=>{
+    const it=groups[k];
+    return `<div class="month-group"><div class="month-head">${esc(mesAno(k))} · ${it.length} ${it.length===1?"proposta":"propostas"}</div><div class="plist">${it.map(propRow).join("")}</div></div>`;
+  }).join("");
+}
 function viewLista(){
-  const items = state.propostas.map((p)=>`
-    <div class="pitem" data-open="${p.id}" style="cursor:pointer">
-      <div><div class="nome">${esc(nomes(p))}</div><div class="meta">${fmtData(p.evento_data)} · ${esc(p.slug)}</div></div>
-      <span class="badge ${esc(p.status)}">${esc(statusTxt(p.status))}</span>
-    </div>`).join("");
-  const list = state.propostas.length
-    ? `<div class="plist">${items}</div>`
-    : `<div class="empty"><p>Nenhuma proposta ainda.</p><button class="btn btn-primary" data-nova>Criar a primeira</button></div>`;
-  return `<div class="page-head"><h2 class="serif">Propostas</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>${list}`;
+  const head=`<div class="page-head"><h2 class="serif">Propostas</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>`;
+  if(!state.propostas.length) return head+`<div class="empty"><p>Nenhuma proposta ainda.</p><button class="btn btn-primary" data-nova>Criar a primeira</button></div>`;
+  return head+`<input class="lista-busca" id="lista-busca" type="search" placeholder="Buscar por nome, e-mail ou link..." value="${esc(state.listaBusca||"")}" autocomplete="off"/><div id="lista-cont">${listaContHTML(state.listaBusca||"")}</div>`;
 }
 function field(label, name, opts={}){
   const { type="text", req=false, ph="", val="", textarea=false, select=null } = opts;
@@ -383,6 +393,13 @@ function wire(){
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
   const lo=document.getElementById("logout"); if(lo) lo.addEventListener("click", doLogout);
+
+  const lb=document.getElementById("lista-busca");
+  if(lb) lb.addEventListener("input", ()=>{
+    state.listaBusca=lb.value;
+    const cont=document.getElementById("lista-cont");
+    if(cont){ cont.innerHTML=listaContHTML(lb.value); cont.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open")))); }
+  });
 
   const cop=document.getElementById("btn-copiar");
   if (cop) cop.addEventListener("click", async ()=>{
