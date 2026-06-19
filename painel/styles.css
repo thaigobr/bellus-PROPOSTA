@@ -51,6 +51,14 @@ a { color:inherit; }
 .lista-busca:focus { outline:none; border-color:var(--gold); }
 .month-group { margin-bottom:1.6rem; }
 .month-head { font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; color:var(--gold); font-weight:600; margin:0 0 .7rem; }
+
+/* graficos do dashboard */
+.dcharts { display:grid; gap:.9rem; }
+@media (min-width:760px){ .dcharts { grid-template-columns:1fr 1fr; } }
+.chart-card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; }
+.chart-card.chart-wide { grid-column:1/-1; }
+.chart-title { font-size:.82rem; font-weight:600; color:var(--ink); margin-bottom:.7rem; }
+.chart-box { position:relative; height:230px; }
 .pitem { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.15rem; background:#fff; border:1px solid var(--line); border-radius:12px; }
 .pitem .nome { font-weight:500; }
 .pitem .meta { font-size:.82rem; color:var(--ink-soft); margin-top:.15rem; }

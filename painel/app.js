@@ -167,6 +167,49 @@ function detContato(p){
   <div class="contato-acoes">${contatoBtns(p)}</div>`;
 }
 // ---------- dashboard ----------
+let dashCharts = [];
+async function renderCharts(){
+  const host = document.getElementById("dash-charts");
+  if(!host) return;
+  dashCharts.forEach((c)=>{ try{ c.destroy(); }catch(e){} });
+  dashCharts = [];
+  const ps = state.propostas;
+  if(!ps.length){ host.style.display="none"; return; }
+  let Chart;
+  try { Chart = (await import("https://esm.sh/chart.js@4/auto")).default; }
+  catch(e){ host.innerHTML = '<p class="muted">Não foi possível carregar os gráficos agora.</p>'; return; }
+  const GREEN="#1d7a4f", GOLD="#b49764", REDISH="#c79a9a", LINE="rgba(126,115,103,.14)";
+  Chart.defaults.font.family = "Montserrat, system-ui, sans-serif";
+  Chart.defaults.color = "#7e7367";
+  const won=(s)=> s==="reservada"||s==="fechada";
+  const lost=(s)=> s==="perdida";
+  const mk=[...new Set(ps.map((p)=>(p.criado_em||"").slice(0,7)).filter((x)=>/^\d{4}-\d{2}$/.test(x)))].sort();
+  const lab=mk.map((k)=>{ const p=k.split("-"); return (MESES[+p[1]-1]||"").slice(0,3)+"/"+p[0].slice(2); });
+  const inM=(k)=>ps.filter((p)=>(p.criado_em||"").slice(0,7)===k);
+  dashCharts.push(new Chart(document.getElementById("ch-mes"), {
+    type:"bar",
+    data:{ labels:lab, datasets:[
+      {label:"Fechadas/Reservadas",data:mk.map((k)=>inM(k).filter((p)=>won(p.status)).length),backgroundColor:GREEN},
+      {label:"Em andamento",data:mk.map((k)=>inM(k).filter((p)=>!won(p.status)&&!lost(p.status)).length),backgroundColor:GOLD},
+      {label:"Perdidas",data:mk.map((k)=>inM(k).filter((p)=>lost(p.status)).length),backgroundColor:REDISH},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:LINE}}}}
+  }));
+  const so=["rascunho","enviada","visualizada","negociando","reservada","fechada","perdida"];
+  const sc={rascunho:"#cfc8bd",enviada:"#3f6896",visualizada:"#6a8fc0",negociando:"#9a7b32",reservada:"#1d7a4f",fechada:"#145e3c",perdida:"#a85454"};
+  const sUsed=so.filter((s)=>ps.some((p)=>p.status===s));
+  dashCharts.push(new Chart(document.getElementById("ch-status"), {
+    type:"doughnut",
+    data:{ labels:sUsed.map((s)=>statusTxt(s)), datasets:[{data:sUsed.map((s)=>ps.filter((p)=>p.status===s).length),backgroundColor:sUsed.map((s)=>sc[s]),borderWidth:2,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"right",labels:{boxWidth:12,font:{size:11}}}}}
+  }));
+  const env=ps.filter((p)=>p.enviada_em).length, vis=ps.filter((p)=>p.visualizada_em).length, gan=ps.filter((p)=>won(p.status)).length;
+  dashCharts.push(new Chart(document.getElementById("ch-funil"), {
+    type:"bar",
+    data:{ labels:["Enviadas","Visualizadas","Reservadas/Fechadas"], datasets:[{data:[env,vis,gan],backgroundColor:["#3f6896","#6a8fc0",GREEN],borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:LINE}},y:{grid:{display:false}}}}
+  }));
+}
 function viewDashboard(){
   const ps=state.propostas;
   const by=(s)=>ps.filter((p)=>p.status===s).length;
@@ -188,6 +231,12 @@ function viewDashboard(){
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
   <div class="dcards">${cardsHTML}</div>
+  <div class="section-label" style="margin-top:1.8rem">Gráficos</div>
+  <div class="dcharts" id="dash-charts">
+    <div class="chart-card chart-wide"><div class="chart-title">Propostas por mês</div><div class="chart-box"><canvas id="ch-mes"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Distribuição por status</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Funil de conversão</div><div class="chart-box"><canvas id="ch-funil"></canvas></div></div>
+  </div>
   <div class="section-label" style="margin-top:1.8rem">Follow-up · ${followup.length} ${followup.length===1?"precisa":"precisam"} de atenção</div>
   <p class="muted" style="margin:-.4rem 0 1rem">Aqui aparecem só as que precisam de ação agora (de ${ps.length} no total; veja todas em Propostas). Por prioridade: visualizou e não reservou, depois ainda não abriu.</p>
   ${fuBlock}`;
@@ -389,6 +438,7 @@ function renderLogin(){
 
 function wire(){
   document.querySelectorAll("[data-go]").forEach((b)=> b.addEventListener("click", ()=>go(b.getAttribute("data-go"))));
+  if (document.getElementById("dash-charts")) renderCharts();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
