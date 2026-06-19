@@ -44,14 +44,22 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
     () => proposal.packages.find((p) => p.id === packageId),
     [proposal.packages, packageId],
   )
+  const ceremonyOnly = !!selectedPackage?.ceremonyOnly
+  // Adicionais que não se aplicam à experiência só-cerimônia: tempo extra de
+  // filme e prévia existem apenas nas experiências com filme do dia inteiro.
+  // Filtrando aqui, eles somem do seletor, do resumo e também do preço.
+  const visibleAddons = useMemo(
+    () => proposal.addons.filter((a) => !(a.hideForCeremonyOnly && ceremonyOnly)),
+    [proposal.addons, ceremonyOnly],
+  )
   // Downsell: o preço por minuto cai de 990 para 900 quando a cliente reduz
   // um adicional por minutagem que já havia escolhido.
   const effectiveAddons = useMemo(
     () =>
-      proposal.addons.map((a) =>
+      visibleAddons.map((a) =>
         downsell && a.kind === 'quantity' && a.downsellPrice ? { ...a, unitPrice: a.downsellPrice } : a,
       ),
-    [proposal.addons, downsell],
+    [visibleAddons, downsell],
   )
 
   const addonLines: AddonLine[] = useMemo(
@@ -114,6 +122,7 @@ export function ProposalShell({ proposal }: { proposal: Proposal }) {
         quantities={addonQty}
         onChange={setAddonQuantity}
         downsell={downsell}
+        ceremonyOnly={ceremonyOnly}
       />
 
       <Faq items={proposal.faq} />

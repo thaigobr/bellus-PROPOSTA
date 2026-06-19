@@ -45,6 +45,8 @@ export interface Package {
   valueNote?: string
   /** Destaque curto da economia, exibido em badge (ex.: "Economize R$ 1.670"). */
   valueHighlight?: string
+  /** Esta experiência cobre apenas a cerimônia (sem filme do dia todo nem prévia). */
+  ceremonyOnly?: boolean
 }
 
 /** toggle: liga/desliga. quantity: passos somáveis. bonus: cortesia (sem preço). */
@@ -69,6 +71,8 @@ export interface Addon {
   maxUnits?: number
   /** true => já vem marcado (raro; use com parcimônia). */
   defaultSelected?: boolean
+  /** Não se aplica à experiência só-cerimônia (ex.: tempo extra de filme, prévia). */
+  hideForCeremonyOnly?: boolean
 }
 
 export type PaymentKind =

@@ -115,7 +115,10 @@ export function OrderSummary({
     .map((a) => ({ addon: a, quantity: quantities[a.id] ?? 0 }))
     .filter((l) => l.quantity > 0)
   // Inclui prévia: pacotes com "Prévia" ou que herdam o Diamante (que tem prévia).
-  const incluiPrevia = selectedPackage?.deliverables.some((d) => /pr[ée]via|diamante/i.test(d.label))
+  // A experiência só-cerimônia não tem prévia, então nunca exibe o bônus.
+  const incluiPrevia =
+    !selectedPackage?.ceremonyOnly &&
+    selectedPackage?.deliverables.some((d) => /pr[ée]via|diamante/i.test(d.label))
 
   return (
     <div className="rounded-xl2 border border-line bg-bg p-6 shadow-soft">

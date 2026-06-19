@@ -140,6 +140,7 @@ export const DEFAULT_PACKAGES: Package[] = [
     ],
     price: 2670,
     deliveryTime: '60 a 90 dias (máximo 150)',
+    ceremonyOnly: true,
   },
   {
     id: 'rubi',
@@ -216,6 +217,7 @@ export const DEFAULT_ADDONS: Addon[] = [
     downsellPrice: 900,
     unitMinutes: 5,
     maxUnits: 6,
+    hideForCeremonyOnly: true,
   },
   {
     id: 'previa',
@@ -223,6 +225,7 @@ export const DEFAULT_ADDONS: Addon[] = [
     description: 'Um primeiro recorte do filme, entregue em até 2 semanas após o casamento.',
     benefit: 'A emoção mais recente, enquanto ainda está viva.',
     kind: 'bonus',
+    hideForCeremonyOnly: true,
   },
 ]
 
