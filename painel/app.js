@@ -193,10 +193,10 @@ async function renderCharts(){
       {label:"Em andamento",data:mk.map((k)=>inM(k).filter((p)=>!won(p.status)&&!lost(p.status)).length),backgroundColor:GOLD},
       {label:"Perdidas",data:mk.map((k)=>inM(k).filter((p)=>lost(p.status)).length),backgroundColor:REDISH},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:LINE}}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0},grid:{color:LINE}}}}
   }));
   const so=["rascunho","enviada","visualizada","negociando","reservada","fechada","perdida"];
-  const sc={rascunho:"#cfc8bd",enviada:"#3f6896",visualizada:"#6a8fc0",negociando:"#9a7b32",reservada:"#1d7a4f",fechada:"#145e3c",perdida:"#a85454"};
+  const sc={rascunho:"#cfc8bd",enviada:"#86c79a",visualizada:"#e3c34a",negociando:"#9a7b32",reservada:"#e0883a",fechada:"#145e3c",perdida:"#a85454"};
   const sUsed=so.filter((s)=>ps.some((p)=>p.status===s));
   dashCharts.push(new Chart(document.getElementById("ch-status"), {
     type:"doughnut",
@@ -206,9 +206,27 @@ async function renderCharts(){
   const env=ps.filter((p)=>p.enviada_em).length, vis=ps.filter((p)=>p.visualizada_em).length, gan=ps.filter((p)=>won(p.status)).length;
   dashCharts.push(new Chart(document.getElementById("ch-funil"), {
     type:"bar",
-    data:{ labels:["Enviadas","Visualizadas","Reservadas/Fechadas"], datasets:[{data:[env,vis,gan],backgroundColor:["#3f6896","#6a8fc0",GREEN],borderRadius:4}]},
+    data:{ labels:["Enviadas","Visualizadas","Reservadas/Fechadas"], datasets:[{data:[env,vis,gan],backgroundColor:["#86c79a","#e3c34a","#145e3c"],borderRadius:4}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:LINE}},y:{grid:{display:false}}}}
   }));
+}
+async function renderMovimentacoes(){
+  const host = document.getElementById("mov-list");
+  if(!host) return;
+  let data;
+  try {
+    const r = await supabase.from("proposta_eventos")
+      .select("status_anterior,status_novo,criado_em,propostas(cliente_nome,cliente_parceiro)")
+      .order("criado_em",{ascending:false}).limit(8);
+    data = r.data;
+  } catch(e){ host.innerHTML='<p class="muted">Não foi possível carregar as movimentações.</p>'; return; }
+  if(!data || !data.length){ host.innerHTML='<p class="muted">Sem movimentações registradas ainda. A partir de agora, cada mudança de status fica registrada aqui.</p>'; return; }
+  host.innerHTML = data.map((e)=>{
+    const pr = e.propostas || {};
+    const nome = pr.cliente_parceiro ? (pr.cliente_nome+" & "+pr.cliente_parceiro) : (pr.cliente_nome||"—");
+    const trans = e.status_anterior ? (statusTxt(e.status_anterior)+" → "+statusTxt(e.status_novo)) : ("Nova · "+statusTxt(e.status_novo));
+    return `<div class="mov-row"><span class="mov-nome">${esc(nome)}</span><span class="mov-trans">${esc(trans)}</span><span class="mov-data">${esc(desdeTxt(e.criado_em))}</span></div>`;
+  }).join("");
 }
 function viewDashboard(){
   const ps=state.propostas;
@@ -227,6 +245,8 @@ function viewDashboard(){
       <div class="fu-acoes">${contatoBtns(p)}</div>
     </div>`;
   }).join("");
+  const env=ps.filter((p)=>p.enviada_em).length, vis=ps.filter((p)=>p.visualizada_em).length, gan=ps.filter((p)=>["reservada","fechada"].includes(p.status)).length;
+  const txAb=env?Math.round(vis/env*100):0, txFe=env?Math.round(gan/env*100):0;
   const fuBlock = followup.length ? `<div class="furows">${fuRows}</div>` : `<div class="empty"><p>Nenhuma proposta aguardando follow-up agora.</p></div>`;
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
@@ -237,6 +257,13 @@ function viewDashboard(){
     <div class="chart-card"><div class="chart-title">Distribuição por status</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Funil de conversão</div><div class="chart-box"><canvas id="ch-funil"></canvas></div></div>
   </div>
+  <div class="section-label" style="margin-top:1.8rem">Conversão e movimentação</div>
+  <div class="conv-metrics">
+    <div class="conv-card"><div class="conv-num">${txAb}%</div><div class="conv-lab">Taxa de abertura</div><div class="conv-sub">visualizadas ÷ enviadas</div></div>
+    <div class="conv-card"><div class="conv-num">${txFe}%</div><div class="conv-lab">Taxa de fechamento</div><div class="conv-sub">reservadas/fechadas ÷ enviadas</div></div>
+  </div>
+  <p class="muted" style="margin:1rem 0 .6rem">Últimas mudanças de status</p>
+  <div class="mov-list" id="mov-list"><p class="muted">Carregando...</p></div>
   <div class="section-label" style="margin-top:1.8rem">Follow-up · ${followup.length} ${followup.length===1?"precisa":"precisam"} de atenção</div>
   <p class="muted" style="margin:-.4rem 0 1rem">Aqui aparecem só as que precisam de ação agora (de ${ps.length} no total; veja todas em Propostas). Por prioridade: visualizou e não reservou, depois ainda não abriu.</p>
   ${fuBlock}`;
@@ -439,6 +466,7 @@ function renderLogin(){
 function wire(){
   document.querySelectorAll("[data-go]").forEach((b)=> b.addEventListener("click", ()=>go(b.getAttribute("data-go"))));
   if (document.getElementById("dash-charts")) renderCharts();
+  if (document.getElementById("mov-list")) renderMovimentacoes();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
