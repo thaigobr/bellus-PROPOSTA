@@ -236,6 +236,7 @@
     el.querySelectorAll("[data-step]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-addon");var q=P.qty[id]||0;setQty(id,b.getAttribute("data-step")==="up"?q+1:q-1);});});
     el.querySelectorAll("[data-pay]").forEach(function(b){b.addEventListener("click",function(){P.payId=b.getAttribute("data-pay");paintConfig();paintMbar();});});
     el.querySelectorAll("[data-scroll]").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-scroll"));if(t)t.scrollIntoView({behavior:"smooth"});});});
+    setupTitleType();
     var tc=document.getElementById("terms"), rb=document.getElementById("reservar"), msg=document.getElementById("ck-msg");
     if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar.";});
     if(rb)rb.addEventListener("click",function(e){if(dataOcupada())return;if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}}});
@@ -246,6 +247,37 @@
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
   }
   function pick(id){P.pkgId=id;paintExp();paintComp();paintConfig();paintMbar();}
+
+  // ── Títulos: efeito de máquina de escrever (1x por título, mesmo em seções que re-renderizam) ──
+  var titleReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var titleIO = null, titleTyped = {};
+  function typeTitleEl(el){
+    var key=(el.textContent||"").trim();
+    if(titleTyped[key]) return;
+    titleTyped[key]=true;
+    var tokens=el.innerHTML.split(/(<br\s*\/?>)/i), units=[];
+    tokens.forEach(function(t){ if(!t) return; if(/^<br/i.test(t)) units.push(t); else for(var k=0;k<t.length;k++) units.push(t.charAt(k)); });
+    if(!units.length) return;
+    el.style.minHeight=el.offsetHeight+"px";
+    var i=0, buf="";
+    function step(){
+      if(i>=units.length){ el.innerHTML=buf; el.style.minHeight=""; return; }
+      buf+=units[i]; i++;
+      el.innerHTML=buf+'<span class="tw-caret" aria-hidden="true"></span>';
+      setTimeout(step,35);
+    }
+    el.innerHTML='<span class="tw-caret" aria-hidden="true"></span>';
+    step();
+  }
+  function setupTitleType(){
+    if(titleReduced || !("IntersectionObserver" in window)) return;
+    if(!titleIO){
+      titleIO=new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ if(e.isIntersecting && !e.target.dataset.typed){ e.target.dataset.typed="1"; typeTitleEl(e.target); } });
+      }, { threshold:0.25, rootMargin:"0px 0px -8% 0px" });
+    }
+    document.querySelectorAll("h2.serif, .hero__title").forEach(function(el){ if(el.dataset.tobs) return; el.dataset.tobs="1"; titleIO.observe(el); });
+  }
 
   function build(){
     var p=P.proposta;
@@ -295,6 +327,7 @@
     });});
     document.querySelectorAll("[data-particles]").forEach(initParticles);
     paintExp(); paintComp(); paintConfig(); paintMbar();
+    setupTitleType();
   }
   function erro(msg){document.getElementById("app").innerHTML='<div class="state"><div><p class="eyebrow eyebrow--light">Bellus Eventos</p><p class="serif">'+esc(msg)+'</p><p>Confira o link com a Bellus pelo WhatsApp.</p></div></div>';}
 
