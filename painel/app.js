@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -27,19 +27,31 @@ const dispTxt = (v) => (DISP.find((d)=>d[0]===v)||[v,""])[1];
 const pacoteNome = (id) => (PACOTES.find((p)=>p.id===id)||{}).nome || "";
 function setMsg(id,t,kind){ const el=document.getElementById(id); if(el){ el.textContent=t; el.className="msg "+(kind||""); } }
 const isAdmin = () => ["owner","admin"].includes(state.membro?.papel);
-function inPeriodo(dateStr, per){
+function curYM(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function curY(){ return String(new Date().getFullYear()); }
+function refDe(per, mes, ano){ return per==="mes"?mes:(per==="ano"?ano:null); }
+function inPeriodo(dateStr, per, ref){
   if(!per || per==="tudo") return true;
   if(!dateStr) return false;
-  const d=new Date(dateStr); if(isNaN(d.getTime())) return false;
-  const now=new Date();
-  if(per==="ano") return d.getFullYear()===now.getFullYear();
-  if(per==="mes") return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
-  if(per==="semana"){ const s=new Date(now); const dow=(now.getDay()+6)%7; s.setDate(now.getDate()-dow); s.setHours(0,0,0,0); const e=new Date(s); e.setDate(s.getDate()+7); return d>=s && d<e; }
+  const ymd=String(dateStr).slice(0,10);
+  if(per==="mes") return ymd.slice(0,7)===ref;
+  if(per==="ano") return ymd.slice(0,4)===ref;
+  if(per==="semana"){
+    const d=new Date(ymd+"T12:00:00"); if(isNaN(d.getTime())) return false;
+    const now=new Date();
+    const s=new Date(now); s.setDate(now.getDate()-now.getDay()); s.setHours(0,0,0,0);
+    const e=new Date(s); e.setDate(s.getDate()+7);
+    return d>=s && d<e;
+  }
   return true;
 }
-function periodoBar(scope, atual){
+function periodoBar(scope, tipo, mesRef, anoRef){
+  tipo=tipo||"tudo";
   const opts=[["tudo","Tudo"],["semana","Semana"],["mes","Mês"],["ano","Ano"]];
-  return `<div class="periodo" data-scope="${scope}">${opts.map((o)=>`<button type="button" class="per-btn${(atual||"tudo")===o[0]?" sel":""}" data-per="${o[0]}">${o[1]}</button>`).join("")}</div>`;
+  let extra="";
+  if(tipo==="mes") extra=`<input type="month" class="per-pick per-mes" value="${esc(mesRef||curYM())}"/>`;
+  else if(tipo==="ano"){ const y=new Date().getFullYear(); let o=""; for(let i=y+3;i>=y-3;i--){ o+=`<option value="${i}" ${String(i)===String(anoRef)?"selected":""}>${i}</option>`; } extra=`<select class="per-pick per-ano">${o}</select>`; }
+  return `<div class="periodo" data-scope="${scope}">${opts.map((o)=>`<button type="button" class="per-btn${tipo===o[0]?" sel":""}" data-per="${o[0]}">${o[1]}</button>`).join("")}${extra}</div>`;
 }
 function mensagemAbertura(nome, parc){
   nome=(nome||"").trim(); parc=(parc||"").trim();
@@ -270,7 +282,7 @@ async function renderMovimentacoes(){
   try {
     const r = await supabase.from("proposta_eventos")
       .select("status_anterior,status_novo,criado_em,propostas(cliente_nome,cliente_parceiro)")
-      .order("criado_em",{ascending:false}).limit(8);
+      .order("criado_em",{ascending:false}).limit(5);
     data = r.data;
   } catch(e){ host.innerHTML='<p class="muted">Não foi possível carregar as movimentações.</p>'; return; }
   if(!data || !data.length){ host.innerHTML='<p class="muted">Sem movimentações registradas ainda. A partir de agora, cada mudança de status fica registrada aqui.</p>'; return; }
@@ -355,8 +367,8 @@ function propRow(p){
 }
 function listaContHTML(q){
   q=(q||"").trim().toLowerCase();
-  const per=state.propPeriodo;
-  const ps=state.propostas.filter((p)=> inPeriodo(p.criado_em, per) && (!q || [p.cliente_nome,p.cliente_parceiro,p.cliente_email,p.slug].some((x)=>(x||"").toLowerCase().includes(q))));
+  const per=state.propPeriodo, ref=refDe(per, state.propMes, state.propAno);
+  const ps=state.propostas.filter((p)=> inPeriodo(p.criado_em, per, ref) && (!q || [p.cliente_nome,p.cliente_parceiro,p.cliente_email,p.slug].some((x)=>(x||"").toLowerCase().includes(q))));
   if(!ps.length) return `<div class="empty"><p>${(q||per!=="tudo")?"Nada encontrado para este filtro.":"Nenhuma proposta ainda."}</p></div>`;
   const groups={};
   ps.forEach((p)=>{ const k=(p.criado_em||"").slice(0,7); (groups[k]=groups[k]||[]).push(p); });
@@ -368,7 +380,7 @@ function listaContHTML(q){
 function viewLista(){
   const head=`<div class="page-head"><h2 class="serif">Propostas</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>`;
   if(!state.propostas.length) return head+`<div class="empty"><p>Nenhuma proposta ainda.</p><button class="btn btn-primary" data-nova>Criar a primeira</button></div>`;
-  return head+periodoBar("prop",state.propPeriodo)+`<input class="lista-busca" id="lista-busca" type="search" placeholder="Buscar por nome, e-mail ou link..." value="${esc(state.listaBusca||"")}" autocomplete="off"/><div id="lista-cont">${listaContHTML(state.listaBusca||"")}</div>`;
+  return head+periodoBar("prop",state.propPeriodo,state.propMes,state.propAno)+`<input class="lista-busca" id="lista-busca" type="search" placeholder="Buscar por nome, e-mail ou link..." value="${esc(state.listaBusca||"")}" autocomplete="off"/><div id="lista-cont">${listaContHTML(state.listaBusca||"")}</div>`;
 }
 function field(label, name, opts={}){
   const { type="text", req=false, ph="", val="", textarea=false, select=null } = opts;
@@ -458,8 +470,8 @@ function leadCard(l){
 }
 function leadsCardsHTML(q){
   q=(q||"").trim().toLowerCase();
-  const per=state.leadsPeriodo;
-  const list=state.leads.filter((l)=> inPeriodo(l.created_at, per) && (!q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q))));
+  const per=state.leadsPeriodo, ref=refDe(per, state.leadsMes, state.leadsAno);
+  const list=state.leads.filter((l)=> inPeriodo(l.created_at, per, ref) && (!q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q))));
   if(!list.length) return `<div class="empty"><p>${(q||per!=="tudo")?"Nada encontrado para este filtro.":"Nenhum lead ainda."}</p></div>`;
   return `<div class="lead-cards">${list.map(leadCard).join("")}</div>`;
 }
@@ -468,7 +480,7 @@ function viewLeads(){
   if(!state.leads.length) return head+`<div class="empty"><p>Nenhum lead ainda.</p><p class="muted">Os contatos enviados pelo site institucional e pela Noiva dos Sonhos aparecem aqui automaticamente.</p></div>`;
   const novos=state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
   const resumo=`<p class="muted" style="margin:-.2rem 0 1rem">${state.leads.length} no total · <b>${novos}</b> sem proposta. Toque em <b>Criar proposta</b> para abrir o formulário já preenchido.</p>`;
-  return head+resumo+periodoBar("leads",state.leadsPeriodo)+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
+  return head+resumo+periodoBar("leads",state.leadsPeriodo,state.leadsMes,state.leadsAno)+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
 }
 function viewForm(){
   const ed = state.editing;
@@ -542,13 +554,13 @@ function viewDetalhe(){
   </div>`;
 }
 function viewAgenda(){
-  const ag = state.agenda.filter((p)=>inPeriodo(p.evento_data, state.agendaPeriodo));
+  const ag = state.agenda.filter((p)=>inPeriodo(p.evento_data, state.agendaPeriodo, refDe(state.agendaPeriodo, state.agendaMes, state.agendaAno)));
   const items = ag.map((p)=>`
     <div class="agenda-item" data-open="${p.id}" style="cursor:pointer">
       <div class="data">${fmtData(p.evento_data)}<small>${esc(statusTxt(p.status))}</small></div>
       <div class="nome">${esc(nomes(p))}</div>
     </div>`).join("");
-  const bar = state.agenda.length ? periodoBar("agenda",state.agendaPeriodo) : "";
+  const bar = state.agenda.length ? periodoBar("agenda",state.agendaPeriodo,state.agendaMes,state.agendaAno) : "";
   const list = ag.length
     ? `<div class="plist">${items}</div>`
     : (state.agenda.length
@@ -601,7 +613,12 @@ function renderLogin(){
 
 function wire(){
   document.querySelectorAll("[data-go]").forEach((b)=> b.addEventListener("click", ()=>go(b.getAttribute("data-go"))));
-  document.querySelectorAll(".periodo").forEach((bar)=>{ const scope=bar.getAttribute("data-scope"); bar.querySelectorAll(".per-btn").forEach((b)=> b.addEventListener("click", ()=>{ const per=b.getAttribute("data-per"); if(scope==="leads")state.leadsPeriodo=per; else if(scope==="prop")state.propPeriodo=per; else if(scope==="agenda")state.agendaPeriodo=per; render(); })); });
+  document.querySelectorAll(".periodo").forEach((bar)=>{
+    const scope=bar.getAttribute("data-scope");
+    bar.querySelectorAll(".per-btn").forEach((b)=> b.addEventListener("click", ()=>{ const per=b.getAttribute("data-per"); if(scope==="leads")state.leadsPeriodo=per; else if(scope==="prop")state.propPeriodo=per; else if(scope==="agenda")state.agendaPeriodo=per; render(); }));
+    const pm=bar.querySelector(".per-mes"); if(pm) pm.addEventListener("change", ()=>{ const v=pm.value||curYM(); if(scope==="leads")state.leadsMes=v; else if(scope==="prop")state.propMes=v; else if(scope==="agenda")state.agendaMes=v; render(); });
+    const pa=bar.querySelector(".per-ano"); if(pa) pa.addEventListener("change", ()=>{ const v=pa.value; if(scope==="leads")state.leadsAno=v; else if(scope==="prop")state.propAno=v; else if(scope==="agenda")state.agendaAno=v; render(); });
+  });
   if (document.getElementById("dash-charts")) renderCharts();
   if (document.getElementById("mov-list")) renderMovimentacoes();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
