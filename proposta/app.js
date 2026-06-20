@@ -5,6 +5,7 @@
   var ANON = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
   var WHATS = "5521981636666";
   var INSPECT = location.search.indexOf("inspect") !== -1;
+  var compPeeked = false, compResize = null;
 
   var PACOTES = [
     { id:"cerimonia", nome:"Cerimônia", preco:2670, pos:"Momento na íntegra.", best:"Para casais que desejam reviver cada detalhe da cerimônia com autenticidade e emoção.",
@@ -144,8 +145,36 @@
     var head='<th class="ccrit">Critério</th>'+PACOTES.map(function(p){var sel=p.id===P.pkgId;return '<th><button class="chead'+(sel?" sel":"")+'" data-pick="'+p.id+'"><span class="cn">'+esc(p.nome)+'</span>'+(p.id===rec?'<span class="crec">Recomendado</span>':'')+'</button></th>';}).join("");
     var rows=FEATURES.map(function(f,i){return '<tr'+(i%2?' class="alt"':'')+'><th class="crit">'+esc(f[0])+'</th>'+PACOTES.map(function(p){return '<td class="'+(p.id===P.pkgId?"selcol":"")+'">'+cell(f[1][p.id])+'</td>';}).join("")+'</tr>';}).join("");
     var el=document.getElementById("r-comp");
-    el.innerHTML='<div class="ctable-wrap"><table class="ctable"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    el.innerHTML='<div class="comp-scroll"><div class="ctable-wrap"><table class="ctable"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></div><span class="comp-cue" aria-hidden="true"><span class="ca">&#8594;</span> Arraste para o lado para comparar</span>';
     el.querySelectorAll("[data-pick]").forEach(function(b){b.addEventListener("click",function(){pick(b.getAttribute("data-pick"));});});
+    setupCompScroll(el);
+  }
+  function setupCompScroll(el){
+    var scroll=el.querySelector(".comp-scroll"), wrap=el.querySelector(".ctable-wrap");
+    if(!scroll||!wrap)return;
+    function upd(){
+      var canScroll=wrap.scrollWidth-wrap.clientWidth>4;
+      scroll.classList.toggle("scrollable",canScroll);
+      var atEnd=wrap.scrollLeft+wrap.clientWidth>=wrap.scrollWidth-4;
+      scroll.classList.toggle("at-end",canScroll&&atEnd);
+    }
+    wrap.addEventListener("scroll",upd,{passive:true});
+    if(compResize)window.removeEventListener("resize",compResize);
+    compResize=upd; window.addEventListener("resize",upd);
+    upd();
+    if(!compPeeked&&"IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if(e.isIntersecting&&!compPeeked&&wrap.scrollWidth-wrap.clientWidth>4){
+            compPeeked=true; io.disconnect();
+            var max=wrap.scrollWidth-wrap.clientWidth;
+            wrap.scrollTo({left:Math.min(64,max),behavior:"smooth"});
+            setTimeout(function(){wrap.scrollTo({left:0,behavior:"smooth"});},750);
+          }
+        });
+      },{threshold:0.35});
+      io.observe(scroll);
+    }
   }
 
   function stepperHtml(a,q,small){

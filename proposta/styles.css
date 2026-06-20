@@ -225,6 +225,16 @@ h1,h2,h3,h4{font-weight:500;line-height:1.18;margin:0;}
 .ccheck{color:var(--green);display:inline-flex;}.cno{font-size:.75rem;color:rgba(126,115,103,.55);}.cv{font-size:.82rem;color:var(--ink-soft);}
 .cclose{max-width:36rem;margin:2.5rem auto 0;text-align:center;}
 .cclose .serif{font-size:clamp(1.5rem,4vw,2rem);line-height:1.2;}
+.comp-scroll{position:relative;}
+.comp-scroll::after{content:"";position:absolute;top:0;right:0;bottom:0;width:3.2rem;pointer-events:none;border-radius:0 14px 14px 0;background:linear-gradient(to right,rgba(255,255,255,0),rgba(255,255,255,.92));opacity:0;transition:opacity .25s ease;}
+.comp-scroll.scrollable::after{opacity:1;}
+.comp-scroll.scrollable.at-end::after{opacity:0;}
+.comp-cue{display:none;align-items:center;justify-content:center;gap:.45rem;margin:.7rem 0 0;font-size:.82rem;color:var(--gold);letter-spacing:.01em;}
+.comp-scroll.scrollable + .comp-cue{display:flex;}
+.comp-scroll.scrollable.at-end + .comp-cue{display:none;}
+.comp-cue .ca{display:inline-block;font-weight:600;font-size:1rem;animation:cueNudge 1.5s ease-in-out infinite;}
+@keyframes cueNudge{0%,100%{transform:translateX(0);}50%{transform:translateX(.4rem);}}
+@media (prefers-reduced-motion: reduce){.comp-cue .ca{animation:none;}}
 .cclose p:last-child{margin-top:.6rem;color:var(--ink-soft);}
 
 /* checkout (termos + reservar) */
