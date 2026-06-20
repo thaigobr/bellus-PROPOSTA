@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -56,7 +56,7 @@ async function init(){
 }
 async function loadMembro(user){
   const { data } = await supabase.from("proposta_equipe").select("nome,papel,ativo").eq("id", user.id).maybeSingle();
-  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); await loadLeads(); await loadLeadsUsados(); }
+  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); await loadLeads(); await loadLeadsUsados(); await loadDatasOcupadas(); }
   else { await supabase.auth.signOut(); state.user=null; state.membro=null; }
 }
 async function doLogin(email, password){
@@ -92,6 +92,14 @@ async function loadAgenda(){
     .order("evento_data", { ascending: true });
   state.agenda = data || [];
 }
+async function loadDatasOcupadas(){
+  const { data } = await supabase.from("propostas")
+    .select("id,status,cliente_nome,cliente_parceiro,evento_data")
+    .in("status", ["reservada","fechada"]).not("evento_data","is",null);
+  const map={};
+  (data||[]).forEach((p)=>{ if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
+  state.datasOcupadas = map;
+}
 async function getProposta(id){
   const { data } = await supabase.from("propostas").select("*").eq("id", id).maybeSingle();
   return data;
@@ -119,13 +127,13 @@ async function trocarSenha(novaSenha){
 async function go(view){
   if (view === "lista" || view === "dashboard") await loadPropostas();
   if (view === "agenda") await loadAgenda();
-  await Promise.all([loadLeads(), loadLeadsUsados()]);
+  await Promise.all([loadLeads(), loadLeadsUsados(), loadDatasOcupadas()]);
   state.view = view; render();
 }
-async function novaProposta(){ state.editing = null; await loadLeads(); state.view = "form"; render(); }
-function criarPropostaDeLead(id){ const lead=state.leads.find((x)=>x.id===id); state.editing=null; state.prefillLead=lead||null; state.view="form"; render(); }
+async function novaProposta(){ state.editing = null; await Promise.all([loadLeads(), loadDatasOcupadas()]); state.view = "form"; render(); }
+async function criarPropostaDeLead(id){ const lead=state.leads.find((x)=>x.id===id); state.editing=null; state.prefillLead=lead||null; await loadDatasOcupadas(); state.view="form"; render(); }
 async function openProposta(id){ const p = await getProposta(id); if (p){ state.current = p; state.view = "detalhe"; render(); } }
-async function editProposta(id){ const p = await getProposta(id); if (p){ state.editing = p; state.view = "form"; render(); } }
+async function editProposta(id){ const p = await getProposta(id); if (p){ state.editing = p; await loadDatasOcupadas(); state.view = "form"; render(); } }
 
 // ---------- render ----------
 function render(){
@@ -397,6 +405,18 @@ function fillFromLead(lead){
   set("evento_notas", lead.mensagem);
   const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp && !mp.value.trim()) mp.value=mensagemAbertura(lead.nome, lead.nome_parceiro);
   const h=f.querySelector('[name="lead_id"]'); if(h) h.value=lead.id;
+  checkDataConflito();
+}
+function checkDataConflito(){
+  const el=document.getElementById("data-aviso"); const f=document.getElementById("form-proposta");
+  if(!el||!f) return;
+  const di=f.querySelector('[name="evento_data"]'); const dval=di?di.value:"";
+  const oc=(state.datasOcupadas||{})[dval];
+  const selfId=state.editing&&state.editing.id;
+  if(dval && oc && oc.id!==selfId){
+    el.className="data-aviso show";
+    el.innerHTML=`<b>Atenção:</b> ${esc(fmtData(dval))} já está <b>${esc(statusTxt(oc.status))}</b> com ${esc(oc.nome)}. Evite enviar proposta com a mesma data.`;
+  } else { el.className="data-aviso"; el.innerHTML=""; }
 }
 // ---------- leads (entrada de contatos) ----------
 function leadWaLink(l){
@@ -418,6 +438,8 @@ function leadCard(l){
   const par=l.nome_parceiro ? ` & ${esc(l.nome_parceiro)}` : "";
   const tem=(state.leadsUsados||new Set()).has(l.id);
   const meta=[fmtData(l.data_casamento), l.cidade, l.convidados?`${esc(l.convidados)} convidados`:""].filter(Boolean).map(esc).join(" · ");
+  const ocup = l.data_casamento && (state.datasOcupadas||{})[l.data_casamento];
+  const flag = ocup ? `<div class="lead-flag">A data ${esc(fmtData(l.data_casamento))} já está ${esc(statusTxt(ocup.status))} na agenda</div>` : "";
   const quando = l.created_at ? `<span class="lead-when">${esc(desdeTxt(l.created_at))}</span>` : "";
   const msg = l.mensagem ? `<p class="lead-msg">${esc(l.mensagem)}</p>` : "";
   const acao = tem
@@ -429,6 +451,7 @@ function leadCard(l){
       ${quando}
     </div>
     ${meta?`<div class="lead-card-meta">${meta}</div>`:""}
+    ${flag}
     ${msg}
     <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div>${acao}</div>
   </div>`;
@@ -471,6 +494,7 @@ function viewForm(){
       ${field("Convidados","evento_convidados",{ph:"Ex.: 120",val:v("evento_convidados")})}
       ${field("Disponibilidade","disponibilidade",{select:DISP,val:v("disponibilidade","available")})}
     </div>
+    <div id="data-aviso" class="data-aviso"></div>
     ${field("Observações","evento_notas",{textarea:true,ph:"O que o casal contou",val:v("evento_notas")})}
     <div class="section-label">Proposta</div>
     <div class="grid cols-2">
@@ -631,6 +655,8 @@ function wire(){
   if (state.prefillLead && document.getElementById("form-proposta")){ const _pl=state.prefillLead; state.prefillLead=null; fillFromLead(_pl); }
   const sug=document.getElementById("btn-sug-msg");
   if(sug) sug.addEventListener("click", ()=>{ const f=document.getElementById("form-proposta"); if(!f) return; const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp) mp.value=mensagemAbertura(f.querySelector('[name="cliente_nome"]').value, f.querySelector('[name="cliente_parceiro"]').value); });
+  const dataInput=document.querySelector('#form-proposta [name="evento_data"]');
+  if(dataInput){ checkDataConflito(); dataInput.addEventListener("input", checkDataConflito); dataInput.addEventListener("change", checkDataConflito); }
 
   const del=document.getElementById("btn-del");
   if (del) del.addEventListener("click", ()=>{
