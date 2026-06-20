@@ -89,10 +89,12 @@
     P.qty[id]=q; paintConfig(); paintMbar();
   }
   function waBase(extra){var p=P.proposta;var num=(p.whatsapp||WHATS).replace(/\D/g,"");return "https://wa.me/"+num+"?text="+encodeURIComponent(extra);}
-  function waFalar(){return waBase("Olá, Bellus! Sobre a nossa proposta ("+nomes(P.proposta)+"), gostaríamos de conversar.");}
-  function waCorrigir(){return waBase("Olá, Bellus! Sobre a proposta de "+nomes(P.proposta)+", uma informação do evento mudou:");}
-  function waReservar(){var b=breakdown();var pk=selPkg();var pay=selPay();return waBase("Olá, Bellus! Queremos reservar a nossa data ("+nomes(P.proposta)+").\nExperiência: "+pk.nome+" ("+brl(b.total)+")\nCondição: "+(pay?pay.label:"")+"\nComo seguimos?");}
-  function waDataAlternativa(){return waBase("Olá, Bellus! Estou com a proposta de "+nomes(P.proposta)+" em mãos. Vi que a data "+dataCurta(P.proposta.evento_data)+" já está reservada. Temos muito interesse no trabalho de vocês e gostaríamos de verificar a disponibilidade para a nossa data ou outras opções. Conseguem nos ajudar?");}
+  function dataTxt(){var d=P.proposta.evento_data;return d?dataCurta(d):"a definir";}
+  function dataOcupada(){var p=P.proposta;return (p.data_ocupada===true)||(p.disponibilidade==="unavailable");}
+  function waFalar(){var pk=selPkg();var b=breakdown();return waBase("Olá, Bellus! Sobre a proposta de "+nomes(P.proposta)+" (casamento em "+dataTxt()+"). Estamos vendo a experiência "+pk.nome+" ("+brl(b.total)+") e gostaríamos de conversar.");}
+  function waCorrigir(){return waBase("Olá, Bellus! Sobre a proposta de "+nomes(P.proposta)+" (data "+dataTxt()+"), uma informação do evento mudou:");}
+  function waReservar(){var b=breakdown();var pk=selPkg();var pay=selPay();return waBase("Olá, Bellus! Queremos reservar a nossa data ("+nomes(P.proposta)+", "+dataTxt()+").\nExperiência: "+pk.nome+" ("+brl(b.total)+")\nCondição: "+(pay?pay.label:"-")+"\nComo seguimos?");}
+  function waDataAlternativa(){return waBase("Olá, Bellus! Estou com a proposta de "+nomes(P.proposta)+" em mãos. Vi que a data "+dataTxt()+" já está reservada. Temos muito interesse no trabalho de vocês e gostaríamos de verificar a disponibilidade para a nossa data ou outras opções. Conseguem nos ajudar?");}
 
   // ── partículas (porta de ParticlesCanvas: reage ao scroll) ──
   function initParticles(canvas){
@@ -212,8 +214,10 @@
     // checkout
     var lab=(pay&&CTA_LABEL[pay.kind])||"Reservar minha data";
     h+='<div class="checkout"><label class="terms"><input type="checkbox" id="terms"'+(P.terms?" checked":"")+'/><span>Li e concordo com os <a href="termos.html" target="_blank" rel="noopener">termos de contratação</a> e a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>.</span></label>'+
-      '<a class="btn btn-gold ckbtn'+(P.terms?"":" off")+'" id="reservar" href="'+waReservar()+'" target="_blank" rel="noopener">'+esc(lab)+' →</a>'+
-      '<p class="ck-msg" id="ck-msg">'+(P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar.")+'</p></div>';
+      (dataOcupada()
+        ? '<a class="btn btn-bloq ckbtn" id="reservar" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Essa data já está fechada</a>'
+        : '<a class="btn btn-gold ckbtn'+(P.terms?"":" off")+'" id="reservar" href="'+waReservar()+'" target="_blank" rel="noopener">'+esc(lab)+' →</a>')+
+      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está fechada. Consulte outra data para viabilizar o pagamento.":(P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar."))+'</p></div>';
     return h;
   }
   function paymentHtml(){
@@ -233,12 +237,12 @@
     el.querySelectorAll("[data-pay]").forEach(function(b){b.addEventListener("click",function(){P.payId=b.getAttribute("data-pay");paintConfig();paintMbar();});});
     el.querySelectorAll("[data-scroll]").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-scroll"));if(t)t.scrollIntoView({behavior:"smooth"});});});
     var tc=document.getElementById("terms"), rb=document.getElementById("reservar"), msg=document.getElementById("ck-msg");
-    if(tc)tc.addEventListener("change",function(){P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar.";});
-    if(rb)rb.addEventListener("click",function(e){if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}}});
+    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar.";});
+    if(rb)rb.addEventListener("click",function(e){if(dataOcupada())return;if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}}});
   }
   function paintMbar(){
     var pk=selPkg(); var b=breakdown(); var el=document.getElementById("r-mbar");
-    el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div></div><a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>';
+    el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data fechada · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>');
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
   }
   function pick(id){P.pkgId=id;paintExp();paintComp();paintConfig();paintMbar();}
@@ -247,7 +251,7 @@
     var p=P.proposta;
     var rows=[["Evento",p.evento_tipo||"Casamento"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
-    var ocupada=(p.data_ocupada===true)||(p.disponibilidade==="unavailable");
+    var ocupada=dataOcupada();
     var av = ocupada ? ["unavailable","Essa data já está reservada"] : (p.disponibilidade==="on_hold" ? ["on_hold","Data em pré-reserva"] : ["","Data disponível no momento"]);
     var dataBanner = ocupada ? '<div class="datawarn"><p class="dw-t">Essa data já está reservada</p><p class="dw-d">A data '+esc(dataCurta(p.evento_data))+' já consta como reservada na nossa agenda. Mas adoraríamos registrar o casamento de vocês. Se tiverem um pouco de flexibilidade na data, fale com a gente que verificamos as opções na hora.</p><a class="btn btn-wa" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">'+WA+' Falar sobre datas</a></div>' : '';
     document.getElementById("app").innerHTML=
