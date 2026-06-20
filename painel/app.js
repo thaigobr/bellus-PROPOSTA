@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -27,6 +27,26 @@ const dispTxt = (v) => (DISP.find((d)=>d[0]===v)||[v,""])[1];
 const pacoteNome = (id) => (PACOTES.find((p)=>p.id===id)||{}).nome || "";
 function setMsg(id,t,kind){ const el=document.getElementById(id); if(el){ el.textContent=t; el.className="msg "+(kind||""); } }
 const isAdmin = () => ["owner","admin"].includes(state.membro?.papel);
+function inPeriodo(dateStr, per){
+  if(!per || per==="tudo") return true;
+  if(!dateStr) return false;
+  const d=new Date(dateStr); if(isNaN(d.getTime())) return false;
+  const now=new Date();
+  if(per==="ano") return d.getFullYear()===now.getFullYear();
+  if(per==="mes") return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  if(per==="semana"){ const s=new Date(now); const dow=(now.getDay()+6)%7; s.setDate(now.getDate()-dow); s.setHours(0,0,0,0); const e=new Date(s); e.setDate(s.getDate()+7); return d>=s && d<e; }
+  return true;
+}
+function periodoBar(scope, atual){
+  const opts=[["tudo","Tudo"],["semana","Semana"],["mes","Mês"],["ano","Ano"]];
+  return `<div class="periodo" data-scope="${scope}">${opts.map((o)=>`<button type="button" class="per-btn${(atual||"tudo")===o[0]?" sel":""}" data-per="${o[0]}">${o[1]}</button>`).join("")}</div>`;
+}
+function mensagemAbertura(nome, parc){
+  nome=(nome||"").trim(); parc=(parc||"").trim();
+  if(nome && parc) return `${nome} e ${parc}, que alegria receber vocês por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do casamento de vocês. Vejam com calma e, qualquer dúvida, é só me chamar.`;
+  if(nome) return `${nome}, que alegria receber você por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do seu casamento. Veja com calma e, qualquer dúvida, é só me chamar.`;
+  return `Que alegria receber vocês por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do casamento de vocês. Vejam com calma e, qualquer dúvida, é só me chamar.`;
+}
 
 // ---------- auth ----------
 async function init(){
@@ -183,7 +203,8 @@ async function renderCharts(){
   dashCharts.forEach((c)=>{ try{ c.destroy(); }catch(e){} });
   dashCharts = [];
   const ps = state.propostas;
-  if(!ps.length){ host.style.display="none"; return; }
+  if(!ps.length && !state.leads.length){ host.style.display="none"; return; }
+  host.style.display="";
   let Chart;
   try { Chart = (await import("https://esm.sh/chart.js@4/auto")).default; }
   catch(e){ host.innerHTML = '<p class="muted">Não foi possível carregar os gráficos agora.</p>'; return; }
@@ -218,6 +239,21 @@ async function renderCharts(){
     data:{ labels:["Enviadas","Visualizadas","Reservadas/Fechadas"], datasets:[{data:[env,vis,gan],backgroundColor:["#86c79a","#e3c34a","#145e3c"],borderRadius:4}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:LINE}},y:{grid:{display:false}}}}
   }));
+  const elLeads=document.getElementById("ch-leads");
+  if(elLeads && state.leads.length){
+    const usados=state.leadsUsados||new Set();
+    const lmk=[...new Set(state.leads.map((l)=>(l.created_at||"").slice(0,7)).filter((x)=>/^\d{4}-\d{2}$/.test(x)))].sort();
+    const llab=lmk.map((k)=>{ const p=k.split("-"); return (MESES[+p[1]-1]||"").slice(0,3)+"/"+p[0].slice(2); });
+    const inL=(k,used)=>state.leads.filter((l)=>(l.created_at||"").slice(0,7)===k && usados.has(l.id)===used).length;
+    dashCharts.push(new Chart(elLeads, {
+      type:"bar",
+      data:{ labels:llab, datasets:[
+        {label:"Viraram proposta",data:lmk.map((k)=>inL(k,true)),backgroundColor:GREEN},
+        {label:"Ainda sem proposta",data:lmk.map((k)=>inL(k,false)),backgroundColor:GOLD},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:LINE}}}}
+    }));
+  }
 }
 async function renderMovimentacoes(){
   const host = document.getElementById("mov-list");
@@ -257,17 +293,25 @@ function viewDashboard(){
   const env=ps.filter((p)=>p.enviada_em).length, vis=ps.filter((p)=>p.visualizada_em).length, gan=ps.filter((p)=>["reservada","fechada"].includes(p.status)).length;
   const txAb=env?Math.round(vis/env*100):0, txFe=env?Math.round(gan/env*100):0;
   const fuBlock = followup.length ? `<div class="furows">${fuRows}</div>` : `<div class="empty"><p>Nenhuma proposta aguardando follow-up agora.</p></div>`;
-  const leadsNovos = state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
+  const usadosSet=state.leadsUsados||new Set();
+  const leadsNovos = state.leads.filter((l)=> !usadosSet.has(l.id)).length;
   const leadsBanner = leadsNovos>0 ? `<button class="leads-banner" data-go="leads"><span class="lb-dot"></span><span class="lb-txt"><b>${leadsNovos}</b> ${leadsNovos===1?"lead novo aguardando proposta":"leads novos aguardando proposta"}</span><span class="lb-go">Ver leads</span></button>` : "";
+  const totLeads=state.leads.length, leadsConv=state.leads.filter((l)=>usadosSet.has(l.id)).length;
+  const _now=new Date(), _ym=_now.getFullYear()+"-"+String(_now.getMonth()+1).padStart(2,"0");
+  const leadsMes=state.leads.filter((l)=>(l.created_at||"").slice(0,7)===_ym).length;
+  const txLeadConv=totLeads?Math.round(leadsConv/totLeads*100):0;
+  const leadsStat = totLeads ? `<p class="muted" style="margin:.1rem 0 1.2rem">Entrada de leads: <b>${totLeads}</b> no total · <b>${leadsMes}</b> este mês · <b>${leadsConv}</b> viraram proposta (${txLeadConv}%).</p>` : "";
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
   ${leadsBanner}
+  ${leadsStat}
   <div class="dcards">${cardsHTML}</div>
   <div class="section-label" style="margin-top:1.8rem">Gráficos</div>
   <div class="dcharts" id="dash-charts">
     <div class="chart-card chart-wide"><div class="chart-title">Propostas por mês</div><div class="chart-box"><canvas id="ch-mes"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Distribuição por status</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Funil de conversão</div><div class="chart-box"><canvas id="ch-funil"></canvas></div></div>
+    <div class="chart-card chart-wide"><div class="chart-title">Entrada de leads (por mês)</div><div class="chart-box"><canvas id="ch-leads"></canvas></div></div>
   </div>
   <div class="section-label" style="margin-top:1.8rem">Conversão e movimentação</div>
   <div class="conv-metrics">
@@ -303,8 +347,9 @@ function propRow(p){
 }
 function listaContHTML(q){
   q=(q||"").trim().toLowerCase();
-  const ps=state.propostas.filter((p)=> !q || [p.cliente_nome,p.cliente_parceiro,p.cliente_email,p.slug].some((x)=>(x||"").toLowerCase().includes(q)));
-  if(!ps.length) return `<div class="empty"><p>${q?`Nada encontrado para "${esc(q)}".`:"Nenhuma proposta ainda."}</p></div>`;
+  const per=state.propPeriodo;
+  const ps=state.propostas.filter((p)=> inPeriodo(p.criado_em, per) && (!q || [p.cliente_nome,p.cliente_parceiro,p.cliente_email,p.slug].some((x)=>(x||"").toLowerCase().includes(q))));
+  if(!ps.length) return `<div class="empty"><p>${(q||per!=="tudo")?"Nada encontrado para este filtro.":"Nenhuma proposta ainda."}</p></div>`;
   const groups={};
   ps.forEach((p)=>{ const k=(p.criado_em||"").slice(0,7); (groups[k]=groups[k]||[]).push(p); });
   return Object.keys(groups).sort().reverse().map((k)=>{
@@ -315,7 +360,7 @@ function listaContHTML(q){
 function viewLista(){
   const head=`<div class="page-head"><h2 class="serif">Propostas</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>`;
   if(!state.propostas.length) return head+`<div class="empty"><p>Nenhuma proposta ainda.</p><button class="btn btn-primary" data-nova>Criar a primeira</button></div>`;
-  return head+`<input class="lista-busca" id="lista-busca" type="search" placeholder="Buscar por nome, e-mail ou link..." value="${esc(state.listaBusca||"")}" autocomplete="off"/><div id="lista-cont">${listaContHTML(state.listaBusca||"")}</div>`;
+  return head+periodoBar("prop",state.propPeriodo)+`<input class="lista-busca" id="lista-busca" type="search" placeholder="Buscar por nome, e-mail ou link..." value="${esc(state.listaBusca||"")}" autocomplete="off"/><div id="lista-cont">${listaContHTML(state.listaBusca||"")}</div>`;
 }
 function field(label, name, opts={}){
   const { type="text", req=false, ph="", val="", textarea=false, select=null } = opts;
@@ -350,6 +395,7 @@ function fillFromLead(lead){
   set("evento_data", lead.data_casamento); set("evento_local", lead.local);
   set("evento_cidade", lead.cidade); set("evento_convidados", lead.convidados);
   set("evento_notas", lead.mensagem);
+  const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp && !mp.value.trim()) mp.value=mensagemAbertura(lead.nome, lead.nome_parceiro);
   const h=f.querySelector('[name="lead_id"]'); if(h) h.value=lead.id;
 }
 // ---------- leads (entrada de contatos) ----------
@@ -389,8 +435,9 @@ function leadCard(l){
 }
 function leadsCardsHTML(q){
   q=(q||"").trim().toLowerCase();
-  const list=state.leads.filter((l)=> !q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q)));
-  if(!list.length) return `<div class="empty"><p>${q?`Nada encontrado para "${esc(q)}".`:"Nenhum lead ainda."}</p></div>`;
+  const per=state.leadsPeriodo;
+  const list=state.leads.filter((l)=> inPeriodo(l.created_at, per) && (!q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q))));
+  if(!list.length) return `<div class="empty"><p>${(q||per!=="tudo")?"Nada encontrado para este filtro.":"Nenhum lead ainda."}</p></div>`;
   return `<div class="lead-cards">${list.map(leadCard).join("")}</div>`;
 }
 function viewLeads(){
@@ -398,7 +445,7 @@ function viewLeads(){
   if(!state.leads.length) return head+`<div class="empty"><p>Nenhum lead ainda.</p><p class="muted">Os contatos enviados pelo site institucional e pela Noiva dos Sonhos aparecem aqui automaticamente.</p></div>`;
   const novos=state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
   const resumo=`<p class="muted" style="margin:-.2rem 0 1rem">${state.leads.length} no total · <b>${novos}</b> sem proposta. Toque em <b>Criar proposta</b> para abrir o formulário já preenchido.</p>`;
-  return head+resumo+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
+  return head+resumo+periodoBar("leads",state.leadsPeriodo)+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
 }
 function viewForm(){
   const ed = state.editing;
@@ -433,7 +480,8 @@ function viewForm(){
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
     </div>
     ${field("Motivo da recomendação","recomendacao_motivo",{textarea:true,ph:"Por que essa experiência combina com eles",val:v("recomendacao_motivo")})}
-    ${field("Mensagem pessoal de abertura","mensagem_pessoal",{textarea:true,ph:"Deixe em branco para gerar depois",val:v("mensagem_pessoal")})}
+    ${field("Mensagem pessoal de abertura","mensagem_pessoal",{textarea:true,ph:"Já vem preenchida ao puxar um lead. Edite à vontade.",val:v("mensagem_pessoal")})}
+    <button class="btn btn-ghost btn-mini" type="button" id="btn-sug-msg">Sugerir mensagem a partir do nome</button>
     <div class="form-actions">
       <button class="btn btn-primary" type="submit" id="salvar">${ed?"Salvar alterações":"Salvar proposta"}</button>
       <button class="btn btn-ghost" type="button" data-go="lista">Cancelar</button>
@@ -470,15 +518,19 @@ function viewDetalhe(){
   </div>`;
 }
 function viewAgenda(){
-  const items = state.agenda.map((p)=>`
+  const ag = state.agenda.filter((p)=>inPeriodo(p.evento_data, state.agendaPeriodo));
+  const items = ag.map((p)=>`
     <div class="agenda-item" data-open="${p.id}" style="cursor:pointer">
       <div class="data">${fmtData(p.evento_data)}<small>${esc(statusTxt(p.status))}</small></div>
       <div class="nome">${esc(nomes(p))}</div>
     </div>`).join("");
-  const list = state.agenda.length
+  const bar = state.agenda.length ? periodoBar("agenda",state.agendaPeriodo) : "";
+  const list = ag.length
     ? `<div class="plist">${items}</div>`
-    : `<div class="empty"><p>Nenhuma data reservada ainda.</p><p class="muted">As datas aparecem aqui quando uma proposta vira <b>Reservada</b> ou <b>Fechada</b>.</p></div>`;
-  return `<div class="page-head"><h2 class="serif">Agenda</h2><button class="btn btn-ghost" data-go="lista">Propostas</button></div>${list}`;
+    : (state.agenda.length
+        ? `<div class="empty"><p>Nenhuma data reservada neste período.</p></div>`
+        : `<div class="empty"><p>Nenhuma data reservada ainda.</p><p class="muted">As datas aparecem aqui quando uma proposta vira <b>Reservada</b> ou <b>Fechada</b>.</p></div>`);
+  return `<div class="page-head"><h2 class="serif">Agenda</h2><button class="btn btn-ghost" data-go="lista">Propostas</button></div>${bar}${list}`;
 }
 function viewConta(){
   return `
@@ -525,6 +577,7 @@ function renderLogin(){
 
 function wire(){
   document.querySelectorAll("[data-go]").forEach((b)=> b.addEventListener("click", ()=>go(b.getAttribute("data-go"))));
+  document.querySelectorAll(".periodo").forEach((bar)=>{ const scope=bar.getAttribute("data-scope"); bar.querySelectorAll(".per-btn").forEach((b)=> b.addEventListener("click", ()=>{ const per=b.getAttribute("data-per"); if(scope==="leads")state.leadsPeriodo=per; else if(scope==="prop")state.propPeriodo=per; else if(scope==="agenda")state.agendaPeriodo=per; render(); })); });
   if (document.getElementById("dash-charts")) renderCharts();
   if (document.getElementById("mov-list")) renderMovimentacoes();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
@@ -576,6 +629,8 @@ function wire(){
     if (ls) ls.addEventListener("input", ()=>{ ll.innerHTML = leadRowsHTML(ls.value); wireRows(); });
   }
   if (state.prefillLead && document.getElementById("form-proposta")){ const _pl=state.prefillLead; state.prefillLead=null; fillFromLead(_pl); }
+  const sug=document.getElementById("btn-sug-msg");
+  if(sug) sug.addEventListener("click", ()=>{ const f=document.getElementById("form-proposta"); if(!f) return; const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp) mp.value=mensagemAbertura(f.querySelector('[name="cliente_nome"]').value, f.querySelector('[name="cliente_parceiro"]').value); });
 
   const del=document.getElementById("btn-del");
   if (del) del.addEventListener("click", ()=>{

@@ -199,3 +199,8 @@ a { color:inherit; }
 .lead-tag { font-size:.76rem; font-weight:600; color:var(--green); background:#dcefe2; border-radius:999px; padding:.3rem .7rem; white-space:nowrap; }
 @media (max-width:600px){ .lead-cards { grid-template-columns:1fr; } .leads-banner { flex-wrap:wrap; } }
 .nav-badge { display:inline-flex; align-items:center; justify-content:center; min-width:1.15rem; height:1.15rem; padding:0 .35rem; border-radius:999px; background:var(--gold); color:#fff; font-size:.7rem; font-weight:700; line-height:1; }
+.periodo { display:inline-flex; gap:.2rem; background:var(--ivory); border:1px solid var(--line); border-radius:999px; padding:.2rem; margin:0 0 1.2rem; flex-wrap:wrap; }
+.per-btn { border:0; background:transparent; color:var(--ink-soft); font-family:var(--sans); font-size:.8rem; font-weight:500; padding:.35rem .9rem; border-radius:999px; cursor:pointer; transition:background .15s, color .15s; }
+.per-btn:hover { color:var(--ink); }
+.per-btn.sel { background:#fff; color:var(--gold); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.btn-mini { min-height:2.1rem; padding:.3rem .8rem; font-size:.78rem; margin:-.3rem 0 .2rem; }
