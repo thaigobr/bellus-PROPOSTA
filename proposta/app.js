@@ -92,6 +92,7 @@
   function waFalar(){return waBase("Olá, Bellus! Sobre a nossa proposta ("+nomes(P.proposta)+"), gostaríamos de conversar.");}
   function waCorrigir(){return waBase("Olá, Bellus! Sobre a proposta de "+nomes(P.proposta)+", uma informação do evento mudou:");}
   function waReservar(){var b=breakdown();var pk=selPkg();var pay=selPay();return waBase("Olá, Bellus! Queremos reservar a nossa data ("+nomes(P.proposta)+").\nExperiência: "+pk.nome+" ("+brl(b.total)+")\nCondição: "+(pay?pay.label:"")+"\nComo seguimos?");}
+  function waDataAlternativa(){return waBase("Olá, Bellus! Estou com a proposta de "+nomes(P.proposta)+" em mãos. Vi que a data "+dataCurta(P.proposta.evento_data)+" já está reservada. Temos muito interesse no trabalho de vocês e gostaríamos de verificar a disponibilidade para a nossa data ou outras opções. Conseguem nos ajudar?");}
 
   // ── partículas (porta de ParticlesCanvas: reage ao scroll) ──
   function initParticles(canvas){
@@ -246,16 +247,17 @@
     var p=P.proposta;
     var rows=[["Evento",p.evento_tipo||"Casamento"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
-    var availMap={available:["","Data disponível no momento"],on_hold:["on_hold","Data em pré-reserva"],unavailable:["unavailable","Data indisponível"]};
-    var av=availMap[p.disponibilidade];
+    var ocupada=(p.data_ocupada===true)||(p.disponibilidade==="unavailable");
+    var av = ocupada ? ["unavailable","Essa data já está reservada"] : (p.disponibilidade==="on_hold" ? ["on_hold","Data em pré-reserva"] : ["","Data disponível no momento"]);
+    var dataBanner = ocupada ? '<div class="datawarn"><p class="dw-t">Essa data já está reservada</p><p class="dw-d">A data '+esc(dataCurta(p.evento_data))+' já consta como reservada na nossa agenda. Mas adoraríamos registrar o casamento de vocês. Se tiverem um pouco de flexibilidade na data, fale com a gente que verificamos as opções na hora.</p><a class="btn btn-wa" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">'+WA+' Falar sobre datas</a></div>' : '';
     document.getElementById("app").innerHTML=
     '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
-      (av?'<span class="avail"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>':'')+'<div class="hairline"></div></div></header>'+
+      '<span class="avail"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>'+'<div class="hairline"></div></div></header>'+
     // O dia de voces
-    '<section class="section" id="seu-evento"><div class="container"><div class="shead"><p class="eyebrow">O dia de vocês</p><h2 class="serif">Os detalhes que já conhecemos</h2><p class="sub">Partimos do que vocês já nos contaram, sem precisar repetir nada.</p></div>'+
+    '<section class="section" id="seu-evento"><div class="container"><div class="shead"><p class="eyebrow">O dia de vocês</p><h2 class="serif">Os detalhes que já conhecemos</h2><p class="sub">Partimos do que vocês já nos contaram, sem precisar repetir nada.</p></div>'+dataBanner+
       '<div class="evgrid"><div><dl class="evlist">'+rows.map(function(r){return '<div class="evrow"><dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd></div>';}).join("")+(p.evento_notas?'<div class="evrow notes"><dt>Observações</dt><dd>'+esc(p.evento_notas)+'</dd></div>':'')+'</dl>'+
       '<a class="evcorr" href="'+waCorrigir()+'" target="_blank" rel="noopener">Alguma informação mudou? Corrigir com a gente</a></div>'+
       (p.mensagem_pessoal?'<figure class="evmsg"><blockquote>“'+esc(p.mensagem_pessoal)+'”</blockquote><figcaption>'+esc(p.consultor||"Equipe Bellus")+', Bellus Eventos</figcaption></figure>':'')+'</div></div></section>'+
