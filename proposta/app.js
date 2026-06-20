@@ -2,6 +2,7 @@
   "use strict";
 
   var FN = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/get-proposta";
+  var FN_CHECKOUT = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/create-checkout";
   var ANON = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
   var WHATS = "5521981636666";
   var INSPECT = location.search.indexOf("inspect") !== -1;
@@ -95,6 +96,26 @@
   function waCorrigir(){return waBase("Olá, Bellus! Sobre a proposta de "+nomes(P.proposta)+" (data "+dataTxt()+"), uma informação do evento mudou:");}
   function waReservar(){var b=breakdown();var pk=selPkg();var pay=selPay();return waBase("Olá, Bellus! Queremos reservar a nossa data ("+nomes(P.proposta)+", "+dataTxt()+").\nExperiência: "+pk.nome+" ("+brl(b.total)+")\nCondição: "+(pay?pay.label:"-")+"\nComo seguimos?");}
   function waDataAlternativa(){return waBase("Olá, Bellus! Estou com a proposta de "+nomes(P.proposta)+" em mãos. Vi que a data "+dataTxt()+" já está reservada. Temos muito interesse no trabalho de vocês e gostaríamos de verificar a disponibilidade para a nossa data ou outras opções. Conseguem nos ajudar?");}
+  function pagarSinal(rb, msg){
+    if(rb.getAttribute("data-loading")) return;
+    rb.setAttribute("data-loading","1");
+    var orig=rb.innerHTML; rb.innerHTML="Abrindo pagamento seguro...";
+    if(msg){ msg.classList.remove("warn"); msg.textContent="Você será levado ao ambiente seguro da Stripe."; }
+    var q={}; Object.keys(P.qty||{}).forEach(function(k){ if(P.qty[k]>0) q[k]=P.qty[k]; });
+    fetch(FN_CHECKOUT,{ method:"POST", headers:{ "Content-Type":"application/json", apikey:ANON, Authorization:"Bearer "+ANON }, body:JSON.stringify({ slug:getSlug(), pkgId:P.pkgId, qty:q }) })
+      .then(function(r){ return r.json().then(function(b){ return {ok:r.ok,b:b}; }); })
+      .then(function(r){ if(r.ok&&r.b&&r.b.url){ window.location.href=r.b.url; } else { rb.removeAttribute("data-loading"); rb.innerHTML=orig; if(msg){ msg.textContent=(r.b&&r.b.error)||"Não foi possível abrir o pagamento. Tente de novo."; msg.classList.add("warn"); } } })
+      .catch(function(){ rb.removeAttribute("data-loading"); rb.innerHTML=orig; if(msg){ msg.textContent="Falha de conexão. Tente de novo."; msg.classList.add("warn"); } });
+  }
+  function mostrarRetornoPagamento(){
+    var pago=new URL(location.href).searchParams.get("pago");
+    if(pago!=="1"&&pago!=="0") return;
+    var d=document.createElement("div"); d.className="pay-return "+(pago==="1"?"ok":"no");
+    d.innerHTML=pago==="1" ? "<b>Pagamento do sinal recebido!</b> Já garantimos a sua data. A Bellus entra em contato em instantes." : "<b>Pagamento não concluído.</b> Sua proposta continua aqui, é só tentar quando quiser.";
+    document.body.appendChild(d);
+    requestAnimationFrame(function(){ d.classList.add("show"); });
+    setTimeout(function(){ d.classList.remove("show"); setTimeout(function(){ d.remove(); }, 400); }, 9000);
+  }
 
   // ── partículas (porta de ParticlesCanvas: reage ao scroll) ──
   function initParticles(canvas){
@@ -217,7 +238,7 @@
       (dataOcupada()
         ? '<a class="btn btn-bloq ckbtn" id="reservar" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Essa data já está fechada</a>'
         : '<a class="btn btn-gold ckbtn'+(P.terms?"":" off")+'" id="reservar" href="'+waReservar()+'" target="_blank" rel="noopener">'+esc(lab)+' →</a>')+
-      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está fechada. Consulte outra data para viabilizar o pagamento.":(P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar."))+'</p></div>';
+      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está fechada. Consulte outra data para viabilizar o pagamento.":(!P.terms?"Marque o aceite acima para reservar.":((pay&&pay.kind==="signal")?"Pagamento do sinal em ambiente seguro (cartão ou Pix).":"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.")))+'</p></div>';
     return h;
   }
   function paymentHtml(){
@@ -238,8 +259,13 @@
     el.querySelectorAll("[data-scroll]").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-scroll"));if(t)t.scrollIntoView({behavior:"smooth"});});});
     setupTitleType();
     var tc=document.getElementById("terms"), rb=document.getElementById("reservar"), msg=document.getElementById("ck-msg");
-    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.":"Marque o aceite acima para reservar.";});
-    if(rb)rb.addEventListener("click",function(e){if(dataOcupada())return;if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}}});
+    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?((selPay()&&selPay().kind==="signal")?"Pagamento do sinal em ambiente seguro (cartão ou Pix).":"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro."):"Marque o aceite acima para reservar.";});
+    if(rb)rb.addEventListener("click",function(e){
+      if(dataOcupada())return;
+      if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}return;}
+      var pay=selPay();
+      if(pay&&pay.kind==="signal"){ e.preventDefault(); pagarSinal(rb,msg); }
+    });
   }
   function paintMbar(){
     var pk=selPkg(); var b=breakdown(); var el=document.getElementById("r-mbar");
@@ -335,6 +361,6 @@
   if(!slug){erro("Proposta não encontrada.");return;}
   fetch(FN+"?slug="+encodeURIComponent(slug),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
     .then(function(r){return r.json().then(function(b){return {ok:r.ok,b:b};});})
-    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;P.pkgId=(rec&&PACOTES.some(function(p){return p.id===rec;}))?rec:"diamante";build();}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
+    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;P.pkgId=(rec&&PACOTES.some(function(p){return p.id===rec;}))?rec:"diamante";build();mostrarRetornoPagamento();}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
     .catch(function(){erro("Não foi possível carregar a proposta agora.");});
 })();
