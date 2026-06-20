@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -36,7 +36,7 @@ async function init(){
 }
 async function loadMembro(user){
   const { data } = await supabase.from("proposta_equipe").select("nome,papel,ativo").eq("id", user.id).maybeSingle();
-  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); }
+  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); await loadLeads(); await loadLeadsUsados(); }
   else { await supabase.auth.signOut(); state.user=null; state.membro=null; }
 }
 async function doLogin(email, password){
@@ -60,6 +60,10 @@ async function loadLeads(){
     .select("id,nome,nome_parceiro,email,whatsapp,data_casamento,local,cidade,convidados,mensagem,origem,created_at")
     .order("created_at", { ascending: false }).limit(100);
   state.leads = data || [];
+}
+async function loadLeadsUsados(){
+  const { data } = await supabase.from("propostas").select("lead_id").not("lead_id","is",null);
+  state.leadsUsados = new Set((data||[]).map((r)=>r.lead_id).filter(Boolean));
 }
 async function loadAgenda(){
   const { data } = await supabase.from("propostas")
@@ -94,10 +98,12 @@ async function trocarSenha(novaSenha){
 // ---------- navegação ----------
 async function go(view){
   if (view === "lista" || view === "dashboard") await loadPropostas();
+  if (view === "dashboard" || view === "leads"){ await loadLeads(); await loadLeadsUsados(); }
   if (view === "agenda") await loadAgenda();
   state.view = view; render();
 }
 async function novaProposta(){ state.editing = null; await loadLeads(); state.view = "form"; render(); }
+function criarPropostaDeLead(id){ const lead=state.leads.find((x)=>x.id===id); state.editing=null; state.prefillLead=lead||null; state.view="form"; render(); }
 async function openProposta(id){ const p = await getProposta(id); if (p){ state.current = p; state.view = "detalhe"; render(); } }
 async function editProposta(id){ const p = await getProposta(id); if (p){ state.editing = p; state.view = "form"; render(); } }
 
@@ -111,12 +117,14 @@ function render(){
   else if (state.view==="conta") body=viewConta();
   else if (state.view==="agenda") body=viewAgenda();
   else if (state.view==="dashboard") body=viewDashboard();
+  else if (state.view==="leads") body=viewLeads();
   else body=viewLista();
   root.innerHTML = `
     <header class="topbar">
       <div class="left"><img src="logo_bellus.png" alt="Bellus"/><span class="who">Olá, <b>${esc(state.membro.nome)}</b> · ${PAPEL[state.membro.papel]||esc(state.membro.papel)}</span></div>
       <nav>
         <button class="btn btn-light" data-go="dashboard">Visão geral</button>
+        <button class="btn btn-light" data-go="leads">Leads</button>
         <button class="btn btn-light" data-go="lista">Propostas</button>
         <button class="btn btn-light" data-go="agenda">Agenda</button>
         <button class="btn btn-light" data-go="conta">Trocar senha</button>
@@ -248,8 +256,11 @@ function viewDashboard(){
   const env=ps.filter((p)=>p.enviada_em).length, vis=ps.filter((p)=>p.visualizada_em).length, gan=ps.filter((p)=>["reservada","fechada"].includes(p.status)).length;
   const txAb=env?Math.round(vis/env*100):0, txFe=env?Math.round(gan/env*100):0;
   const fuBlock = followup.length ? `<div class="furows">${fuRows}</div>` : `<div class="empty"><p>Nenhuma proposta aguardando follow-up agora.</p></div>`;
+  const leadsNovos = state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
+  const leadsBanner = leadsNovos>0 ? `<button class="leads-banner" data-go="leads"><span class="lb-dot"></span><span class="lb-txt"><b>${leadsNovos}</b> ${leadsNovos===1?"lead novo aguardando proposta":"leads novos aguardando proposta"}</span><span class="lb-go">Ver leads</span></button>` : "";
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
+  ${leadsBanner}
   <div class="dcards">${cardsHTML}</div>
   <div class="section-label" style="margin-top:1.8rem">Gráficos</div>
   <div class="dcharts" id="dash-charts">
@@ -339,6 +350,54 @@ function fillFromLead(lead){
   set("evento_cidade", lead.cidade); set("evento_convidados", lead.convidados);
   set("evento_notas", lead.mensagem);
   const h=f.querySelector('[name="lead_id"]'); if(h) h.value=lead.id;
+}
+// ---------- leads (entrada de contatos) ----------
+function leadWaLink(l){
+  const d=waDigits(l.whatsapp); if(!d) return "";
+  const msg=`Oi ${l.nome||""}! Aqui é o Thiago, da Bellus Eventos. Recebi o contato de vocês pelo nosso site e queria conversar sobre o filme do casamento.`;
+  return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`;
+}
+function leadMailLink(l){
+  if(!l.email) return "";
+  const corpo=`Oi ${l.nome||""},\n\nRecebi o contato de vocês pelo nosso site e fico feliz com o interesse no filme do casamento.\n\nVou preparar uma proposta personalizada para vocês. Qualquer dúvida, é só responder este e-mail.\n\nAbraço,\nThiago Rodrigues\nBellus Eventos`;
+  return `mailto:${l.email}?subject=${encodeURIComponent("Bellus Eventos")}&body=${encodeURIComponent(corpo)}`;
+}
+function leadContatoBtns(l){
+  const wl=leadWaLink(l), ml=leadMailLink(l);
+  return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
+       + (ml?`<a class="cbtn em" href="${esc(ml)}">E-mail</a>`:"");
+}
+function leadCard(l){
+  const par=l.nome_parceiro ? ` & ${esc(l.nome_parceiro)}` : "";
+  const tem=(state.leadsUsados||new Set()).has(l.id);
+  const meta=[fmtData(l.data_casamento), l.cidade, l.convidados?`${esc(l.convidados)} convidados`:""].filter(Boolean).map(esc).join(" · ");
+  const quando = l.created_at ? `<span class="lead-when">${esc(desdeTxt(l.created_at))}</span>` : "";
+  const msg = l.mensagem ? `<p class="lead-msg">${esc(l.mensagem)}</p>` : "";
+  const acao = tem
+    ? `<span class="lead-tag">Proposta criada</span>`
+    : `<button class="btn btn-primary lead-cta" data-nova-lead="${esc(l.id)}">Criar proposta</button>`;
+  return `<div class="lead-card${tem?" is-done":""}">
+    <div class="lead-card-top">
+      <div><span class="lead-card-nome">${esc(l.nome)}${par}</span><span class="lead-card-origem">${esc(origemTxt(l.origem))}</span></div>
+      ${quando}
+    </div>
+    ${meta?`<div class="lead-card-meta">${meta}</div>`:""}
+    ${msg}
+    <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div>${acao}</div>
+  </div>`;
+}
+function leadsCardsHTML(q){
+  q=(q||"").trim().toLowerCase();
+  const list=state.leads.filter((l)=> !q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q)));
+  if(!list.length) return `<div class="empty"><p>${q?`Nada encontrado para "${esc(q)}".`:"Nenhum lead ainda."}</p></div>`;
+  return `<div class="lead-cards">${list.map(leadCard).join("")}</div>`;
+}
+function viewLeads(){
+  const head=`<div class="page-head"><h2 class="serif">Leads</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>`;
+  if(!state.leads.length) return head+`<div class="empty"><p>Nenhum lead ainda.</p><p class="muted">Os contatos enviados pelo site institucional e pela Noiva dos Sonhos aparecem aqui automaticamente.</p></div>`;
+  const novos=state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
+  const resumo=`<p class="muted" style="margin:-.2rem 0 1rem">${state.leads.length} no total · <b>${novos}</b> sem proposta. Toque em <b>Criar proposta</b> para abrir o formulário já preenchido.</p>`;
+  return head+resumo+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
 }
 function viewForm(){
   const ed = state.editing;
@@ -468,6 +527,7 @@ function wire(){
   if (document.getElementById("dash-charts")) renderCharts();
   if (document.getElementById("mov-list")) renderMovimentacoes();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
+  document.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead"))));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
   const lo=document.getElementById("logout"); if(lo) lo.addEventListener("click", doLogout);
@@ -477,6 +537,13 @@ function wire(){
     state.listaBusca=lb.value;
     const cont=document.getElementById("lista-cont");
     if(cont){ cont.innerHTML=listaContHTML(lb.value); cont.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open")))); }
+  });
+
+  const lbl=document.getElementById("leads-busca");
+  if(lbl) lbl.addEventListener("input", ()=>{
+    state.leadsBusca=lbl.value;
+    const cont=document.getElementById("leads-cont");
+    if(cont){ cont.innerHTML=leadsCardsHTML(lbl.value); cont.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead")))); }
   });
 
   const cop=document.getElementById("btn-copiar");
@@ -507,6 +574,7 @@ function wire(){
     ll.innerHTML = leadRowsHTML(""); wireRows();
     if (ls) ls.addEventListener("input", ()=>{ ll.innerHTML = leadRowsHTML(ls.value); wireRows(); });
   }
+  if (state.prefillLead && document.getElementById("form-proposta")){ const _pl=state.prefillLead; state.prefillLead=null; fillFromLead(_pl); }
 
   const del=document.getElementById("btn-del");
   if (del) del.addEventListener("click", ()=>{

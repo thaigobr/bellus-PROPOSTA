@@ -176,3 +176,25 @@ a { color:inherit; }
 .forgot-row { text-align:center; margin:1rem 0 0; }
 .forgot-row a { color:var(--gold-soft); font-size:.85rem; text-decoration:none; }
 .forgot-row a:hover { color:var(--gold); text-decoration:underline; }
+
+/* ---------- Leads (inbox de contatos) ---------- */
+.leads-banner { display:flex; align-items:center; gap:.7rem; width:100%; text-align:left; margin:0 0 1.4rem; padding:.85rem 1.05rem; border:1px solid var(--gold-soft); background:rgba(143,115,77,.07); border-radius:10px; cursor:pointer; font-family:inherit; transition:background .15s, border-color .15s; }
+.leads-banner:hover { background:rgba(143,115,77,.13); border-color:var(--gold); }
+.leads-banner .lb-dot { width:.6rem; height:.6rem; border-radius:50%; background:var(--gold); flex:none; box-shadow:0 0 0 3px rgba(143,115,77,.18); }
+.leads-banner .lb-txt { color:var(--ink); font-size:.92rem; }
+.leads-banner .lb-txt b { color:var(--gold); }
+.leads-banner .lb-go { margin-left:auto; color:var(--gold); font-weight:600; font-size:.85rem; white-space:nowrap; }
+.lead-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:1rem; }
+.lead-card { border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; background:#fff; display:flex; flex-direction:column; gap:.55rem; }
+.lead-card.is-done { opacity:.7; background:var(--cream); }
+.lead-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
+.lead-card-nome { display:block; font-family:var(--serif); font-size:1.32rem; line-height:1.15; color:var(--ink); }
+.lead-card-origem { display:inline-block; margin-top:.15rem; font-size:.7rem; letter-spacing:.05em; text-transform:uppercase; color:var(--gold); font-weight:600; }
+.lead-when { font-size:.78rem; color:var(--ink-soft); white-space:nowrap; flex:none; }
+.lead-card-meta { font-size:.85rem; color:var(--ink-soft); }
+.lead-msg { margin:.1rem 0 0; font-size:.86rem; color:var(--ink); font-style:italic; background:var(--cream); border-left:2px solid var(--gold-soft); padding:.45rem .6rem; border-radius:0 6px 6px 0; }
+.lead-card-foot { display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-top:auto; padding-top:.5rem; }
+.lead-contato { display:flex; gap:.4rem; flex-wrap:wrap; }
+.lead-cta { min-height:2.3rem; padding:.45rem .9rem; font-size:.82rem; }
+.lead-tag { font-size:.76rem; font-weight:600; color:var(--green); background:#dcefe2; border-radius:999px; padding:.3rem .7rem; white-space:nowrap; }
+@media (max-width:600px){ .lead-cards { grid-template-columns:1fr; } .leads-banner { flex-wrap:wrap; } }
