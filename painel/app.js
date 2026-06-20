@@ -53,12 +53,18 @@ function periodoBar(scope, tipo, mesRef, anoRef){
   else if(tipo==="ano"){ const y=new Date().getFullYear(); let o=""; for(let i=y+3;i>=y-3;i--){ o+=`<option value="${i}" ${String(i)===String(anoRef)?"selected":""}>${i}</option>`; } extra=`<select class="per-pick per-ano">${o}</select>`; }
   return `<div class="periodo" data-scope="${scope}">${opts.map((o)=>`<button type="button" class="per-btn${tipo===o[0]?" sel":""}" data-per="${o[0]}">${o[1]}</button>`).join("")}${extra}</div>`;
 }
-function mensagemAbertura(nome, parc){
+function mensagemAbertura(nome, parc, ocupada){
   nome=(nome||"").trim(); parc=(parc||"").trim();
+  if(ocupada){
+    if(nome && parc) return `${nome} e ${parc}, que alegria receber vocês por aqui! Preparei esta proposta com muito carinho, pensando em como podemos eternizar cada emoção do casamento de vocês, caso consigam ajustar a data para vivermos essa história juntos. Qualquer dúvida, estou à disposição.`;
+    if(nome) return `${nome}, que alegria receber você por aqui! Preparei esta proposta com muito carinho, pensando em como podemos eternizar cada emoção do seu casamento, caso consiga ajustar a data para vivermos essa história juntos. Qualquer dúvida, estou à disposição.`;
+    return `Que alegria receber vocês por aqui! Preparei esta proposta com muito carinho, pensando em como podemos eternizar cada emoção do casamento de vocês, caso consigam ajustar a data para vivermos essa história juntos. Qualquer dúvida, estou à disposição.`;
+  }
   if(nome && parc) return `${nome} e ${parc}, que alegria receber vocês por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do casamento de vocês. Vejam com calma e, qualquer dúvida, é só me chamar.`;
   if(nome) return `${nome}, que alegria receber você por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do seu casamento. Veja com calma e, qualquer dúvida, é só me chamar.`;
   return `Que alegria receber vocês por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do casamento de vocês. Vejam com calma e, qualquer dúvida, é só me chamar.`;
 }
+function leadDataOcupada(d){ return !!(d && (state.datasOcupadas||{})[d]); }
 
 // ---------- auth ----------
 async function init(){
@@ -415,7 +421,7 @@ function fillFromLead(lead){
   set("evento_data", lead.data_casamento); set("evento_local", lead.local);
   set("evento_cidade", lead.cidade); set("evento_convidados", lead.convidados);
   set("evento_notas", lead.mensagem);
-  const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp && !mp.value.trim()) mp.value=mensagemAbertura(lead.nome, lead.nome_parceiro);
+  const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp && !mp.value.trim()) mp.value=mensagemAbertura(lead.nome, lead.nome_parceiro, leadDataOcupada(lead.data_casamento));
   const h=f.querySelector('[name="lead_id"]'); if(h) h.value=lead.id;
   checkDataConflito();
 }
@@ -671,7 +677,7 @@ function wire(){
   }
   if (state.prefillLead && document.getElementById("form-proposta")){ const _pl=state.prefillLead; state.prefillLead=null; fillFromLead(_pl); }
   const sug=document.getElementById("btn-sug-msg");
-  if(sug) sug.addEventListener("click", ()=>{ const f=document.getElementById("form-proposta"); if(!f) return; const mp=f.querySelector('[name="mensagem_pessoal"]'); if(mp) mp.value=mensagemAbertura(f.querySelector('[name="cliente_nome"]').value, f.querySelector('[name="cliente_parceiro"]').value); });
+  if(sug) sug.addEventListener("click", ()=>{ const f=document.getElementById("form-proposta"); if(!f) return; const mp=f.querySelector('[name="mensagem_pessoal"]'); const dv=(f.querySelector('[name="evento_data"]')||{}).value; if(mp) mp.value=mensagemAbertura(f.querySelector('[name="cliente_nome"]').value, f.querySelector('[name="cliente_parceiro"]').value, leadDataOcupada(dv)); });
   const dataInput=document.querySelector('#form-proposta [name="evento_data"]');
   if(dataInput){ checkDataConflito(); dataInput.addEventListener("input", checkDataConflito); dataInput.addEventListener("change", checkDataConflito); }
 
