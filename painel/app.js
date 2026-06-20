@@ -98,8 +98,8 @@ async function trocarSenha(novaSenha){
 // ---------- navegação ----------
 async function go(view){
   if (view === "lista" || view === "dashboard") await loadPropostas();
-  if (view === "dashboard" || view === "leads"){ await loadLeads(); await loadLeadsUsados(); }
   if (view === "agenda") await loadAgenda();
+  await Promise.all([loadLeads(), loadLeadsUsados()]);
   state.view = view; render();
 }
 async function novaProposta(){ state.editing = null; await loadLeads(); state.view = "form"; render(); }
@@ -119,12 +119,13 @@ function render(){
   else if (state.view==="dashboard") body=viewDashboard();
   else if (state.view==="leads") body=viewLeads();
   else body=viewLista();
+  const leadsNovos = state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
   root.innerHTML = `
     <header class="topbar">
       <div class="left"><img src="logo_bellus.png" alt="Bellus"/><span class="who">Olá, <b>${esc(state.membro.nome)}</b> · ${PAPEL[state.membro.papel]||esc(state.membro.papel)}</span></div>
       <nav>
         <button class="btn btn-light" data-go="dashboard">Visão geral</button>
-        <button class="btn btn-light" data-go="leads">Leads</button>
+        <button class="btn btn-light" data-go="leads">Leads${leadsNovos>0?`<span class="nav-badge">${leadsNovos}</span>`:""}</button>
         <button class="btn btn-light" data-go="lista">Propostas</button>
         <button class="btn btn-light" data-go="agenda">Agenda</button>
         <button class="btn btn-light" data-go="conta">Trocar senha</button>
