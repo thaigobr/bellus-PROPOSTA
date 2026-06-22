@@ -118,6 +118,8 @@
   var pixPoll=null;
   function fecharPix(){ if(pixPoll){clearInterval(pixPoll);pixPoll=null;} var o=document.getElementById("pixov"); if(o)o.remove(); document.body.style.overflow=""; }
   var pgCond="sinal";
+  function taxaCart(n){ return n<=1?0.0299:(n<=6?0.0349:0.0399); }
+  function totalCart(v,n){ return (v+0.49)/(1-taxaCart(n)); }
   function abrirPix(cond){
     pgCond=["sinal","avista","cartao"].indexOf(cond)>=0?cond:"sinal";
     var ehCartao=pgCond==="cartao", ehAvista=pgCond==="avista";
@@ -125,16 +127,23 @@
     var topo=ehCartao?"Pagar no cartão":(ehAvista?"Pagamento à vista":"Reservar a data");
     var titu=ehCartao?"Cartão de crédito":(ehAvista?"Pix à vista":"Sinal no Pix");
     var subq=ehCartao
-      ?("Você vai pagar <b>"+brl(b.total)+"</b> no cartão, em até 12x. A data é reservada assim que o cartão é aprovado.")
+      ?("Escolha em quantas vezes quer parcelar. A taxa do cartão já vem embutida em cada parcela.")
       :(ehAvista
         ?("Você paga <b>"+brl(b.total)+"</b> no Pix, à vista com 5% de desconto. Quita tudo e garante a data.")
         :("Você paga <b>"+brl(sig)+"</b> de sinal no Pix pra garantir a data, sem acréscimo. O saldo é parcelado depois."));
+    var parcHtml="";
+    if(ehCartao){
+      var os="";
+      for(var n=1;n<=12;n++){ var t=totalCart(b.total,n); os+='<option value="'+n+'">'+n+'x de '+brlC(t/n)+(n>1?' (total '+brlC(t)+')':' à vista')+'</option>'; }
+      parcHtml='<label class="pixlab" for="pixparc">Em quantas vezes?</label><select id="pixparc" class="pixinp">'+os+'</select>';
+    }
     var ov=document.createElement("div"); ov.id="pixov"; ov.className="pixov";
     ov.innerHTML='<div class="pixbox" role="dialog" aria-modal="true">'+
       '<button class="pixx" aria-label="Fechar">&times;</button>'+
       '<div class="pixstep" data-step="1">'+
         '<p class="eyebrow">'+topo+'</p><h3 class="serif">'+titu+'</h3>'+
         '<p class="pixsub">'+subq+'</p>'+
+        parcHtml+
         '<label class="pixlab" for="pixcpf">CPF do pagador</label>'+
         '<input id="pixcpf" class="pixinp" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14"/>'+
         '<p class="pixmsg" id="pixmsg"></p>'+
@@ -171,7 +180,7 @@
     var orig=btn.innerHTML; btn.innerHTML=(pgCond==="cartao")?"Abrindo…":"Gerando…"; msg.textContent=""; msg.classList.remove("warn");
     function falha(e){ btn.removeAttribute("data-l"); btn.innerHTML=orig; msg.textContent=e||"Não foi possível agora. Tente de novo."; msg.classList.add("warn"); }
     var q={}; Object.keys(P.qty||{}).forEach(function(k){ if(P.qty[k]>0)q[k]=P.qty[k]; });
-    fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:P.pkgId,cond:pgCond,cpf:cpf,qty:q})})
+    fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:P.pkgId,cond:pgCond,cpf:cpf,qty:q,parcelas:(pgCond==="cartao"&&document.getElementById("pixparc"))?parseInt(document.getElementById("pixparc").value,10)||1:1})})
       .then(function(r){return r.json().then(function(b){return{ok:r.ok,b:b};});})
       .then(function(r){
         if(!r.ok||!r.b){ falha(r.b&&r.b.error); return; }
