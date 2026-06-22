@@ -82,8 +82,8 @@
     var subtotal=preco(pk)+add; var pay=selPay();
     var disc=Math.round(subtotal*((pay&&pay.discountRate)||0)); var total=subtotal-disc;
     var sig=null,sal=null; if(pay&&pay.kind==="signal"&&pay.signalRate){sig=Math.round(subtotal*pay.signalRate);sal=subtotal-sig;}
-    var ic=null,iv=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){ic=pay.maxInstallments;iv=Math.round((total/pay.maxInstallments)*100)/100;}
-    return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv};
+    var ic=null,iv=null,icTotal=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){ic=pay.maxInstallments;icTotal=totalCart(total,ic);iv=Math.round((icTotal/ic)*100)/100;}
+    return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv,icTotal:icTotal};
   }
   function setQty(id,q){
     var a=ADDONS.find(function(x){return x.id===id;}); var max=a.maxUnits||6;
@@ -259,10 +259,10 @@
   // ── regiões dinâmicas ──
   function paintExp(){
     var rec=P.proposta.pacote_recomendado;
-    var html=PACOTES.map(function(pk){var sel=pk.id===P.pkgId;var is12=Math.round(preco(pk)/12);
+    var html=PACOTES.map(function(pk){var sel=pk.id===P.pkgId;var is12=totalCart(preco(pk),12)/12;
       return '<div class="pcard'+(sel?" sel":"")+'">'+(pk.id===rec?'<span class="pcard__rec">★ Recomendada</span>':'')+
         '<div class="pcard__name">'+esc(pk.nome)+'</div><div class="pcard__pos">'+esc(pk.pos)+'</div>'+
-        '<div class="pcard__price"><span class="v serif tnum">'+brl(preco(pk))+'</span><div class="pcard__hint">ou em até 12x de '+brlC(is12)+'</div></div>'+
+        '<div class="pcard__price"><span class="v serif tnum">'+brl(preco(pk))+'</span><div class="pcard__hint">ou em até 12x de '+brlC(is12)+' no cartão</div></div>'+
         (pk.valueNote?'<div class="pcard__value">'+(pk.valueHighlight?'<span class="bdg">'+esc(pk.valueHighlight)+'</span>':'')+'<p>'+esc(pk.valueNote)+'</p></div>':'')+
         '<div class="pcard__best"><b>Indicado para:</b> '+esc(pk.best)+'</div>'+
         '<ul class="pcard__list">'+pk.entregas.map(function(e){return '<li class="'+(e[1]?"h":"")+'">'+CK+'<span>'+esc(e[0])+'</span></li>';}).join("")+'</ul>'+
@@ -339,7 +339,7 @@
     if(b.disc>0)h+='<div class="sline accent"><span class="l">Desconto à vista</span><span class="v tnum">menos '+brl(b.disc)+'</span></div>';
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';
     if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo até o casamento</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
-    if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x</span><span class="v tnum">'+brlC(b.iv)+'</span></div></div>';
+    if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x no cartão</span><span class="v tnum">'+brlC(b.iv)+'</span></div><div class="sline"><span class="l">Total no cartão (com a taxa)</span><span class="v tnum">'+brlC(b.icTotal)+'</span></div></div>';
     h+='<div class="svalidade">'+(p.expira_em?"Proposta válida até "+dataCurta(p.expira_em)+". ":"")+'A data é confirmada após a assinatura do contrato e o pagamento do sinal.</div></div>';
     // checkout
     var lab=(pay&&CTA_LABEL[pay.kind])||"Reservar minha data";
@@ -355,7 +355,7 @@
     var opts=PAGAMENTOS.map(function(o){var sel=o.id===P.payId;var pv="";
       if(o.kind==="signal"){var s=Math.round(b.subtotal*(o.signalRate||0));pv="Sinal Pix "+brl(s)+" · saldo "+brl(b.subtotal-s);}
       else if(o.kind==="full"){var d=Math.round(b.subtotal*(o.discountRate||0));pv=brl(b.subtotal-d)+" à vista no Pix"+(d>0?" · você economiza "+brl(d):"");}
-      else if(o.kind==="installments"&&o.maxInstallments){pv="Em até "+o.maxInstallments+"x de "+brlC(b.subtotal/o.maxInstallments);}
+      else if(o.kind==="installments"&&o.maxInstallments){pv="Em até "+o.maxInstallments+"x de "+brlC(totalCart(b.subtotal,o.maxInstallments)/o.maxInstallments)+" (com taxa)";}
       return '<button class="payopt'+(sel?" sel":"")+'" data-pay="'+o.id+'"><span class="rd">'+(sel?CK:"")+'</span><span><span class="lab">'+esc(o.label)+'</span><span class="ds">'+esc(o.desc)+'</span>'+(pv?'<span class="pv">'+esc(pv)+'</span>':'')+'</span></button>';
     }).join("");
     return '<div><h3 style="font-size:1.2rem">Como você prefere pagar</h3><p style="margin:.4rem 0 1rem;color:var(--ink-soft);font-size:.95rem">Escolha a condição que faz mais sentido para vocês.</p><div class="pay">'+opts+'</div></div>';
