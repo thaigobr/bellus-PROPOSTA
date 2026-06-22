@@ -3,6 +3,8 @@
 
   var FN = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/get-proposta";
   var FN_CHECKOUT = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/create-checkout";
+  var FN_COBRANCA = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/asaas-cobranca";
+  var FN_STATUS = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/asaas-status";
   var ANON = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
   var WHATS = "5521981636666";
   var INSPECT = location.search.indexOf("inspect") !== -1;
@@ -24,9 +26,9 @@
     { id:"previa", nome:"Prévia", desc:"Um primeiro recorte do filme, em até 2 semanas após o casamento.", benef:"A emoção mais recente, enquanto ainda está viva.", kind:"bonus", hideForCeremonyOnly:true },
   ];
   var PAGAMENTOS = [
-    { id:"sinal", kind:"signal", label:"Reservar a data com sinal", desc:"Sinal de 20% para garantir a data. O saldo é parcelado até o casamento.", signalRate:0.2 },
-    { id:"avista", kind:"full", label:"Pagamento integral", desc:"Quitação à vista, com 5% de desconto sobre o total.", discountRate:0.05 },
-    { id:"cartao", kind:"installments", label:"Parcelar no cartão", desc:"Parcelamento no cartão de crédito via checkout seguro.", maxInstallments:12 },
+    { id:"sinal", kind:"signal", label:"Reservar a data com Sinal PIX", desc:"20% no Pix para garantir a data. O saldo restante é parcelado (Pix sem taxa, ou cartão com a taxa da operadora).", signalRate:0.2 },
+    { id:"avista", kind:"full", label:"Pagamento integral via PIX", desc:"Quitação à vista no Pix, com 5% de desconto sobre o total.", discountRate:0.05 },
+    { id:"cartao", kind:"installments", label:"Parcelamento total no Cartão", desc:"No cartão de crédito via checkout seguro, em até 12x.", maxInstallments:12 },
   ];
   var CTA_LABEL = { signal:"Reservar minha data", full:"Confirmar e reservar", installments:"Continuar para reservar" };
   var PROCESS = [
@@ -106,6 +108,104 @@
       .then(function(r){ return r.json().then(function(b){ return {ok:r.ok,b:b}; }); })
       .then(function(r){ if(r.ok&&r.b&&r.b.url){ window.location.href=r.b.url; } else { rb.removeAttribute("data-loading"); rb.innerHTML=orig; if(msg){ msg.textContent=(r.b&&r.b.error)||"Não foi possível abrir o pagamento. Tente de novo."; msg.classList.add("warn"); } } })
       .catch(function(){ rb.removeAttribute("data-loading"); rb.innerHTML=orig; if(msg){ msg.textContent="Falha de conexão. Tente de novo."; msg.classList.add("warn"); } });
+  }
+
+  // ── Sinal via Pix (Asaas): QR dentro da própria proposta + acompanhamento ──
+  function fmtCpf(v){ v=(v||"").replace(/\D/g,"").slice(0,11);
+    if(v.length>9)return v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,"$1.$2.$3-$4");
+    if(v.length>6)return v.replace(/(\d{3})(\d{3})(\d{1,3})/,"$1.$2.$3");
+    if(v.length>3)return v.replace(/(\d{3})(\d{1,3})/,"$1.$2"); return v; }
+  var pixPoll=null;
+  function fecharPix(){ if(pixPoll){clearInterval(pixPoll);pixPoll=null;} var o=document.getElementById("pixov"); if(o)o.remove(); document.body.style.overflow=""; }
+  var pgCond="sinal";
+  function abrirPix(cond){
+    pgCond=["sinal","avista","cartao"].indexOf(cond)>=0?cond:"sinal";
+    var ehCartao=pgCond==="cartao", ehAvista=pgCond==="avista";
+    var b=breakdown(); var sig=(b.sig!=null)?b.sig:Math.round(b.subtotal*0.2);
+    var topo=ehCartao?"Pagar no cartão":(ehAvista?"Pagamento à vista":"Reservar a data");
+    var titu=ehCartao?"Cartão de crédito":(ehAvista?"Pix à vista":"Sinal no Pix");
+    var subq=ehCartao
+      ?("Você vai pagar <b>"+brl(b.total)+"</b> no cartão, em até 12x. A data é reservada assim que o cartão é aprovado.")
+      :(ehAvista
+        ?("Você paga <b>"+brl(b.total)+"</b> no Pix, à vista com 5% de desconto. Quita tudo e garante a data.")
+        :("Você paga <b>"+brl(sig)+"</b> de sinal no Pix pra garantir a data, sem acréscimo. O saldo é parcelado depois."));
+    var ov=document.createElement("div"); ov.id="pixov"; ov.className="pixov";
+    ov.innerHTML='<div class="pixbox" role="dialog" aria-modal="true">'+
+      '<button class="pixx" aria-label="Fechar">&times;</button>'+
+      '<div class="pixstep" data-step="1">'+
+        '<p class="eyebrow">'+topo+'</p><h3 class="serif">'+titu+'</h3>'+
+        '<p class="pixsub">'+subq+'</p>'+
+        '<label class="pixlab" for="pixcpf">CPF do pagador</label>'+
+        '<input id="pixcpf" class="pixinp" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14"/>'+
+        '<p class="pixmsg" id="pixmsg"></p>'+
+        '<button class="btn btn-gold pixfull" id="pixgerar">'+(ehCartao?"Ir para o cartão":"Gerar Pix")+'</button>'+
+        '<p class="pixfoot">Pagamento processado com segurança pelo Asaas.</p>'+
+      '</div>'+
+      '<div class="pixstep" data-step="2" hidden>'+
+        '<h3 class="serif">Escaneie e pague</h3>'+
+        '<p class="pixsub">Valor do sinal: <b id="pixval"></b></p>'+
+        '<div class="pixqr" id="pixqr"></div>'+
+        '<button class="btn btn-ghost pixfull" id="pixcopy">Copiar código Pix</button>'+
+        '<p class="pixwait"><span class="pixdot"></span> Aguardando o pagamento. Esta tela atualiza sozinha.</p>'+
+        '<p class="pixfoot">No app do banco: Pix › Ler QR Code, ou use o Pix Copia e Cola.</p>'+
+      '</div>'+
+      '<div class="pixstep" data-step="3" hidden>'+
+        '<div class="pixok">'+CK+'</div><h3 class="serif">Pagamento confirmado!</h3>'+
+        '<p class="pixsub">Sua data está reservada. A Bellus já foi avisada e entra em contato.</p>'+
+        '<button class="btn btn-gold pixfull" id="pixdone">Ver minha reserva</button>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(ov); document.body.style.overflow="hidden";
+    ov.querySelector(".pixx").addEventListener("click",fecharPix);
+    ov.addEventListener("click",function(e){ if(e.target===ov)fecharPix(); });
+    var cpf=document.getElementById("pixcpf");
+    cpf.addEventListener("input",function(){ cpf.value=fmtCpf(cpf.value); });
+    try{cpf.focus();}catch(_e){}
+    document.getElementById("pixgerar").addEventListener("click",gerarPix);
+  }
+  function gerarPix(){
+    var btn=document.getElementById("pixgerar"), msg=document.getElementById("pixmsg");
+    var cpf=(document.getElementById("pixcpf").value||"").replace(/\D/g,"");
+    if(cpf.length!==11){ msg.textContent="Digite um CPF válido (11 números)."; msg.classList.add("warn"); return; }
+    if(btn.getAttribute("data-l"))return; btn.setAttribute("data-l","1");
+    var orig=btn.innerHTML; btn.innerHTML=(pgCond==="cartao")?"Abrindo…":"Gerando…"; msg.textContent=""; msg.classList.remove("warn");
+    function falha(e){ btn.removeAttribute("data-l"); btn.innerHTML=orig; msg.textContent=e||"Não foi possível agora. Tente de novo."; msg.classList.add("warn"); }
+    var q={}; Object.keys(P.qty||{}).forEach(function(k){ if(P.qty[k]>0)q[k]=P.qty[k]; });
+    fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:P.pkgId,cond:pgCond,cpf:cpf,qty:q})})
+      .then(function(r){return r.json().then(function(b){return{ok:r.ok,b:b};});})
+      .then(function(r){
+        if(!r.ok||!r.b){ falha(r.b&&r.b.error); return; }
+        if(pgCond==="cartao"){ if(!r.b.invoiceUrl){ falha(r.b.error); return; } window.location.href=r.b.invoiceUrl; return; }
+        if(!r.b.qrPayload){ falha(r.b.error); return; }
+        var box=document.getElementById("pixov"); if(!box)return;
+        box.querySelector('[data-step="1"]').hidden=true;
+        box.querySelector('[data-step="2"]').hidden=false;
+        document.getElementById("pixval").textContent=brl(r.b.valor||0);
+        document.getElementById("pixqr").innerHTML=r.b.qrImage?'<img alt="QR Code Pix" src="data:image/png;base64,'+r.b.qrImage+'"/>':'<p class="pixsub">Use o Copia e Cola abaixo.</p>';
+        document.getElementById("pixcopy").addEventListener("click",function(){
+          var t=r.b.qrPayload, c=this;
+          function done(){ c.textContent="Código copiado!"; setTimeout(function(){c.textContent="Copiar código Pix";},2000); }
+          if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(function(){prompt("Copie o código Pix:",t);}); }
+          else prompt("Copie o código Pix:",t);
+        });
+        pollPix(r.b.paymentId);
+      })
+      .catch(function(){ falha("Falha de conexão. Tente de novo."); });
+  }
+  function pollPix(paymentId){
+    if(!paymentId)return; var n=0;
+    pixPoll=setInterval(function(){
+      n++; if(n>150){clearInterval(pixPoll);pixPoll=null;return;}
+      fetch(FN_STATUS+"?paymentId="+encodeURIComponent(paymentId),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
+        .then(function(r){return r.json();})
+        .then(function(b){ if(b&&(b.pago||b.reservado)){ clearInterval(pixPoll);pixPoll=null; pixOk(); } }).catch(function(){});
+    },5000);
+  }
+  function pixOk(){
+    var box=document.getElementById("pixov"); if(!box)return;
+    box.querySelector('[data-step="2"]').hidden=true;
+    box.querySelector('[data-step="3"]').hidden=false;
+    var d=document.getElementById("pixdone"); if(d)d.addEventListener("click",function(){ fecharPix(); location.reload(); });
   }
   function mostrarRetornoPagamento(){
     var pago=new URL(location.href).searchParams.get("pago");
@@ -238,37 +338,60 @@
       (dataOcupada()
         ? '<a class="btn btn-bloq ckbtn" id="reservar" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Essa data já está fechada</a>'
         : '<a class="btn btn-gold ckbtn'+(P.terms?"":" off")+'" id="reservar" href="'+waReservar()+'" target="_blank" rel="noopener">'+esc(lab)+' →</a>')+
-      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está fechada. Consulte outra data para viabilizar o pagamento.":(!P.terms?"Marque o aceite acima para reservar.":((pay&&pay.kind==="signal")?"Pagamento do sinal em ambiente seguro (cartão ou Pix).":"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro.")))+'</p></div>';
+      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está fechada. Consulte outra data para viabilizar o pagamento.":(!P.terms?"Marque o aceite acima para reservar.":((pay&&pay.kind==="signal")?"Pagamento do sinal no Pix, na hora e sem acréscimo.":(selPay()&&selPay().kind==="installments")?"Pagamento no cartão, parcelável, em ambiente seguro.":"Pagamento à vista no Pix, com 5% de desconto.")))+'</p></div>';
     return h;
   }
   function paymentHtml(){
     var b=breakdown();
     var opts=PAGAMENTOS.map(function(o){var sel=o.id===P.payId;var pv="";
-      if(o.kind==="signal"){var s=Math.round(b.subtotal*(o.signalRate||0));pv="Sinal de "+brl(s)+" · saldo de "+brl(b.subtotal-s);}
-      else if(o.kind==="full"){var d=Math.round(b.subtotal*(o.discountRate||0));pv=brl(b.subtotal-d)+" à vista"+(d>0?" · você economiza "+brl(d):"");}
+      if(o.kind==="signal"){var s=Math.round(b.subtotal*(o.signalRate||0));pv="Sinal Pix "+brl(s)+" · saldo "+brl(b.subtotal-s);}
+      else if(o.kind==="full"){var d=Math.round(b.subtotal*(o.discountRate||0));pv=brl(b.subtotal-d)+" à vista no Pix"+(d>0?" · você economiza "+brl(d):"");}
       else if(o.kind==="installments"&&o.maxInstallments){pv="Em até "+o.maxInstallments+"x de "+brlC(b.subtotal/o.maxInstallments);}
       return '<button class="payopt'+(sel?" sel":"")+'" data-pay="'+o.id+'"><span class="rd">'+(sel?CK:"")+'</span><span><span class="lab">'+esc(o.label)+'</span><span class="ds">'+esc(o.desc)+'</span>'+(pv?'<span class="pv">'+esc(pv)+'</span>':'')+'</span></button>';
     }).join("");
     return '<div><h3 style="font-size:1.2rem">Como você prefere pagar</h3><p style="margin:.4rem 0 1rem;color:var(--ink-soft);font-size:.95rem">Escolha a condição que faz mais sentido para vocês.</p><div class="pay">'+opts+'</div></div>';
   }
+  function reservado(){ var pg=P.proposta&&P.proposta.pagamento; return !!(pg&&pg.reservado); }
+  function waSaldo(){ return waBase("Olá, Bellus! Sou da proposta de "+nomes(P.proposta)+". Já paguei o sinal e quero combinar as parcelas do saldo. Como seguimos?"); }
+  function reservaPainelHtml(){
+    var p=P.proposta, pg=p.pagamento||{};
+    var sinal=brl((pg.sinal_centavos||0)/100), saldo=brl((pg.saldo_centavos||0)/100);
+    var quando=pg.ultimo_pago_em?dataCurta(String(pg.ultimo_pago_em).slice(0,10)):"";
+    return '<section class="section" id="contratacao"><div class="container">'+
+      '<div class="shead"><p class="eyebrow">Sua reserva</p><h2 class="serif">Data garantida!</h2></div>'+
+      '<div class="reserva">'+
+        '<div class="rsv-ok"><span class="rsv-ck">'+CK+'</span> Sua data está reservada'+(p.evento_data?' · '+dataCurta(p.evento_data):'')+'</div>'+
+        '<div class="rsv-rows">'+
+          '<div class="rsv-row"><span class="l">Sinal pago'+(quando?' <small>em '+quando+'</small>':'')+'</span><b class="tnum">'+sinal+'</b></div>'+
+          '<div class="rsv-row total"><span class="l">Saldo restante</span><b class="tnum">'+saldo+'</b></div>'+
+        '</div>'+
+        '<p class="rsv-info">O saldo é parcelado até o casamento. A gente combina as parcelas do jeito que ficar melhor pra vocês (cartão, Pix ou transferência) — é só chamar.</p>'+
+        '<a class="btn btn-wa rsv-btn" href="'+waSaldo()+'" target="_blank" rel="noopener">'+WA+' Combinar as parcelas</a>'+
+      '</div></div></section>';
+  }
   function paintConfig(){
     var el=document.getElementById("r-config");
+    if(reservado()){ el.innerHTML=reservaPainelHtml(); setupTitleType(); return; }
     el.innerHTML=alemHtml()+'<section class="section" id="contratacao"><div class="container"><div class="shead"><p class="eyebrow">Resumo da contratação</p><h2 class="serif">Tudo claro, antes do próximo passo</h2></div><div class="cw"><div>'+paymentHtml()+'</div><div>'+summaryHtml()+'</div></div></div></section>';
     el.querySelectorAll("[data-step]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-addon");var q=P.qty[id]||0;setQty(id,b.getAttribute("data-step")==="up"?q+1:q-1);});});
     el.querySelectorAll("[data-pay]").forEach(function(b){b.addEventListener("click",function(){P.payId=b.getAttribute("data-pay");paintConfig();paintMbar();});});
     el.querySelectorAll("[data-scroll]").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-scroll"));if(t)t.scrollIntoView({behavior:"smooth"});});});
     setupTitleType();
     var tc=document.getElementById("terms"), rb=document.getElementById("reservar"), msg=document.getElementById("ck-msg");
-    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?((selPay()&&selPay().kind==="signal")?"Pagamento do sinal em ambiente seguro (cartão ou Pix).":"Vamos combinar o pagamento pelo WhatsApp, em ambiente seguro."):"Marque o aceite acima para reservar.";});
+    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?((selPay()&&selPay().kind==="signal")?"Pagamento do sinal no Pix, na hora e sem acréscimo.":(selPay()&&selPay().kind==="installments")?"Pagamento no cartão, parcelável, em ambiente seguro.":"Pagamento à vista no Pix, com 5% de desconto."):"Marque o aceite acima para reservar.";});
     if(rb)rb.addEventListener("click",function(e){
       if(dataOcupada())return;
       if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para reservar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}return;}
       var pay=selPay();
-      if(pay&&pay.kind==="signal"){ e.preventDefault(); pagarSinal(rb,msg); }
+      if(pay&&pay.kind==="signal"){ e.preventDefault(); abrirPix("sinal"); }
+      else if(pay&&pay.kind==="full"){ e.preventDefault(); abrirPix("avista"); }
+      else if(pay&&pay.kind==="installments"){ e.preventDefault(); abrirPix("cartao"); }
     });
   }
   function paintMbar(){
-    var pk=selPkg(); var b=breakdown(); var el=document.getElementById("r-mbar");
+    var el=document.getElementById("r-mbar");
+    if(reservado()){ el.innerHTML='<div class="info"><div class="pk">Sua data está reservada</div><div class="tt serif tnum">Saldo '+brl((P.proposta.pagamento.saldo_centavos||0)/100)+'</div></div><a class="btn btn-wa" href="'+waSaldo()+'" target="_blank" rel="noopener">Parcelas</a>'; var cf0=document.getElementById("cta-final"); if(cf0)cf0.setAttribute("href",waFalar()); return; }
+    var pk=selPkg(); var b=breakdown();
     el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data fechada · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>');
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
   }

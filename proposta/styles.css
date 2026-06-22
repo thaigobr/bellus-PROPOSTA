@@ -56,6 +56,18 @@ h1,h2,h3,h4{font-weight:500;line-height:1.18;margin:0;}
 .pay-return.show{transform:translate(-50%,0);}
 .pay-return.ok{background:#dcefe2;border:1px solid #145e3c;color:#145e3c;}
 .pay-return.no{background:#fbe8d6;border:1px solid #e0883a;color:#8a4a12;}
+.reserva{max-width:34rem;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.7rem 1.5rem;box-shadow:0 30px 70px -40px rgba(0,0,0,.25);}
+.rsv-ok{display:flex;align-items:center;gap:.6rem;font-family:var(--serif);font-size:1.4rem;color:var(--green);margin-bottom:1.3rem;}
+.rsv-ck{display:inline-flex;width:1.8rem;height:1.8rem;align-items:center;justify-content:center;background:#dcefe2;color:var(--green);border-radius:50%;flex:none;}
+.rsv-ck svg{width:1rem;height:1rem;}
+.rsv-rows{display:grid;gap:.7rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:1.1rem 0;}
+.rsv-row{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;}
+.rsv-row .l{color:var(--ink-soft);font-size:.92rem;}
+.rsv-row .l small{opacity:.85;}
+.rsv-row b{font-size:1.05rem;color:var(--ink);}
+.rsv-row.total b{font-family:var(--serif);font-size:1.7rem;}
+.rsv-info{margin:1.2rem 0 1.4rem;color:var(--ink-soft);font-size:.92rem;line-height:1.55;}
+.rsv-btn{width:100%;}
 
 /* mensagem */
 .msg p{font-family:var(--serif);font-weight:300;font-size:clamp(1.4rem,3.6vw,1.9rem);line-height:1.42;color:var(--ink);}
@@ -261,3 +273,32 @@ h1,h2,h3,h4{font-weight:500;line-height:1.18;margin:0;}
 .ckbtn.off{opacity:.5;}
 .ck-msg{margin:.8rem 0 0;text-align:center;font-size:.8rem;color:var(--ink-soft);}
 .ck-msg.warn{color:#a85454;font-weight:500;}
+
+/* ── modal Pix (sinal via Asaas) ── */
+.pixov{position:fixed;inset:0;z-index:10000;background:rgba(20,20,20,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:1.2rem;animation:pixfade .25s var(--ease);}
+@keyframes pixfade{from{opacity:0;}to{opacity:1;}}
+.pixbox{position:relative;width:100%;max-width:25rem;max-height:92vh;overflow-y:auto;background:#fff;border-radius:18px;padding:1.8rem 1.5rem 1.5rem;box-shadow:0 40px 90px -30px rgba(0,0,0,.55);text-align:center;}
+.pixx{position:absolute;top:.6rem;right:.8rem;width:2.1rem;height:2.1rem;border:0;background:transparent;font-size:1.7rem;line-height:1;color:var(--ink-soft);cursor:pointer;border-radius:50%;}
+.pixx:hover{background:var(--ivory);color:var(--ink);}
+.pixstep[hidden]{display:none;}
+.pixstep .eyebrow{margin-bottom:.35rem;}
+.pixstep h3{font-size:1.7rem;margin-bottom:.5rem;}
+.pixsub{color:var(--ink-soft);font-size:.92rem;line-height:1.5;margin:0 0 1.1rem;}
+.pixsub b{color:var(--ink);}
+.pixlab{display:block;text-align:left;font-size:.82rem;font-weight:500;color:var(--ink);margin-bottom:.35rem;}
+.pixinp{width:100%;min-height:3rem;border:1px solid var(--line);border-radius:8px;padding:.7rem .9rem;font-family:var(--sans);font-size:1.05rem;letter-spacing:.5px;text-align:center;transition:border-color .2s var(--ease);}
+.pixinp:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(143,115,77,.15);}
+.pixmsg{min-height:1.05rem;margin:.5rem 0 .3rem;font-size:.82rem;color:var(--ink-soft);}
+.pixmsg.warn{color:#c0392b;}
+.pixfull{width:100%;margin-top:.4rem;}
+.pixfoot{margin:.9rem 0 0;font-size:.72rem;color:var(--ink-soft);line-height:1.45;}
+.pixqr{display:flex;justify-content:center;margin:.2rem 0 1rem;}
+.pixqr img{width:14.5rem;height:14.5rem;border:1px solid var(--line);border-radius:12px;padding:.5rem;background:#fff;}
+.btn-ghost{background:transparent;border:1px solid var(--gold);color:var(--gold);}
+.btn-ghost:hover{background:rgba(143,115,77,.08);}
+.pixwait{display:flex;align-items:center;justify-content:center;gap:.5rem;margin:1rem 0 0;font-size:.86rem;color:var(--ink-soft);}
+.pixdot{width:.6rem;height:.6rem;border-radius:50%;background:var(--gold-2);animation:pixpulse 1.2s ease-in-out infinite;}
+@keyframes pixpulse{0%,100%{opacity:.35;transform:scale(.85);}50%{opacity:1;transform:scale(1.1);}}
+.pixok{width:3.4rem;height:3.4rem;border-radius:50%;background:#dcefe2;color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.pixok svg{width:1.8rem;height:1.8rem;}
+@media (prefers-reduced-motion: reduce){.pixov{animation:none;}.pixdot{animation:none;}}
