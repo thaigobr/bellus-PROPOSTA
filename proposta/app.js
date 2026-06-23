@@ -368,7 +368,11 @@
     return '<div><h3 style="font-size:1.2rem">Como você prefere pagar</h3><p style="margin:.4rem 0 1rem;color:var(--ink-soft);font-size:.95rem">Escolha a condição que faz mais sentido para vocês.</p><div class="pay">'+opts+'</div></div>';
   }
   function reservado(){ var pg=P.proposta&&P.proposta.pagamento; return !!(pg&&pg.reservado); }
-  function waSaldo(){ return waBase("Olá, Bellus! Sou da proposta de "+nomes(P.proposta)+". Já paguei o sinal e quero combinar as parcelas do saldo. Como seguimos?"); }
+  function waReservada(){
+    var pg=(P.proposta&&P.proposta.pagamento)||{};
+    if((pg.saldo_centavos||0)>0) return waBase("Olá, Bellus! Sou da proposta de "+nomes(P.proposta)+". Já paguei o sinal e quero combinar as parcelas do saldo. Como seguimos?");
+    return waBase("Olá, Bellus! Sou da proposta de "+nomes(P.proposta)+". Está tudo pago e estamos ansiosos pelo nosso dia ("+dataTxt()+")!");
+  }
   function pacoteContratado(){
     var pid=P.proposta&&P.proposta.pagamento&&P.proposta.pagamento.pacote_id;
     return PACOTES.find(function(x){return x.id===pid;})||selPkg();
@@ -379,6 +383,7 @@
     var sinal=brl((pg.sinal_centavos||0)/100), saldo=brl((pg.saldo_centavos||0)/100);
     var temSaldo=(pg.saldo_centavos||0)>0;
     var quando=pg.ultimo_pago_em?dataCurta(String(pg.ultimo_pago_em).slice(0,10)):"";
+    var totalPago=brl((pg.total_pago_centavos||0)/100);
     var pk=pacoteContratado();
     var dd=diasPara(p.evento_data);
     var countTxt=dd==null?"":(dd>1?'Faltam <b>'+dd+' dias</b> para o grande dia':dd===1?'É <b>amanhã</b>! Falta só 1 dia':dd===0?'<b>É hoje!</b> Que o dia de vocês seja inesquecível':'Casamento realizado · obrigado por confiar na Bellus');
@@ -402,14 +407,17 @@
           '<p class="rsv-pkg-pos">'+esc(pk.pos)+'</p>'+
           '<ul class="rsv-pkg-list">'+pk.entregas.slice(0,5).map(function(e){return '<li>'+CK+'<span>'+esc(e[0])+'</span></li>';}).join("")+'</ul>'+
         '</div>'+
-        '<div class="rsv-rows">'+
-          '<div class="rsv-row"><span class="l">Sinal pago'+(quando?' <small>em '+quando+'</small>':'')+'</span><b class="tnum">'+sinal+'</b></div>'+
-          '<div class="rsv-row total"><span class="l">Saldo restante</span><b class="tnum">'+saldo+'</b></div>'+
-        '</div>'+
-        '<p class="rsv-info">'+(temSaldo?'Pague o saldo restante como preferir: no Pix (sem taxa) ou parcelado no cartão (com a taxa).':'Tudo quitado! Qualquer dúvida, é só chamar a Bellus.')+'</p>'+
-        (temSaldo?'<a class="btn btn-gold rsv-btn" id="saldo-pix">Pagar saldo no Pix · '+saldo+'</a>':'')+
-        (temSaldo?'<a class="btn btn-ghost rsv-btn" id="saldo-cartao">Parcelar no cartão · até 12x (com taxa)</a>':'')+
-        '<a class="btn btn-wa rsv-btn" href="'+waSaldo()+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a>'+
+        (temSaldo
+          ? '<div class="rsv-rows">'+
+              '<div class="rsv-row"><span class="l">Sinal pago'+(quando?' <small>em '+quando+'</small>':'')+'</span><b class="tnum">'+sinal+'</b></div>'+
+              '<div class="rsv-row total"><span class="l">Saldo restante</span><b class="tnum">'+saldo+'</b></div>'+
+            '</div>'+
+            '<p class="rsv-info">Pague o saldo restante como preferir: no Pix (sem taxa) ou parcelado no cartão (com a taxa).</p>'+
+            '<a class="btn btn-gold rsv-btn" id="saldo-pix">Pagar saldo no Pix · '+saldo+'</a>'+
+            '<a class="btn btn-ghost rsv-btn" id="saldo-cartao">Parcelar no cartão · até 12x (com taxa)</a>'
+          : '<div class="rsv-paid"><span class="rsv-paid-ck">'+CK+'</span><div><div class="t">Pagamento concluído</div><div class="d">Tudo quitado'+(totalPago?' · '+totalPago:'')+'. Estamos ansiosos pelo grande dia!</div></div></div>'
+        )+
+        '<a class="btn btn-wa rsv-btn" href="'+waReservada()+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a>'+
       '</div></div></section>';
   }
   function paintConfig(){
@@ -433,7 +441,7 @@
   }
   function paintMbar(){
     var el=document.getElementById("r-mbar");
-    if(reservado()){ el.innerHTML='<div class="info"><div class="pk">Sua data está reservada</div><div class="tt serif tnum">Saldo '+brl((P.proposta.pagamento.saldo_centavos||0)/100)+'</div></div><a class="btn btn-wa" href="'+waSaldo()+'" target="_blank" rel="noopener">Parcelas</a>'; var cf0=document.getElementById("cta-final"); if(cf0)cf0.setAttribute("href",waFalar()); return; }
+    if(reservado()){ var saldoC=(P.proposta.pagamento.saldo_centavos||0); el.innerHTML='<div class="info"><div class="pk">Sua data está reservada</div><div class="tt serif tnum">'+(saldoC>0?'Saldo '+brl(saldoC/100):'Tudo pago')+'</div></div><a class="btn btn-wa" href="'+waReservada()+'" target="_blank" rel="noopener">'+(saldoC>0?'Parcelas':'Falar')+'</a>'; var cf0=document.getElementById("cta-final"); if(cf0)cf0.setAttribute("href",waReservada()); return; }
     var pk=selPkg(); var b=breakdown();
     el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data fechada · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>');
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
@@ -506,7 +514,7 @@
     (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div></div></section>'+
     '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual experiência combina mais com vocês?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+
     '<div id="r-config"></div>'+
-    '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">Vamos guardar o dia de vocês?</h2><p>Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o casamento de vocês.</p><a class="btn btn-wa" id="cta-final" href="'+waFalar()+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a></div></section>'+
+    '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">'+(rsv?'Estamos ansiosos pelo grande dia':'Vamos guardar o dia de vocês?')+'</h2><p>'+(rsv?'A data de vocês está reservada e cada detalhe já é importante para nós. Qualquer novidade, é só chamar.':'Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o casamento de vocês.')+'</p><a class="btn btn-wa" id="cta-final" href="'+(rsv?waReservada():waFalar())+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a></div></section>'+
     '<footer class="footer section--dark">'+part(0)+'<div class="container"><img src="logo_bellus.png" alt="Bellus Eventos"/><div>Bellus Eventos · CNPJ 30.922.038/0001-82 · Teresópolis, RJ</div><div style="margin-top:.4rem;opacity:.7">Proposta pessoal e confidencial.</div></div></footer>'+
     '<div class="mbar" id="r-mbar"></div>';
     document.title=nomes(p)+" · Proposta Bellus";
