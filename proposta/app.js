@@ -263,6 +263,7 @@
 
   // ── regiões dinâmicas ──
   function paintExp(){
+    if(!document.getElementById("r-exp"))return;
     var rec=P.proposta.pacote_recomendado;
     var html=PACOTES.map(function(pk){var sel=pk.id===P.pkgId;var is12=totalCart(preco(pk),12)/12;
       return '<div class="pcard'+(sel?" sel":"")+'">'+(pk.id===rec?'<span class="pcard__rec">★ Recomendada</span>':'')+
@@ -278,6 +279,7 @@
   }
 
   function paintComp(){
+    if(!document.getElementById("r-comp"))return;
     var rec=P.proposta.pacote_recomendado;
     function cell(v){if(v===true)return '<span class="ccheck">'+CK+'</span>';if(v===false||v==null)return '<span class="cno">Não</span>';return '<span class="cv">'+esc(v)+'</span>';}
     var head='<th class="ccrit">Critério</th>'+PACOTES.map(function(p){var sel=p.id===P.pkgId;return '<th><button class="chead'+(sel?" sel":"")+'" data-pick="'+p.id+'"><span class="cn">'+esc(p.nome)+'</span>'+(p.id===rec?'<span class="crec">Recomendado</span>':'')+'</button></th>';}).join("");
@@ -367,15 +369,39 @@
   }
   function reservado(){ var pg=P.proposta&&P.proposta.pagamento; return !!(pg&&pg.reservado); }
   function waSaldo(){ return waBase("Olá, Bellus! Sou da proposta de "+nomes(P.proposta)+". Já paguei o sinal e quero combinar as parcelas do saldo. Como seguimos?"); }
+  function pacoteContratado(){
+    var pid=P.proposta&&P.proposta.pagamento&&P.proposta.pagamento.pacote_id;
+    return PACOTES.find(function(x){return x.id===pid;})||selPkg();
+  }
+  function diasPara(d){ if(!d)return null; var h=new Date(); h.setHours(0,0,0,0); var e=new Date(d+"T00:00:00"); return Math.round((e-h)/86400000); }
   function reservaPainelHtml(){
     var p=P.proposta, pg=p.pagamento||{};
     var sinal=brl((pg.sinal_centavos||0)/100), saldo=brl((pg.saldo_centavos||0)/100);
     var temSaldo=(pg.saldo_centavos||0)>0;
     var quando=pg.ultimo_pago_em?dataCurta(String(pg.ultimo_pago_em).slice(0,10)):"";
+    var pk=pacoteContratado();
+    var dd=diasPara(p.evento_data);
+    var countTxt=dd==null?"":(dd>1?'Faltam <b>'+dd+' dias</b> para o grande dia':dd===1?'É <b>amanhã</b>! Falta só 1 dia':dd===0?'<b>É hoje!</b> Que o dia de vocês seja inesquecível':'Casamento realizado · obrigado por confiar na Bellus');
+    var diaNum=p.evento_data?p.evento_data.split("-")[2]:"";
+    var mesAbrev=p.evento_data?MESES[parseInt(p.evento_data.split("-")[1],10)-1].slice(0,3):"";
     return '<section class="section" id="contratacao"><div class="container">'+
       '<div class="shead"><p class="eyebrow">Sua reserva</p><h2 class="serif">Data garantida!</h2></div>'+
       '<div class="reserva">'+
-        '<div class="rsv-ok"><span class="rsv-ck">'+CK+'</span> Sua data está reservada'+(p.evento_data?' · '+dataCurta(p.evento_data):'')+'</div>'+
+        '<div class="rsv-hero">'+
+          '<span class="rsv-seal">'+CK+'</span>'+
+          '<p class="rsv-congrats serif">Que alegria, '+esc(nomes(p))+'!</p>'+
+          '<p class="rsv-msg">A data de vocês está <b>garantida</b>. A partir de agora, cada detalhe importa para nós: vamos cuidar de tudo para transformar o seu dia em um filme para reviver pelo resto da vida.</p>'+
+        '</div>'+
+        (p.evento_data?'<div class="rsv-date">'+
+          '<div class="rsv-date-box"><span class="d serif">'+diaNum+'</span><span class="m">'+mesAbrev+'</span></div>'+
+          '<div class="rsv-date-info"><div class="dw">'+dataSemana(p.evento_data)+'</div>'+((p.evento_local||p.evento_cidade)?'<div class="lo">'+esc([p.evento_local,p.evento_cidade].filter(Boolean).join(" · "))+'</div>':'')+(countTxt?'<div class="ct">'+countTxt+'</div>':'')+'</div>'+
+        '</div>':'')+
+        '<div class="rsv-pkg">'+
+          '<p class="rsv-pkg-eyebrow"><span class="rsv-pkg-ck">'+CK+'</span> Experiência contratada</p>'+
+          '<div class="rsv-pkg-head"><span class="rsv-pkg-name serif">'+esc(pk.nome)+'</span><span class="rsv-pkg-price tnum">'+brl(preco(pk))+'</span></div>'+
+          '<p class="rsv-pkg-pos">'+esc(pk.pos)+'</p>'+
+          '<ul class="rsv-pkg-list">'+pk.entregas.slice(0,5).map(function(e){return '<li>'+CK+'<span>'+esc(e[0])+'</span></li>';}).join("")+'</ul>'+
+        '</div>'+
         '<div class="rsv-rows">'+
           '<div class="rsv-row"><span class="l">Sinal pago'+(quando?' <small>em '+quando+'</small>':'')+'</span><b class="tnum">'+sinal+'</b></div>'+
           '<div class="rsv-row total"><span class="l">Saldo restante</span><b class="tnum">'+saldo+'</b></div>'+
@@ -447,6 +473,7 @@
 
   function build(){
     var p=P.proposta;
+    var rsv=reservado();
     var rows=[["Evento",p.evento_tipo||"Casamento"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
     var ocupada=dataOcupada();
@@ -475,10 +502,9 @@
     '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">Para você sentir</p><h2 class="serif light">O que um filme da Bellus revela</h2><p class="sub">Naturalidade, emoção e os detalhes que passam despercebidos no dia.</p></div>'+
       '<div class="pf-grid">'+PORTFOLIO.map(function(v){return '<button class="pf-tile" data-video="'+v[0]+'" data-zoom="'+v[1]+'" aria-label="Assistir vídeo"><span class="pf-cover" style="background-image:url(https://i.ytimg.com/vi/'+v[0]+'/hqdefault.jpg);transform:scale('+(v[1]||1)+')"></span><span class="pf-play">'+PLAY+'</span></button>';}).join("")+'</div>'+
       '<div class="pf-links"><a href="https://www.instagram.com/belluscasamentos/" target="_blank" rel="noopener" aria-label="Instagram">'+IG+'</a><a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener" class="yt">Ver mais filmes no YouTube</a></div></div></section>'+
-    // experiencias
-    '<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div></div></section>'+
-    // lado a lado
-    '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual experiência combina mais com vocês?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>'+
+    // experiencias + lado a lado (ocultos depois da reserva)
+    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div></div></section>'+
+    '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual experiência combina mais com vocês?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+
     '<div id="r-config"></div>'+
     '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">Vamos guardar o dia de vocês?</h2><p>Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o casamento de vocês.</p><a class="btn btn-wa" id="cta-final" href="'+waFalar()+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a></div></section>'+
     '<footer class="footer section--dark">'+part(0)+'<div class="container"><img src="logo_bellus.png" alt="Bellus Eventos"/><div>Bellus Eventos · CNPJ 30.922.038/0001-82 · Teresópolis, RJ</div><div style="margin-top:.4rem;opacity:.7">Proposta pessoal e confidencial.</div></div></footer>'+
