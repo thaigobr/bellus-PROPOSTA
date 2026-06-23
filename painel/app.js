@@ -120,6 +120,10 @@ async function loadDatasOcupadas(){
 }
 async function getProposta(id){
   const { data } = await supabase.from("propostas").select("*").eq("id", id).maybeSingle();
+  if (data){
+    const { data: pgs } = await supabase.from("proposta_pagamentos").select("tipo,valor_centavos,metodo,status,criado_em,pago_em,pkg_id,parcelas").eq("proposta_id", id).order("criado_em",{ascending:true});
+    data.pagamentos = pgs || [];
+  }
   return data;
 }
 async function saveProposta(o, id){
@@ -535,6 +539,46 @@ function detSection(title, rows){
   const body = rows.map(([l,val])=>`<div class="drow"><span>${esc(l)}</span><b>${esc(val||"—")}</b></div>`).join("");
   return `<div class="section-label">${esc(title)}</div><div class="detbox">${body}</div>`;
 }
+function brlC(c){ return ((c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+function pgStatus(s){ return ({pendente:"pendente",pago:"pago",reembolsado_conflito:"reembolsado",falhou:"falhou"})[s]||s; }
+function metodoTxt(m){ return ({card:"cartão",pix:"Pix",boleto:"boleto"})[m]||(m||""); }
+function tipoPagTxt(t){ return ({sinal:"Sinal (20%)",avista:"À vista (Pix)",cartao:"Cartão parcelado",saldo:"Saldo"})[t]||(t||""); }
+function detPagamento(p){
+  const pgs = p.pagamentos || [];
+  if (!pgs.length) return `<div class="section-label">Pagamento</div><div class="detbox"><div class="drow"><span>Situação</span><b>Nenhuma cobrança gerada ainda</b></div></div>`;
+  const pagos = pgs.filter((x)=>x.status==="pago");
+  const pend = pgs.filter((x)=>x.status==="pendente");
+  const pkgId = (pgs.find((x)=>x.pkg_id)||{}).pkg_id;
+  const sinal = pagos.find((x)=>x.tipo==="sinal");
+  const avista = pagos.find((x)=>x.tipo==="avista");
+  const cartaoTot = pagos.find((x)=>x.tipo==="cartao");
+  const saldoPg = pagos.find((x)=>x.tipo==="saldo");
+  const totalPago = pagos.reduce((s,x)=>s+(x.valor_centavos||0),0);
+  let totalC=0, saldo=0, cond="";
+  if (sinal){ totalC=(sinal.valor_centavos||0)*5; saldo=Math.max(totalC-totalPago,0);
+    cond = saldoPg ? (saldoPg.metodo==="card" ? `Sinal no Pix + saldo no cartão ${saldoPg.parcelas||1}x` : "Sinal no Pix + saldo no Pix") : "Sinal 20% no Pix"; }
+  else if (avista){ totalC=avista.valor_centavos||0; cond="À vista no Pix (5% off)"; }
+  else if (cartaoTot){ totalC=cartaoTot.valor_centavos||0; cond=`Cartão parcelado ${cartaoTot.parcelas||1}x`; }
+  else if (pend.length){ const pe=pend[pend.length-1]; cond=tipoPagTxt(pe.tipo)+(pe.parcelas?` ${pe.parcelas}x`:""); }
+  let momento, mcls;
+  if (!pagos.length){ momento = pend.length?"Cobrança gerada · aguardando pagamento":"Nenhum pagamento ainda"; mcls = pend.length?"parcial":"pendente"; }
+  else if (saldo>0){ momento="Reservada · saldo em aberto"; mcls="parcial"; }
+  else { momento="Pagamento concluído"; mcls="pago"; }
+  const pct = totalC ? Math.min(100,Math.round(totalPago/totalC*100)) : (pagos.length?100:0);
+  const rows = [];
+  if (pkgId) rows.push(["Experiência contratada", pacoteNome(pkgId)]);
+  rows.push(["Condição", cond||"—"]);
+  if (sinal) rows.push(["Sinal (20%)", `${brlC(sinal.valor_centavos)}${sinal.pago_em?" · pago "+fmtData(sinal.pago_em.slice(0,10)):""}`]);
+  rows.push(["Total contratado", totalC?brlC(totalC):"—"]);
+  rows.push(["Total pago", brlC(totalPago)]);
+  if (totalC) rows.push(["Saldo restante", brlC(saldo)]);
+  const body = rows.map(([l,val])=>`<div class="drow"><span>${esc(l)}</span><b>${esc(val)}</b></div>`).join("");
+  const bar = totalC?`<div class="pgbar"><div class="pgbar-fill" style="width:${pct}%"></div></div><div class="pgbar-lab">${pct}% pago${saldo>0?" · saldo "+brlC(saldo):""}</div>`:"";
+  const hist = pgs.length ? `<div class="pghist-h">Histórico</div><ul class="pghist">${pgs.slice().reverse().map((x)=>`<li><span class="pgh-t">${esc(tipoPagTxt(x.tipo))}${x.parcelas?" "+x.parcelas+"x":""}</span><span class="pgh-v">${esc(brlC(x.valor_centavos))}</span><span class="pgtag ${esc(x.status)}">${esc(pgStatus(x.status))}</span>${x.metodo?`<span class="pgh-m">${esc(metodoTxt(x.metodo))}</span>`:""}<span class="pgh-d">${esc(fmtData((x.pago_em||x.criado_em||"").slice(0,10)))}</span></li>`).join("")}</ul>` : "";
+  return `<div class="section-label">Pagamento</div>
+  <div class="pg-momento ${mcls}"><span class="pg-dot"></span>${esc(momento)}</div>
+  <div class="detbox">${body}${bar}${hist}</div>`;
+}
 function viewDetalhe(){
   const p = state.current;
   return `
@@ -545,6 +589,7 @@ function viewDetalhe(){
     ${detSection("Evento", [["Tipo",p.evento_tipo],["Data",fmtData(p.evento_data)],["Local",p.evento_local],["Cidade",p.evento_cidade],["Convidados",p.evento_convidados],["Disponibilidade",dispTxt(p.disponibilidade)],["Observações",p.evento_notas]])}
     ${detSection("Proposta", [["Experiência recomendada",pacoteNome(p.pacote_recomendado)],["Validade",fmtData(p.expira_em)],["Consultor",p.consultor],["Motivo da recomendação",p.recomendacao_motivo],["Mensagem pessoal",p.mensagem_pessoal]])}
     ${detSection("Acompanhamento", [["Enviada", tsRel(p.enviada_em)],["Visualizada", p.visualizada_em?tsRel(p.visualizada_em):"Ainda não abriu"],["Visualizações", String(p.visualizacoes||0)]])}
+    ${detPagamento(p)}
     <div class="linkbox">
       <span>Link para enviar à noiva</span>
       <code id="prop-link">${esc(LINK_BASE + p.slug)}</code>
