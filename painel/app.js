@@ -16,7 +16,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -105,17 +105,17 @@ async function loadLeadsUsados(){
 }
 async function loadAgenda(){
   const { data } = await supabase.from("propostas")
-    .select("id,status,cliente_nome,cliente_parceiro,evento_data")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data")
     .in("status", ["reservada","fechada"]).not("evento_data","is",null)
     .order("evento_data", { ascending: true });
   state.agenda = data || [];
 }
 async function loadDatasOcupadas(){
   const { data } = await supabase.from("propostas")
-    .select("id,status,cliente_nome,cliente_parceiro,evento_data")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data")
     .in("status", ["reservada","fechada"]).not("evento_data","is",null);
   const map={};
-  (data||[]).forEach((p)=>{ if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
+  (data||[]).forEach((p)=>{ if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, slug:p.slug, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
   state.datasOcupadas = map;
 }
 async function getProposta(id){
@@ -333,6 +333,7 @@ function viewDashboard(){
   const leadsStat = totLeads ? `<p class="muted" style="margin:.1rem 0 1.2rem">Entrada de leads: <b>${totLeads}</b> no total · <b>${leadsMes}</b> este mês · <b>${leadsConv}</b> viraram proposta (${txLeadConv}%).</p>` : "";
   return `
   <div class="page-head"><h2 class="serif">Visão geral</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>
+  ${avisoCasamentoHtml()}
   ${leadsBanner}
   ${leadsStat}
   <div class="dcards">${cardsHTML}</div>
@@ -352,7 +353,9 @@ function viewDashboard(){
   <div class="mov-list" id="mov-list"><p class="muted">Carregando...</p></div>
   <div class="section-label" style="margin-top:1.8rem">Follow-up · ${followup.length} ${followup.length===1?"precisa":"precisam"} de atenção</div>
   <p class="muted" style="margin:-.4rem 0 1rem">Aqui aparecem só as que precisam de ação agora (de ${ps.length} no total; veja todas em Propostas). Por prioridade: visualizou e não reservou, depois ainda não abriu.</p>
-  ${fuBlock}`;
+  ${fuBlock}
+  <div class="section-label" style="margin-top:1.8rem">Agenda do mês</div>
+  ${renderCalendario(state.calMes)}`;
 }
 // ---------- recuperação de senha ----------
 async function enviarRecuperacao(email){
@@ -374,6 +377,58 @@ const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","ag
 function mesAno(k){ if(!/^\d{4}-\d{2}$/.test(k)) return "Sem data"; const p=k.split("-"); const m=MESES[parseInt(p[1],10)-1]||""; return m.charAt(0).toUpperCase()+m.slice(1)+" de "+p[0]; }
 function propRow(p){
   return `<div class="pitem" data-open="${p.id}" style="cursor:pointer"><div><div class="nome">${esc(nomes(p))}</div><div class="meta">${fmtData(p.evento_data)} · ${esc(p.slug)}</div></div><span class="badge ${esc(p.status)}">${esc(statusTxt(p.status))}</span></div>`;
+}
+// ---------- calendario e proximos casamentos ----------
+function diasAte(d){ if(!d) return null; const h=new Date(); h.setHours(0,0,0,0); const e=new Date(d+"T00:00:00"); if(isNaN(e.getTime())) return null; return Math.round((e-h)/86400000); }
+function quandoTxt(n){ return n==null?"":n<0?"realizado":n===0?"é hoje":n===1?"é amanhã":`faltam ${n} dias`; }
+function eventosAgenda(){
+  const m=state.datasOcupadas||{};
+  return Object.keys(m).map((d)=>({ data:d, id:m[d].id, slug:m[d].slug, status:m[d].status, nome:m[d].nome })).sort((a,b)=>a.data<b.data?-1:1);
+}
+function proximosCasamentos(){ return eventosAgenda().filter((e)=>{ const n=diasAte(e.data); return n!=null && n>=0; }); }
+function avisoCasamentoHtml(){
+  const prox=proximosCasamentos(); if(!prox.length) return "";
+  const e=prox[0]; const n=diasAte(e.data); const urg=n<=30;
+  return `<button class="cas-alert${urg?" urg":""}" data-open="${esc(e.id)}">
+    <span class="ca-dot"></span>
+    <span class="ca-txt"><b>Próximo casamento:</b> ${esc(e.nome)} — ${esc(fmtData(e.data))} (${quandoTxt(n)}).${urg?" Programe-se com antecedência.":""}</span>
+    <span class="ca-go">Ver proposta</span>
+  </button>`;
+}
+function calNavYM(ym, delta){ const [y,m]=ym.split("-").map(Number); const d=new Date(y, m-1+delta, 1); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function renderCalendario(ym){
+  if(!/^\d{4}-\d{2}$/.test(ym)) ym=curYM();
+  const [y,m]=ym.split("-").map(Number);
+  const startDow=new Date(y,m-1,1).getDay();
+  const daysInMonth=new Date(y,m,0).getDate();
+  const td=new Date(); const hojeYmd=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-${String(td.getDate()).padStart(2,"0")}`;
+  const dows=["dom","seg","ter","qua","qui","sex","sáb"];
+  let cells="";
+  for(let i=0;i<startDow;i++) cells+=`<div class="cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const ymd=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const ev=(state.datasOcupadas||{})[ymd];
+    const cls=["cal-cell"]; if(ev) cls.push("has-ev", ev.status); if(ymd===hojeYmd) cls.push("hoje");
+    const primeiro=ev?(ev.nome||"").split(" & ")[0].split(" ")[0]:"";
+    const attr=ev?`data-open="${esc(ev.id)}" title="${esc(ev.nome)} · ${esc(statusTxt(ev.status))}"`:"";
+    cells+=`<div class="${cls.join(" ")}" ${attr}><span class="cal-d">${d}</span>${ev?`<span class="cal-ev">${esc(primeiro)}</span>`:""}</div>`;
+  }
+  return `<div class="cal">
+    <div class="cal-head"><button class="cal-nav" data-cal-delta="-1" type="button" aria-label="Mês anterior">‹</button><div class="cal-title">${esc(mesAno(ym))}</div><button class="cal-nav" data-cal-delta="1" type="button" aria-label="Próximo mês">›</button></div>
+    <div class="cal-grid cal-dows">${dows.map((x)=>`<div class="cal-dow">${x}</div>`).join("")}</div>
+    <div class="cal-grid cal-days">${cells}</div>
+    <div class="cal-legend"><span class="cl-item"><span class="cl-dot reservada"></span>Reservada</span><span class="cl-item"><span class="cl-dot fechada"></span>Fechada</span><span class="cl-item"><span class="cl-dot hoje-mk"></span>Hoje</span></div>
+  </div>`;
+}
+function proximosBlockHtml(max){
+  const prox=proximosCasamentos(); if(!prox.length) return "";
+  const lista=prox.slice(0, max||5).map((e)=>{ const n=diasAte(e.data); const urg=n<=30;
+    return `<div class="prox-item${urg?" urg":""}" data-open="${esc(e.id)}">
+      <div class="px-data"><b>${esc(fmtData(e.data))}</b><small>${quandoTxt(n)}</small></div>
+      <div class="px-nome">${esc(e.nome)} <span class="badge ${esc(e.status)}">${esc(statusTxt(e.status))}</span></div>
+      <span class="px-go">Ver proposta</span>
+    </div>`; }).join("");
+  return `<div class="prox-list">${lista}</div>`;
 }
 function listaContHTML(q){
   q=(q||"").trim().toLowerCase();
@@ -606,18 +661,30 @@ function viewDetalhe(){
 }
 function viewAgenda(){
   const ag = state.agenda.filter((p)=>inPeriodo(p.evento_data, state.agendaPeriodo, refDe(state.agendaPeriodo, state.agendaMes, state.agendaAno)));
-  const items = ag.map((p)=>`
-    <div class="agenda-item" data-open="${p.id}" style="cursor:pointer">
-      <div class="data">${fmtData(p.evento_data)}<small>${esc(statusTxt(p.status))}</small></div>
-      <div class="nome">${esc(nomes(p))}</div>
-    </div>`).join("");
+  const items = ag.map((p)=>{
+    const n=diasAte(p.evento_data); const urg=(n!=null&&n>=0&&n<=30); const link=LINK_BASE+p.slug;
+    return `<div class="agenda-item">
+      <div class="data">${esc(fmtData(p.evento_data))}<small>${esc(statusTxt(p.status))}</small></div>
+      <div class="ag-main">
+        <div class="nome">${esc(nomes(p))}${n!=null?` <span class="ag-quando${urg?" urg":""}">${quandoTxt(n)}</span>`:""}</div>
+        <a class="ag-link" href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>
+      </div>
+      <button class="cbtn det" data-open="${esc(p.id)}">Ver proposta</button>
+    </div>`;
+  }).join("");
   const bar = state.agenda.length ? periodoBar("agenda",state.agendaPeriodo,state.agendaMes,state.agendaAno) : "";
   const list = ag.length
     ? `<div class="plist">${items}</div>`
     : (state.agenda.length
         ? `<div class="empty"><p>Nenhuma data reservada neste período.</p></div>`
         : `<div class="empty"><p>Nenhuma data reservada ainda.</p><p class="muted">As datas aparecem aqui quando uma proposta vira <b>Reservada</b> ou <b>Fechada</b>.</p></div>`);
-  return `<div class="page-head"><h2 class="serif">Agenda</h2><button class="btn btn-ghost" data-go="lista">Propostas</button></div>${bar}${list}`;
+  const proxBlock = proximosCasamentos().length ? `<div class="section-label">Próximos casamentos</div>${proximosBlockHtml(6)}` : "";
+  return `<div class="page-head"><h2 class="serif">Agenda</h2><button class="btn btn-ghost" data-go="lista">Propostas</button></div>
+  ${avisoCasamentoHtml()}
+  <div class="section-label">Calendário</div>${renderCalendario(state.calMes)}
+  ${proxBlock}
+  <div class="section-label">Todas as datas</div>
+  ${bar}${list}`;
 }
 function viewConta(){
   return `
@@ -676,6 +743,7 @@ function wire(){
   document.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead"))));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
+  document.querySelectorAll(".cal-nav").forEach((b)=> b.addEventListener("click", ()=>{ state.calMes=calNavYM(state.calMes, parseInt(b.getAttribute("data-cal-delta"),10)||0); render(); }));
   const lo=document.getElementById("logout"); if(lo) lo.addEventListener("click", doLogout);
 
   const lb=document.getElementById("lista-busca");
