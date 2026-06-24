@@ -46,3 +46,6 @@ _contrato_extraido.txt
 
 # video bruto (18MB, fica no institucional otimizado)
 mistura_cabeca_pb.mp4
+
+# compact-pro: marcador transitorio (state.md e journal.jsonl ficam versionados)
+.context/PENDING_SAVE
