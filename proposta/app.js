@@ -117,7 +117,7 @@
     if(v.length>3)return v.replace(/(\d{3})(\d{1,3})/,"$1.$2"); return v; }
   var pixPoll=null;
   function fecharPix(){ if(pixPoll){clearInterval(pixPoll);pixPoll=null;} var o=document.getElementById("pixov"); if(o)o.remove(); document.body.style.overflow=""; }
-  var pgCond="sinal", pgMet="";
+  var pgCond="sinal", pgMet="", pgValor=0;
   function taxaCart(n){ return n<=1?0.0299:(n<=6?0.0349:0.0399); }
   function totalCart(v,n){ return (v+0.49)/(1-taxaCart(n)); }
   function abrirPix(cond, met){
@@ -129,6 +129,7 @@
     var pg=(P.proposta&&P.proposta.pagamento)||{};
     var saldoBase=(pg.saldo_centavos||0)/100;
     var baseCartao=ehSaldo?saldoBase:b.total;
+    if(window.fbq) fbq("track","InitiateCheckout",{value:(ehSaldo?saldoBase:b.total)||0,currency:"BRL"});
     var topo, titu, subq;
     if(ehSaldo&&!ehCartao){ topo="Pagar o saldo"; titu="Saldo no Pix"; subq="Você paga o saldo restante de <b>"+brl(saldoBase)+"</b> no Pix, sem acréscimo."; }
     else if(ehSaldo){ topo="Pagar o saldo"; titu="Saldo no cartão"; subq="Parcele o saldo de <b>"+brl(saldoBase)+"</b> no cartão, em até 12x. A taxa já vem embutida na parcela."; }
@@ -194,6 +195,7 @@
         var box=document.getElementById("pixov"); if(!box)return;
         box.querySelector('[data-step="1"]').hidden=true;
         box.querySelector('[data-step="2"]').hidden=false;
+        pgValor=r.b.valor||0;
         document.getElementById("pixval").textContent=brl(r.b.valor||0);
         document.getElementById("pixqr").innerHTML=r.b.qrImage?'<img alt="QR Code Pix" src="data:image/png;base64,'+r.b.qrImage+'"/>':'<p class="pixsub">Use o Copia e Cola abaixo.</p>';
         document.getElementById("pixcopy").addEventListener("click",function(){
@@ -216,6 +218,7 @@
     },5000);
   }
   function pixOk(){
+    if(window.fbq) fbq("track","Purchase",{value:pgValor||0,currency:"BRL"});
     var box=document.getElementById("pixov"); if(!box)return;
     box.querySelector('[data-step="2"]').hidden=true;
     box.querySelector('[data-step="3"]').hidden=false;
@@ -535,6 +538,6 @@
   if(!slug){erro("Proposta não encontrada.");return;}
   fetch(FN+"?slug="+encodeURIComponent(slug),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
     .then(function(r){return r.json().then(function(b){return {ok:r.ok,b:b};});})
-    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;P.pkgId=(rec&&PACOTES.some(function(p){return p.id===rec;}))?rec:"diamante";build();mostrarRetornoPagamento();}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
+    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;P.pkgId=(rec&&PACOTES.some(function(p){return p.id===rec;}))?rec:"diamante";build();mostrarRetornoPagamento();try{if(window.fbq){var _vb=breakdown();fbq("track","ViewContent",{value:_vb.total||0,currency:"BRL",content_name:(selPkg()||{}).nome||"Proposta"});}}catch(e){}}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
     .catch(function(){erro("Não foi possível carregar a proposta agora.");});
 })();
