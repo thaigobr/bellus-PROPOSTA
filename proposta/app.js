@@ -214,11 +214,11 @@
       n++; if(n>150){clearInterval(pixPoll);pixPoll=null;return;}
       fetch(FN_STATUS+"?paymentId="+encodeURIComponent(paymentId),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
         .then(function(r){return r.json();})
-        .then(function(b){ if(b&&(b.pago||b.reservado)){ clearInterval(pixPoll);pixPoll=null; pixOk(); } }).catch(function(){});
+        .then(function(b){ if(b&&(b.pago||b.reservado)){ clearInterval(pixPoll);pixPoll=null; pixOk(paymentId); } }).catch(function(){});
     },5000);
   }
-  function pixOk(){
-    if(window.fbq) fbq("track","Purchase",{value:pgValor||0,currency:"BRL"});
+  function pixOk(pid){
+    if(window.fbq) fbq("track","Purchase",{value:pgValor||0,currency:"BRL"},pid?{eventID:String(pid)}:undefined);
     var box=document.getElementById("pixov"); if(!box)return;
     box.querySelector('[data-step="2"]').hidden=true;
     box.querySelector('[data-step="3"]').hidden=false;
