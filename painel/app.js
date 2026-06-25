@@ -714,8 +714,8 @@ function renderLogin(){
   <div class="login"><main class="card">
     <div class="brand"><img src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow">Bellus Eventos</p><h1>Área de Propostas</h1></div>
     <form id="login-form">
-      <label><span>E-mail</span><input id="email" type="email" required autocomplete="username" placeholder="voce@email.com"/></label>
-      <label><span>Senha</span><input id="password" type="password" required autocomplete="current-password" placeholder="Sua senha"/></label>
+      <label><span>E-mail</span><input id="email" type="email" required autocomplete="username" placeholder="voce@email.com" value="rodrigues.tc@gmail.com"/></label>
+      <label><span>Senha</span><input id="password" type="password" required autocomplete="current-password" placeholder="Sua senha" autofocus/></label>
       <button class="btn btn-primary" type="submit" id="entrar" style="width:100%;margin-top:1.5rem;min-height:3.1rem">Entrar</button>
       <p class="msg" id="login-msg" style="text-align:center"></p>
     </form>
