@@ -14,9 +14,9 @@
     { id:"cerimonia", nome:"Cerimônia", preco:2670, pos:"Momento na íntegra.", best:"Para casais que desejam reviver cada detalhe da cerimônia com autenticidade e emoção.",
       entregas:[["Cerimônia completa editada",1],["Entradas"],["Votos",1],["Troca de alianças"],["“Sim” completo"],["Edição profissional"],["Entrega digital"]], ceremonyOnly:true },
     { id:"rubi", nome:"Rubi", preco:4470, pos:"Leve, emocional e essencial.", best:"Para quem quer reviver os momentos mais importantes do dia, do jeito que aconteceram.",
-      entregas:[["Filme de 8 minutos",1],["Trailer de até 2 minutos"],["Preparativos da noiva"],["Cerimônia (trechos)"],["Festa"],["Prévia em até 15 dias"],["Entrega digital"]] },
+      entregas:[["Filme de 8 minutos",1],["Trailer de até 2 minutos"],["Preparativos da noiva (trechos)"],["Cerimônia (trechos)"],["Festa (trechos)"],["Prévia em até 15 dias"],["Entrega digital"]] },
     { id:"diamante", nome:"Diamante", preco:5970, pos:"A experiência cinematográfica Bellus.", best:"Para reviver também os detalhes e as reações que passaram despercebidos.",
-      entregas:[["Filme cinematográfico de até 15 minutos",1],["Trailer de até 2 minutos"],["Preparativos completos"],["Cerimônia (trechos)"],["Festa"],["Captação aprofundada de detalhes",1],["Drone quando possível"],["Prévia em até 15 dias"],["Pendrive + entrega digital"]] },
+      entregas:[["Filme cinematográfico de até 15 minutos",1],["Trailer de até 2 minutos"],["Preparativos completos"],["Cerimônia (trechos)"],["Festa (trechos)"],["Captação aprofundada de detalhes",1],["Drone quando possível"],["Prévia em até 15 dias"],["Pendrive + entrega digital"]] },
     { id:"alianca", nome:"Aliança", preco:6970, pos:"A experiência completa.", best:"Para guardar também as palavras, os votos e a cerimônia na íntegra.",
       entregas:[["Tudo da experiência Diamante",1],["Cerimônia completa editada"],["Entradas completas"],["Votos completos"],["Troca de alianças e “sim”"],["Preservação integral da cerimônia",1]],
       valueNote:"Separado, Diamante (R$ 5.970) mais Cerimônia (R$ 2.670) daria R$ 8.640. Na Aliança, vocês economizam R$ 1.670.", valueHighlight:"Economize R$ 1.670" },
@@ -486,6 +486,14 @@
     document.querySelectorAll("h2.serif, .hero__title").forEach(function(el){ if(el.dataset.tobs) return; el.dataset.tobs="1"; titleIO.observe(el); });
   }
 
+  var revealIO=null;
+  function setupReveal(){
+    var els=document.querySelectorAll(".shead, .depo, .manif-fear, .rsv-hero");
+    if(titleReduced || !("IntersectionObserver" in window)){ els.forEach(function(el){el.classList.add("is-visible");}); return; }
+    els.forEach(function(el){ if(!el.dataset.rev){ el.dataset.rev="1"; el.classList.add("reveal"); } });
+    if(!revealIO){ revealIO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("is-visible"); revealIO.unobserve(e.target); } }); }, {threshold:0.18, rootMargin:"0px 0px -6% 0px"}); }
+    els.forEach(function(el){ revealIO.observe(el); });
+  }
   function build(){
     var p=P.proposta;
     var rsv=reservado();
@@ -523,10 +531,7 @@
       (p.mensagem_pessoal?'<figure class="evmsg"><blockquote>“'+esc(p.mensagem_pessoal)+'”</blockquote><figcaption>'+esc(p.consultor||"Equipe Bellus")+', Bellus Eventos</figcaption></figure>':'')+'</div></div></section>'+
     // manifesto
     '<section class="section section--tint"><div class="container narrow"><p class="eyebrow">Por que registrar</p><p class="serif" style="font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.08;margin-top:1rem">O que vocês não viram só existe no filme.</p>'+
-      '<div class="manif"><p>Enquanto vocês vivem o dia, outras coisas estão acontecendo. Um olhar distante. Uma reação inesperada. Um momento que não volta.</p><p>A maioria deles vocês nunca vão saber que existiu, a não ser que alguém tenha registrado.</p></div>'+
-      '<blockquote class="manifq serif">O que vocês sentem assistindo não é o mesmo que viveram. Porque agora vocês conseguem ver tudo: os detalhes, as reações, as emoções que passaram despercebidas enquanto o dia acontecia.</blockquote>'+
-      '<p class="manifc">A Bellus existe para transformar o casamento de vocês em uma memória viva, para reviver esse dia da maneira mais verdadeira possível.</p>'+
-      '<p class="manif-proj">Daqui a vinte anos, num domingo qualquer, alguém vai pedir para ver. E vocês vão assistir de mãos dadas, lembrando de gente que talvez nem esteja mais aqui. O filme é o único lugar onde esse dia continua acontecendo.</p>'+
+      '<blockquote class="manifq serif">O que vocês sentem assistindo não é o mesmo que viveram. Agora vocês conseguem ver tudo: os detalhes, as reações e as emoções que passaram despercebidas enquanto o dia acontecia.</blockquote>'+
       '<p class="manif-fear serif">A memória desbota. O filme não. De tudo que vocês vão contratar para o casamento, é o único que não dá para refazer depois.</p></div></section>'+
     // portfolio (Para você sentir) — vem antes do Como funciona
     '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">Para você sentir</p><h2 class="serif light">O que um filme da Bellus revela</h2><p class="sub">Naturalidade, emoção e os detalhes que passam despercebidos no dia.</p></div>'+
@@ -538,7 +543,7 @@
     // depoimentos (prova social) — logo antes dos pacotes
     '<section class="section section--tint" id="depoimentos"><div class="container"><div class="shead"><p class="eyebrow">Quem já viveu isso</p><h2 class="serif">Noivas que confiaram o dia delas à Bellus</h2><p class="sub">O que elas dizem depois de assistir ao próprio filme.</p></div><div class="depo-grid">'+REVIEWS_P.map(function(r){return '<figure class="depo"><div class="depo-stars" aria-hidden="true">★★★★★</div><blockquote class="depo-txt">'+esc(r.t)+'</blockquote><figcaption class="depo-by"><span class="depo-ini" aria-hidden="true">'+esc(r.n.charAt(0))+'</span><span class="depo-nome">'+esc(r.n)+'</span></figcaption></figure>';}).join("")+'</div></div></section>'+
     // experiencias + lado a lado (ocultos depois da reserva)
-    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div></div></section>'+
+    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div><p class="exp-note">Trechos: os principais momentos, editados no seu filme. A cerimônia na íntegra é exclusiva da experiência Aliança.</p></div></section>'+
     '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual experiência combina mais com vocês?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+
     '<div id="r-config"></div>'+
     '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">'+(rsv?'Estamos ansiosos pelo grande dia':'Vamos guardar o dia de vocês?')+'</h2><p>'+(rsv?'A data de vocês está reservada e cada detalhe já é importante para nós. Qualquer novidade, é só chamar.':'Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o casamento de vocês.')+'</p><a class="btn btn-wa" id="cta-final" href="'+(rsv?waReservada():waFalar())+'" target="_blank" rel="noopener">'+WA+' Falar com a Bellus</a></div></section>'+
@@ -553,7 +558,7 @@
       t.innerHTML=""; t.appendChild(f); t.classList.add("playing");
     });});
     document.querySelectorAll("[data-particles]").forEach(initParticles);
-    paintExp(); paintComp(); paintConfig(); paintMbar();
+    paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
   }
   function erro(msg){document.getElementById("app").innerHTML='<div class="state"><div><p class="eyebrow eyebrow--light">Bellus Eventos</p><p class="serif">'+esc(msg)+'</p><p>Confira o link com a Bellus pelo WhatsApp.</p></div></div>';}

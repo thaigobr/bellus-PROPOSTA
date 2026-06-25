@@ -233,10 +233,14 @@ h1,h2,h3,h4{font-weight:500;line-height:1.18;margin:0;}
 .depo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1.2rem;margin-top:2rem;}
 .depo{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.4rem;display:flex;flex-direction:column;gap:.8rem;box-shadow:0 14px 40px -28px rgba(0,0,0,.25);}
 .depo-stars{color:var(--gold);letter-spacing:.12em;font-size:.9rem;}
-.depo-txt{margin:0;font-size:.92rem;line-height:1.6;color:var(--ink);}
+.depo-txt{margin:0;font-size:.92rem;line-height:1.6;color:var(--ink);display:-webkit-box;-webkit-line-clamp:6;line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
 .depo-by{display:flex;align-items:center;gap:.6rem;margin-top:auto;}
 .depo-ini{width:2.1rem;height:2.1rem;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-family:var(--serif);flex:none;}
 .depo-nome{font-weight:500;font-size:.9rem;}
+.exp-note{margin:1.4rem 0 0;text-align:center;font-size:.78rem;color:var(--ink-soft);}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
+.reveal.is-visible{opacity:1;transform:none;}
+@media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none;}}
 
 /* como funciona */
 .steps{list-style:none;margin:0;padding:0;display:grid;gap:1.6rem;}
