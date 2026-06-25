@@ -528,7 +528,7 @@ function leadCard(l){
   const msg = l.mensagem ? `<p class="lead-msg">${esc(l.mensagem)}</p>` : "";
   const prop=(state.propByLead||{})[l.id];
   const acao = (tem && prop)
-    ? `<button class="btn btn-light lead-cta" data-open="${esc(prop.id)}">Ver proposta</button>`
+    ? `<button class="btn btn-primary lead-cta" data-open="${esc(prop.id)}">Ver proposta</button>`
     : tem
       ? `<span class="lead-tag">Proposta criada</span>`
       : `<button class="btn btn-primary lead-cta" data-nova-lead="${esc(l.id)}">Criar proposta</button>`;
@@ -561,7 +561,7 @@ function exportLeadsCSV(){
   a.href=url; a.download="clientes-bellus.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 function viewLeads(){
-  const head=`<div class="page-head"><h2 class="serif">Leads</h2><div class="page-head-acts"><button class="btn btn-light" id="export-leads">Exportar clientes</button><button class="btn btn-primary" data-nova>Nova proposta</button></div></div>`;
+  const head=`<div class="page-head"><h2 class="serif">Leads</h2><div class="page-head-acts"><button class="btn btn-ghost" id="export-leads">Exportar clientes</button><button class="btn btn-primary" data-nova>Nova proposta</button></div></div>`;
   if(!state.leads.length) return head+`<div class="empty"><p>Nenhum lead ainda.</p><p class="muted">Os contatos enviados pelo site institucional e pela Noiva dos Sonhos aparecem aqui automaticamente.</p></div>`;
   const usados=state.leadsUsados||new Set();
   const novos=state.leads.filter((l)=> !usados.has(l.id)).length;
