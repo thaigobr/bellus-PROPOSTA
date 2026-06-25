@@ -518,6 +518,8 @@
       }
       topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>'+sc;
     }
+    var imgsNds=(p.imagens||[]);
+    var galeria = imgsNds.length ? ('<section class="section" id="previa-noiva"><div class="container"><div class="shead"><p class="eyebrow">Sua prévia Noiva dos Sonhos</p><h2 class="serif">Você, antes do grande dia</h2><p class="sub">As imagens que você criou na experiência Noiva dos Sonhos. Baixe as que quiser guardar.</p></div><div class="nds-grid" id="nds-grid">'+imgsNds.map(function(im){return '<figure class="nds-fig"><img class="nds-img" src="'+esc(im.url)+'" alt="Sua prévia de noiva" loading="lazy"/><a class="nds-dl" href="'+esc(im.url)+'?download" target="_blank" rel="noopener">Baixar</a></figure>';}).join("")+'</div><p class="nds-note">Por segurança, essas imagens ficam disponíveis por tempo limitado e depois são removidas. Baixe as suas para guardar.</p></div></section>') : '';
     document.getElementById("app").innerHTML=
     '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
@@ -529,6 +531,7 @@
       '<div class="evgrid"><div><dl class="evlist">'+rows.map(function(r){return '<div class="evrow"><dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd></div>';}).join("")+(p.evento_notas?'<div class="evrow notes"><dt>Observações</dt><dd>'+esc(p.evento_notas)+'</dd></div>':'')+'</dl>'+
       '<a class="evcorr" href="'+waCorrigir()+'" target="_blank" rel="noopener">Alguma informação mudou? Corrigir com a gente</a></div>'+
       (p.mensagem_pessoal?'<figure class="evmsg"><blockquote>“'+esc(p.mensagem_pessoal)+'”</blockquote><figcaption>'+esc(p.consultor||"Equipe Bellus")+', Bellus Eventos</figcaption></figure>':'')+'</div></div></section>'+
+    galeria+
     // manifesto
     '<section class="section section--tint"><div class="container narrow"><p class="eyebrow">Por que registrar</p><p class="serif" style="font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.08;margin-top:1rem">O que vocês não viram só existe no filme.</p>'+
       '<blockquote class="manifq serif">O que vocês sentem assistindo não é o mesmo que viveram. Agora vocês conseguem ver tudo: os detalhes, as reações e as emoções que passaram despercebidas enquanto o dia acontecia.</blockquote>'+
@@ -557,6 +560,8 @@
       f.src="https://www.youtube-nocookie.com/embed/"+id+"?autoplay=1&rel=0&playsinline=1&modestbranding=1";
       t.innerHTML=""; t.appendChild(f); t.classList.add("playing");
     });});
+    var ndsGrid=document.getElementById("nds-grid");
+    if(ndsGrid){ ndsGrid.querySelectorAll(".nds-img").forEach(function(img){ img.addEventListener("error",function(){ var fig=img.closest(".nds-fig"); if(fig)fig.remove(); if(!ndsGrid.querySelector(".nds-fig")){ var sec=document.getElementById("previa-noiva"); if(sec)sec.style.display="none"; } }); }); }
     document.querySelectorAll("[data-particles]").forEach(initParticles);
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
