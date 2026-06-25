@@ -269,10 +269,10 @@
   function paintExp(){
     if(!document.getElementById("r-exp"))return;
     var rec=P.proposta.pacote_recomendado;
-    var html=PACOTES.map(function(pk){var sel=pk.id===P.pkgId;var is12=totalCart(preco(pk),12)/12;
+    var html=PACOTES.map(function(pk){var sel=pk.id===P.pkgId;var is12=totalCart(preco(pk),12)/12;var sinal=Math.round(preco(pk)*0.2);
       return '<div class="pcard'+(sel?" sel":"")+'">'+(pk.id===rec?'<span class="pcard__rec">★ Recomendada</span>':'')+
         '<div class="pcard__name">'+esc(pk.nome)+'</div><div class="pcard__pos">'+esc(pk.pos)+'</div>'+
-        '<div class="pcard__price"><span class="v serif tnum">'+brl(preco(pk))+'</span><div class="pcard__hint">ou em até 12x de '+brlC(is12)+' no cartão</div></div>'+
+        '<div class="pcard__price"><div class="pcard__parc"><span class="x">12x de</span><span class="v serif tnum">'+brlC(is12)+'</span></div><div class="pcard__full">ou '+brl(preco(pk))+' no total</div><div class="pcard__sinal">Reserva a data com <b>'+brl(sinal)+'</b> <span>(sinal de 20%)</span></div></div>'+
         (pk.valueNote?'<div class="pcard__value">'+(pk.valueHighlight?'<span class="bdg">'+esc(pk.valueHighlight)+'</span>':'')+'<p>'+esc(pk.valueNote)+'</p></div>':'')+
         '<div class="pcard__best"><b>Indicado para:</b> '+esc(pk.best)+'</div>'+
         '<ul class="pcard__list">'+pk.entregas.map(function(e){return '<li class="'+(e[1]?"h":"")+'">'+CK+'<span>'+esc(e[0])+'</span></li>';}).join("")+'</ul>'+
@@ -352,7 +352,9 @@
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';
     if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo até o casamento</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
     if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x no cartão</span><span class="v tnum">'+brlC(b.iv)+'</span></div><div class="sline"><span class="l">Total no cartão (com a taxa)</span><span class="v tnum">'+brlC(b.icTotal)+'</span></div></div>';
-    h+='<div class="svalidade">'+(p.expira_em?"Proposta válida até "+dataCurta(p.expira_em)+". ":"")+'A data é confirmada após a assinatura do contrato e o pagamento do sinal.</div></div>';
+    var dval=p.expira_em?diasPara(String(p.expira_em).slice(0,10)):null;
+    var validadeTxt=dval==null?"":(dval>1?'<span class="sval-urge">Esta condição vale por mais '+dval+' dias.</span> ':dval===1?'<span class="sval-urge">Esta condição vale só até amanhã.</span> ':dval===0?'<span class="sval-urge">Esta condição vale só até hoje.</span> ':"");
+    h+='<div class="svalidade">'+validadeTxt+'A data é confirmada após a assinatura do contrato e o pagamento do sinal.</div></div>';
     // checkout
     var lab=(pay&&CTA_LABEL[pay.kind])||"Reservar minha data";
     h+='<div class="checkout"><label class="terms"><input type="checkbox" id="terms"'+(P.terms?" checked":"")+'/><span>Li e concordo com os <a href="termos.html" target="_blank" rel="noopener">termos de contratação</a> e a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>.</span></label>'+
@@ -447,8 +449,8 @@
   function paintMbar(){
     var el=document.getElementById("r-mbar");
     if(reservado()){ var saldoC=(P.proposta.pagamento.saldo_centavos||0); el.innerHTML='<div class="info"><div class="pk">Sua data está reservada</div><div class="tt serif tnum">'+(saldoC>0?'Saldo '+brl(saldoC/100):'Tudo pago')+'</div></div><a class="btn btn-wa" href="'+waReservada()+'" target="_blank" rel="noopener">'+(saldoC>0?'Parcelas':'Falar')+'</a>'; var cf0=document.getElementById("cta-final"); if(cf0)cf0.setAttribute("href",waReservada()); return; }
-    var pk=selPkg(); var b=breakdown();
-    el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data fechada · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>');
+    var pk=selPkg(); var b=breakdown(); var sinalM=Math.round(b.subtotal*0.2);
+    el.innerHTML='<div class="info"><div class="pk">Experiência '+esc(pk.nome)+'</div><div class="tt serif tnum">Sinal '+brl(sinalM)+'</div><div class="mbar-sub">reserva a data · total '+brl(b.total)+'</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data fechada · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Reservar</a>');
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
   }
   function pick(id){P.pkgId=id;paintExp();paintComp();paintConfig();paintMbar();}
@@ -487,17 +489,33 @@
   function build(){
     var p=P.proposta;
     var rsv=reservado();
+    var REVIEWS_P=[{n:"Rafaella Braga Moritz",t:"Mesmo com muita chuva e imprevistos no nosso grande dia, a equipe foi impecável, sempre atenciosos, profissionais e tranquilos. O vídeo ficou emocionante! Só temos a agradecer por eternizarem esse momento de forma tão especial."},{n:"Ludmilla Gulinelio",t:"A segurança que a Bellus passa é de um trabalho impecável, tudo que uma noiva busca. A eternização deste dia não poderia ter sido por outras mãos! Obrigada obrigada obrigada ♥"},{n:"Maria João Ferreira",t:"No momento da celebração, tanto da cerimônia quanto da festa, a equipe se mostrou discreta e ao mesmo tempo presente nos momentos certos. A qualidade do material superou nossas expectativas: imagens nítidas, excelente edição e um olhar sensível que tornou o resultado ainda mais especial. Recomendamos fortemente."}];
     var rows=[["Evento",p.evento_tipo||"Casamento"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
     var ocupada=dataOcupada();
-    var av = ocupada ? ["unavailable","Essa data já está reservada"] : (p.disponibilidade==="on_hold" ? ["on_hold","Data em pré-reserva"] : ["","Data disponível no momento"]);
+    var av = ocupada ? ["unavailable","Essa data já está reservada"] : (p.disponibilidade==="on_hold" ? ["on_hold","Data em pré-reserva"] : ["available","Data disponível no momento"]);
     var dataBanner = ocupada ? '<div class="datawarn"><p class="dw-t">Essa data já está reservada</p><p class="dw-d">A data '+esc(dataCurta(p.evento_data))+' já consta como reservada na nossa agenda. Mas adoraríamos registrar o casamento de vocês. Se tiverem um pouco de flexibilidade na data, fale com a gente que verificamos as opções na hora.</p><a class="btn btn-wa" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">'+WA+' Falar sobre datas</a></div>' : '';
+    var statusFechado = (p.status==="reservada"||p.status==="fechada");
+    var ddEvt = diasPara(p.evento_data);
+    var topInfo;
+    if(statusFechado && ddEvt!=null){
+      topInfo='<div class="hero__cd">'+(ddEvt>1?'<span class="cd-n serif">'+ddEvt+'</span><span class="cd-l">dias para o grande dia</span>':ddEvt===1?'<span class="cd-l serif"><b>É amanhã!</b> Falta 1 dia</span>':ddEvt===0?'<span class="cd-l serif"><b>É hoje!</b> Que dia inesquecível</span>':'<span class="cd-l">Dia celebrado. Obrigado por confiar na Bellus.</span>')+'</div>';
+    } else {
+      var sc="";
+      if(av[0]==="available"){
+        var sb=(p.evento_data||p.slug||"x")+"|"+(new Date()).getFullYear()+"-"+(new Date()).getMonth();
+        var hh=0; for(var si=0;si<sb.length;si++){hh=(hh*31+sb.charCodeAt(si))>>>0;}
+        var sn=hh%4;
+        if(sn>0) sc='<p class="scarcity"><span class="scarcity-dot" aria-hidden="true"></span>'+sn+(sn===1?' noiva está':' noivas estão')+' buscando esta data</p>';
+      }
+      topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>'+sc;
+    }
     document.getElementById("app").innerHTML=
     '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
-      '<span class="avail"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>'+'<div class="hairline"></div></div></header>'+
+      topInfo+'<div class="hairline"></div></div></header>'+
     // O dia de voces
     '<section class="section" id="seu-evento"><div class="container"><div class="shead"><p class="eyebrow">O dia de vocês</p><h2 class="serif">Os detalhes que já conhecemos</h2><p class="sub">Partimos do que vocês já nos contaram, sem precisar repetir nada.</p></div>'+dataBanner+
       '<div class="evgrid"><div><dl class="evlist">'+rows.map(function(r){return '<div class="evrow"><dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd></div>';}).join("")+(p.evento_notas?'<div class="evrow notes"><dt>Observações</dt><dd>'+esc(p.evento_notas)+'</dd></div>':'')+'</dl>'+
@@ -507,14 +525,18 @@
     '<section class="section section--tint"><div class="container narrow"><p class="eyebrow">Por que registrar</p><p class="serif" style="font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.08;margin-top:1rem">O que vocês não viram só existe no filme.</p>'+
       '<div class="manif"><p>Enquanto vocês vivem o dia, outras coisas estão acontecendo. Um olhar distante. Uma reação inesperada. Um momento que não volta.</p><p>A maioria deles vocês nunca vão saber que existiu, a não ser que alguém tenha registrado.</p></div>'+
       '<blockquote class="manifq serif">O que vocês sentem assistindo não é o mesmo que viveram. Porque agora vocês conseguem ver tudo: os detalhes, as reações, as emoções que passaram despercebidas enquanto o dia acontecia.</blockquote>'+
-      '<p class="manifc">A Bellus existe para transformar o casamento de vocês em uma memória viva, para reviver esse dia da maneira mais verdadeira possível.</p></div></section>'+
-    // como funciona
-    '<section class="section" id="como-funciona"><div class="container"><div class="shead"><p class="eyebrow">Como funciona</p><h2 class="serif">Do sim ao seu filme</h2><p class="sub">Um caminho simples e sem surpresas, do primeiro passo à entrega.</p></div>'+
-      '<ol class="steps">'+PROCESS.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
-    // portfolio
+      '<p class="manifc">A Bellus existe para transformar o casamento de vocês em uma memória viva, para reviver esse dia da maneira mais verdadeira possível.</p>'+
+      '<p class="manif-proj">Daqui a vinte anos, num domingo qualquer, alguém vai pedir para ver. E vocês vão assistir de mãos dadas, lembrando de gente que talvez nem esteja mais aqui. O filme é o único lugar onde esse dia continua acontecendo.</p>'+
+      '<p class="manif-fear serif">A memória desbota. O filme não. De tudo que vocês vão contratar para o casamento, é o único que não dá para refazer depois.</p></div></section>'+
+    // portfolio (Para você sentir) — vem antes do Como funciona
     '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">Para você sentir</p><h2 class="serif light">O que um filme da Bellus revela</h2><p class="sub">Naturalidade, emoção e os detalhes que passam despercebidos no dia.</p></div>'+
       '<div class="pf-grid">'+PORTFOLIO.map(function(v){return '<button class="pf-tile" data-video="'+v[0]+'" data-zoom="'+v[1]+'" aria-label="Assistir vídeo"><span class="pf-cover" style="background-image:url(https://i.ytimg.com/vi/'+v[0]+'/hqdefault.jpg);transform:scale('+(v[1]||1)+')"></span><span class="pf-play">'+PLAY+'</span></button>';}).join("")+'</div>'+
       '<div class="pf-links"><a href="https://www.instagram.com/belluscasamentos/" target="_blank" rel="noopener" aria-label="Instagram">'+IG+'</a><a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener" class="yt">Ver mais filmes no YouTube</a></div></div></section>'+
+    // como funciona
+    '<section class="section" id="como-funciona"><div class="container"><div class="shead"><p class="eyebrow">Como funciona</p><h2 class="serif">Do sim ao seu filme</h2><p class="sub">Um caminho simples e sem surpresas, do primeiro passo à entrega.</p></div>'+
+      '<ol class="steps">'+PROCESS.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
+    // depoimentos (prova social) — logo antes dos pacotes
+    '<section class="section section--tint" id="depoimentos"><div class="container"><div class="shead"><p class="eyebrow">Quem já viveu isso</p><h2 class="serif">Noivas que confiaram o dia delas à Bellus</h2><p class="sub">O que elas dizem depois de assistir ao próprio filme.</p></div><div class="depo-grid">'+REVIEWS_P.map(function(r){return '<figure class="depo"><div class="depo-stars" aria-hidden="true">★★★★★</div><blockquote class="depo-txt">'+esc(r.t)+'</blockquote><figcaption class="depo-by"><span class="depo-ini" aria-hidden="true">'+esc(r.n.charAt(0))+'</span><span class="depo-nome">'+esc(r.n)+'</span></figcaption></figure>';}).join("")+'</div></div></section>'+
     // experiencias + lado a lado (ocultos depois da reserva)
     (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">As experiências</p><h2 class="serif">Escolham como guardar o seu dia</h2><p class="sub">Toque numa experiência para ver os valores e o que cada uma inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div></div></section>'+
     '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual experiência combina mais com vocês?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+

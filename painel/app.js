@@ -2,7 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://nngvxucybligmanbedrs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: true } });
+let idleTimer = null;
+const IDLE_MS = 15 * 60 * 1000; // 15 min sem atividade exige a senha de novo
 
 const PACOTES = [
   { id: "cerimonia", nome: "Cerimônia" },
@@ -82,9 +84,12 @@ async function doLogin(email, password){
   if (error) return "E-mail ou senha inválidos.";
   await loadMembro(data.user);
   if (!state.user) return "Este usuário não faz parte da equipe.";
-  state.view="dashboard"; render(); return null;
+  state.view="dashboard"; render(); armIdle(); return null;
 }
-async function doLogout(){ await supabase.auth.signOut(); state.user=null; state.membro=null; render(); }
+async function doLogout(){ clearTimeout(idleTimer); idleTimer=null; await supabase.auth.signOut(); state.user=null; state.membro=null; render(); }
+// auto-bloqueio: sem atividade por IDLE_MS, desloga e volta pra senha (evita painel aberto exposto)
+function armIdle(){ clearTimeout(idleTimer); if(!state.user) return; idleTimer=setTimeout(function(){ idleTimer=null; if(state.user) doLogout(); }, IDLE_MS); }
+["mousemove","keydown","mousedown","scroll","touchstart"].forEach(function(ev){ document.addEventListener(ev, armIdle, {passive:true}); });
 
 // ---------- data ----------
 async function loadPropostas(){
@@ -581,7 +586,11 @@ function viewForm(){
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
     </div>
     ${field("Deslocamento e logística (R$)","deslocamento",{type:"number",ph:"0",val:v("deslocamento",0)})}
-    <p style="margin:.4rem 0 .2rem;color:#7e7367;font-size:.8rem;line-height:1.5">Entra no total da proposta e no Resumo da contratação. Referência: Teresópolis incluso; demais cidades do RJ R$ 1,00/km (ida e volta) + hospedagem quando necessário; fora do estado, somar o transporte aéreo. Deixe 0 para não cobrar.</p>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">
+      <button type="button" id="calc-desloc" class="btn btn-ghost btn-mini">Calcular pela cidade</button>
+      <span id="desloc-info" style="font-size:.8rem;color:#7e7367"></span>
+    </div>
+    <p style="margin:.4rem 0 .2rem;color:#7e7367;font-size:.8rem;line-height:1.5">Sugestão automática: Teresópolis até a cidade do evento, ida e volta, a R$ 1,00/km (Teresópolis = incluso). Vem preenchido para conferência e pode ser editado; fora do estado, some o transporte aéreo.</p>
     ${field("Motivo da recomendação","recomendacao_motivo",{textarea:true,ph:"Por que essa experiência combina com eles",val:v("recomendacao_motivo")})}
     ${field("Mensagem pessoal de abertura","mensagem_pessoal",{textarea:true,ph:"Já vem preenchida ao puxar um lead. Edite à vontade.",val:v("mensagem_pessoal")})}
     <button class="btn btn-ghost btn-mini" type="button" id="btn-sug-msg">Sugerir mensagem a partir do nome</button>
@@ -792,6 +801,45 @@ function wire(){
     if (ls) ls.addEventListener("input", ()=>{ ll.innerHTML = leadRowsHTML(ls.value); wireRows(); });
   }
   if (state.prefillLead && document.getElementById("form-proposta")){ const _pl=state.prefillLead; state.prefillLead=null; fillFromLead(_pl); }
+  if (fp) {
+    const desEl=fp.querySelector('[name="deslocamento"]');
+    const cityEl=fp.querySelector('[name="evento_cidade"]');
+    const localEl=fp.querySelector('[name="evento_local"]');
+    const dInfo=document.getElementById("desloc-info");
+    const dBtn=document.getElementById("calc-desloc");
+    let dBusy=false;
+    const dSet=(t)=>{ if(dInfo) dInfo.textContent=t||""; };
+    const dVazio=()=> !desEl || !desEl.value || Number(desEl.value)===0;
+    const ORIG_DES={lat:-22.4202092,lng:-42.9750062};
+    function haversineKmDes(a,b){const R=6371,t=(d)=>d*Math.PI/180;const dLat=t(b.lat-a.lat),dLng=t(b.lng-a.lng);const x=Math.sin(dLat/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+    async function runCalcDesloc(force){
+      if(dBusy||!desEl) return;
+      const cidade=cityEl?cityEl.value.trim():""; const local=localEl?localEl.value.trim():"";
+      const alvo=[local,cidade].filter(Boolean).join(", ").trim();
+      if(!alvo){ dSet("Informe a cidade do evento para calcular."); return; }
+      if(/teres[oó]polis/i.test(alvo)){ if(force||dVazio()) desEl.value=0; dSet("Teresópolis · deslocamento incluso (R$ 0)."); return; }
+      dBusy=true; dSet("Calculando distância…");
+      try{
+        const gr=await fetch("https://photon.komoot.io/api/?limit=1&q="+encodeURIComponent(alvo+", Brasil"));
+        const g=await gr.json();
+        const f=g&&g.features&&g.features[0];
+        if(!f||!f.geometry||!f.geometry.coordinates){ dSet("Não localizei a cidade. Preencha manualmente."); return; }
+        const dest={lng:f.geometry.coordinates[0], lat:f.geometry.coordinates[1]};
+        const pr=f.properties||{}; const nome=pr.city||pr.name||pr.county||pr.state||alvo;
+        let kmIda=0, aprox=false;
+        try{ const rr=await fetch("https://router.project-osrm.org/route/v1/driving/"+ORIG_DES.lng+","+ORIG_DES.lat+";"+dest.lng+","+dest.lat+"?overview=false"); const r=await rr.json(); if(r&&r.routes&&r.routes[0]&&r.routes[0].distance) kmIda=r.routes[0].distance/1000; }catch(_){}
+        if(!kmIda){ kmIda=haversineKmDes(ORIG_DES,dest)*1.6; aprox=true; }
+        const kmI=Math.round(kmIda), kmT=kmI*2, valor=kmT;
+        if(force||dVazio()) desEl.value=valor;
+        dSet("Teresópolis → "+nome+": "+kmI+" km (ida e volta "+kmT+" km) ≈ R$ "+valor+(aprox?" aprox.":""));
+      }catch(_){ dSet("Falha ao calcular. Preencha manualmente."); }
+      finally{ dBusy=false; }
+    }
+    if(dBtn) dBtn.addEventListener("click", ()=>runCalcDesloc(true));
+    if(cityEl) cityEl.addEventListener("blur", ()=>{ if(dVazio()) runCalcDesloc(false); });
+    if(localEl) localEl.addEventListener("blur", ()=>{ if(dVazio()) runCalcDesloc(false); });
+    if(dVazio() && cityEl && cityEl.value.trim()) runCalcDesloc(false);
+  }
   const sug=document.getElementById("btn-sug-msg");
   if(sug) sug.addEventListener("click", ()=>{ const f=document.getElementById("form-proposta"); if(!f) return; const mp=f.querySelector('[name="mensagem_pessoal"]'); const dv=(f.querySelector('[name="evento_data"]')||{}).value; if(mp) mp.value=mensagemAbertura(f.querySelector('[name="cliente_nome"]').value, f.querySelector('[name="cliente_parceiro"]').value, leadDataOcupada(dv)); });
   const dataInput=document.querySelector('#form-proposta [name="evento_data"]');
