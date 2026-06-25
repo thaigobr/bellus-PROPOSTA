@@ -79,11 +79,12 @@
   function addonTotal(a,q){if(q<=0)return 0;if(a.kind==="quantity")return q*(a.unitPrice||0);if(a.kind==="bonus")return 0;return a.price||0;}
   function breakdown(){
     var pk=selPkg(); var add=lines().reduce(function(s,l){return s+addonTotal(l.addon,l.qty);},0);
-    var subtotal=preco(pk)+add; var pay=selPay();
+    var desloc=Math.max(0,parseInt((P.proposta&&P.proposta.deslocamento)||0,10)||0);
+    var subtotal=preco(pk)+add+desloc; var pay=selPay();
     var disc=Math.round(subtotal*((pay&&pay.discountRate)||0)); var total=subtotal-disc;
     var sig=null,sal=null; if(pay&&pay.kind==="signal"&&pay.signalRate){sig=Math.round(subtotal*pay.signalRate);sal=subtotal-sig;}
     var ic=null,iv=null,icTotal=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){ic=pay.maxInstallments;icTotal=totalCart(total,ic);iv=Math.round((icTotal/ic)*100)/100;}
-    return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv,icTotal:icTotal};
+    return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv,icTotal:icTotal,desloc:desloc};
   }
   function setQty(id,q){
     var a=ADDONS.find(function(x){return x.id===id;}); var max=a.maxUnits||6;
@@ -345,6 +346,7 @@
     if(incluiPrevia())h+='<div class="sbonus"><span><span class="bdg">Bônus</span>Prévia em até 15 dias</span><span class="cortesia">Cortesia</span></div>';
     h+='</div>';
     if(qa.length){h+=(P.downsell?'<div style="margin-top:.6rem">'+downsellHtml()+'</div>':'');qa.forEach(function(a){var ea=effAddon(a);var q=P.qty[a.id]||0;h+='<div class="ssum-step"><div class="top"><span>'+esc(a.nome)+'</span><span class="tnum">'+(q>0?"+ "+brl(addonTotal(ea,q)):brl(0))+'</span></div><div class="ctrl">'+stepperHtml(ea,q,true)+'</div></div>';});}
+    if(b.desloc>0)h+='<div class="ssum-step"><div class="top"><span>Deslocamento e logística</span><span class="tnum">+ '+brl(b.desloc)+'</span></div></div>';
     h+='<hr class="shr"><div class="sline"><span class="l">Subtotal</span><span class="v tnum">'+brl(b.subtotal)+'</span></div>';
     if(b.disc>0)h+='<div class="sline accent"><span class="l">Desconto à vista</span><span class="v tnum">menos '+brl(b.disc)+'</span></div>';
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';

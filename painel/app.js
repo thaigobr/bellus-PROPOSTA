@@ -580,6 +580,8 @@ function viewForm(){
       ${field("Validade da proposta","expira_em",{type:"date",val:v("expira_em")})}
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
     </div>
+    ${field("Deslocamento e logística (R$)","deslocamento",{type:"number",ph:"0",val:v("deslocamento",0)})}
+    <p style="margin:.4rem 0 .2rem;color:#7e7367;font-size:.8rem;line-height:1.5">Entra no total da proposta e no Resumo da contratação. Referência: Teresópolis incluso; demais cidades do RJ R$ 1,00/km (ida e volta) + hospedagem quando necessário; fora do estado, somar o transporte aéreo. Deixe 0 para não cobrar.</p>
     ${field("Motivo da recomendação","recomendacao_motivo",{textarea:true,ph:"Por que essa experiência combina com eles",val:v("recomendacao_motivo")})}
     ${field("Mensagem pessoal de abertura","mensagem_pessoal",{textarea:true,ph:"Já vem preenchida ao puxar um lead. Edite à vontade.",val:v("mensagem_pessoal")})}
     <button class="btn btn-ghost btn-mini" type="button" id="btn-sug-msg">Sugerir mensagem a partir do nome</button>
@@ -770,6 +772,7 @@ function wire(){
   if (fp) fp.addEventListener("submit", async (e)=>{
     e.preventDefault();
     const o={}; new FormData(fp).forEach((v,k)=>{ const s=String(v).trim(); o[k]= s===""?null:s; });
+    o.deslocamento = Math.max(0, Math.round(parseFloat(o.deslocamento) || 0));
     if (!o.cliente_nome) return setMsg("form-msg","Informe o nome do cliente.","err");
     const btn=document.getElementById("salvar"); btn.disabled=true; btn.textContent="Salvando...";
     const err = await saveProposta(o, state.editing?.id || null);

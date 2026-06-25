@@ -1,0 +1,28 @@
+# ===================================================================
+# Bellus Eventos - .htaccess da RAIZ (public_html)
+# -------------------------------------------------------------------
+# Suba ISTO na raiz (public_html) SOMENTE quando publicar o site novo
+# na raiz. Ao subir, RENOMEIE este arquivo para:  .htaccess
+# (com o ponto na frente e sem o .txt)
+# ===================================================================
+
+RewriteEngine On
+
+# 1) Redireciona o caminho temporario /novo para a raiz (301 permanente).
+#    Preserva SEO e qualquer link antigo que ainda aponte para /novo.
+RewriteRule ^novo/?$ / [R=301,L]
+RewriteRule ^novo/(.*)$ /$1 [R=301,L]
+
+# 2) (OPCIONAL) Forcar HTTPS. Descomente as 2 linhas abaixo SOMENTE se o
+#    SSL ja estiver ativo no dominio (no cPanel costuma ja estar).
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# 3) (OPCIONAL) Pagina de erro amigavel.
+# ErrorDocument 404 /index.html
+
+# -------------------------------------------------------------------
+# IMPORTANTE: as pastas /p/ (propostas) e /painel/ (admin) continuam
+# funcionando normalmente. As regras acima so afetam /novo. Nao mexa
+# em nada dentro de /p/ nem /painel/.
+# -------------------------------------------------------------------
