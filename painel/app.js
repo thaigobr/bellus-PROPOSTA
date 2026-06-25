@@ -18,7 +18,7 @@ const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Fu
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -105,8 +105,10 @@ async function loadLeads(){
   state.leads = data || [];
 }
 async function loadLeadsUsados(){
-  const { data } = await supabase.from("propostas").select("lead_id").not("lead_id","is",null);
+  const { data } = await supabase.from("propostas").select("id,slug,status,lead_id").not("lead_id","is",null);
   state.leadsUsados = new Set((data||[]).map((r)=>r.lead_id).filter(Boolean));
+  const m={}; (data||[]).forEach((r)=>{ if(r.lead_id && !m[r.lead_id]) m[r.lead_id]=r; });
+  state.propByLead = m;
 }
 async function loadAgenda(){
   const { data } = await supabase.from("propostas")
@@ -524,9 +526,12 @@ function leadCard(l){
   const flag = ocup ? `<div class="lead-flag">A data ${esc(fmtData(l.data_casamento))} já está ${esc(statusTxt(ocup.status))} na agenda</div>` : "";
   const quando = l.created_at ? `<span class="lead-when">${esc(desdeTxt(l.created_at))}</span>` : "";
   const msg = l.mensagem ? `<p class="lead-msg">${esc(l.mensagem)}</p>` : "";
-  const acao = tem
-    ? `<span class="lead-tag">Proposta criada</span>`
-    : `<button class="btn btn-primary lead-cta" data-nova-lead="${esc(l.id)}">Criar proposta</button>`;
+  const prop=(state.propByLead||{})[l.id];
+  const acao = (tem && prop)
+    ? `<button class="btn btn-light lead-cta" data-open="${esc(prop.id)}">Ver proposta</button>`
+    : tem
+      ? `<span class="lead-tag">Proposta criada</span>`
+      : `<button class="btn btn-primary lead-cta" data-nova-lead="${esc(l.id)}">Criar proposta</button>`;
   return `<div class="lead-card${tem?" is-done":""}">
     <div class="lead-card-top">
       <div><span class="lead-card-nome">${esc(l.nome)}${par}</span><span class="lead-card-origem">${esc(origemTxt(l.origem))}</span></div>
@@ -541,16 +546,32 @@ function leadCard(l){
 function leadsCardsHTML(q){
   q=(q||"").trim().toLowerCase();
   const per=state.leadsPeriodo, ref=refDe(per, state.leadsMes, state.leadsAno);
-  const list=state.leads.filter((l)=> inPeriodo(l.created_at, per, ref) && (!q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q))));
+  const og=state.leadsOrigem||"tudo";
+  const list=state.leads.filter((l)=> (og==="tudo"||l.origem===og) && inPeriodo(l.created_at, per, ref) && (!q || [l.nome,l.nome_parceiro,l.email,l.cidade,l.whatsapp].some((x)=>(x||"").toLowerCase().includes(q))));
   if(!list.length) return `<div class="empty"><p>${(q||per!=="tudo")?"Nada encontrado para este filtro.":"Nenhum lead ainda."}</p></div>`;
   return `<div class="lead-cards">${list.map(leadCard).join("")}</div>`;
 }
+function exportLeadsCSV(){
+  const cols=["nome","parceiro","email","whatsapp","data_casamento","cidade","convidados","origem","criado_em"];
+  const rows=[cols];
+  (state.leads||[]).forEach((l)=>rows.push([l.nome,l.nome_parceiro,l.email,l.whatsapp,l.data_casamento,l.cidade,l.convidados,origemTxt(l.origem),(l.created_at||"").slice(0,10)]));
+  const csv=rows.map((r)=>r.map((c)=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="clientes-bellus.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
 function viewLeads(){
-  const head=`<div class="page-head"><h2 class="serif">Leads</h2><button class="btn btn-primary" data-nova>Nova proposta</button></div>`;
+  const head=`<div class="page-head"><h2 class="serif">Leads</h2><div class="page-head-acts"><button class="btn btn-light" id="export-leads">Exportar clientes</button><button class="btn btn-primary" data-nova>Nova proposta</button></div></div>`;
   if(!state.leads.length) return head+`<div class="empty"><p>Nenhum lead ainda.</p><p class="muted">Os contatos enviados pelo site institucional e pela Noiva dos Sonhos aparecem aqui automaticamente.</p></div>`;
-  const novos=state.leads.filter((l)=> !(state.leadsUsados||new Set()).has(l.id)).length;
-  const resumo=`<p class="muted" style="margin:-.2rem 0 1rem">${state.leads.length} no total · <b>${novos}</b> sem proposta. Toque em <b>Criar proposta</b> para abrir o formulário já preenchido.</p>`;
-  return head+resumo+periodoBar("leads",state.leadsPeriodo,state.leadsMes,state.leadsAno)+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
+  const usados=state.leadsUsados||new Set();
+  const novos=state.leads.filter((l)=> !usados.has(l.id)).length;
+  const cNoiva=state.leads.filter((l)=>l.origem==="noiva-dos-sonhos").length;
+  const cBellus=state.leads.filter((l)=>l.origem==="site-bellus").length;
+  const og=state.leadsOrigem||"tudo";
+  const chip=(v,t)=>`<button class="lead-filtro${og===v?" on":""}" data-leadorigem="${v}">${t}</button>`;
+  const filtros=`<div class="lead-filtros">${chip("tudo","Todos ("+state.leads.length+")")}${chip("noiva-dos-sonhos","Noiva dos Sonhos ("+cNoiva+")")}${chip("site-bellus","Site Bellus ("+cBellus+")")}</div>`;
+  const resumo=`<p class="muted" style="margin:-.2rem 0 1rem">${state.leads.length} no total · <b>${novos}</b> sem proposta. <b>Criar proposta</b> abre o formulário preenchido; <b>Ver proposta</b> abre a já criada.</p>`;
+  return head+resumo+filtros+periodoBar("leads",state.leadsPeriodo,state.leadsMes,state.leadsAno)+`<input class="lista-busca" id="leads-busca" type="search" placeholder="Buscar por nome, e-mail, cidade ou WhatsApp..." value="${esc(state.leadsBusca||"")}" autocomplete="off"/><div id="leads-cont">${leadsCardsHTML(state.leadsBusca||"")}</div>`;
 }
 function viewForm(){
   const ed = state.editing;
@@ -753,6 +774,8 @@ function wire(){
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
   document.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead"))));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));
+  document.querySelectorAll("[data-leadorigem]").forEach((b)=> b.addEventListener("click", ()=>{ state.leadsOrigem=b.getAttribute("data-leadorigem"); render(); }));
+  { const ex=document.getElementById("export-leads"); if(ex) ex.addEventListener("click", exportLeadsCSV); }
   document.querySelectorAll("[data-edit]").forEach((b)=> b.addEventListener("click", ()=>editProposta(b.getAttribute("data-edit"))));
   document.querySelectorAll(".cal-nav").forEach((b)=> b.addEventListener("click", ()=>{ state.calMes=calNavYM(state.calMes, parseInt(b.getAttribute("data-cal-delta"),10)||0); render(); }));
   const lo=document.getElementById("logout"); if(lo) lo.addEventListener("click", doLogout);
@@ -768,7 +791,7 @@ function wire(){
   if(lbl) lbl.addEventListener("input", ()=>{
     state.leadsBusca=lbl.value;
     const cont=document.getElementById("leads-cont");
-    if(cont){ cont.innerHTML=leadsCardsHTML(lbl.value); cont.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead")))); }
+    if(cont){ cont.innerHTML=leadsCardsHTML(lbl.value); cont.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead")))); cont.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open")))); }
   });
 
   const cop=document.getElementById("btn-copiar");
