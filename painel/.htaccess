@@ -1,0 +1,10 @@
+DirectoryIndex index.html
+Options -Indexes
+
+# Painel privado: nao indexar + HTML sempre fresco apos deploy (evita cache de versao antiga)
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
