@@ -204,17 +204,15 @@ function tsRel(ts){ if(!ts) return "—"; return `${fmtTs(ts)} (${desdeTxt(ts)})
 function waDigits(tel){ const d=(tel||"").replace(/\D/g,""); if(!d) return ""; return d.length<=11 ? "55"+d : d; }
 function primeiroNome(p){ const n=(p.cliente_nome||"").trim(); return n.split(/\s+/)[0]||n; }
 function dataLongaP(d){ if(!d) return ""; const M=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]; const x=String(d).slice(0,10).split("-"); if(x.length!==3) return fmtData(d); return parseInt(x[2],10)+" de "+M[parseInt(x[1],10)-1]+" de "+x[0]; }
+// Parágrafo de prova personalizada (some inteiro se não houver data/local/convidados)
 function propMeio(p){
-  const aniv=isNiver(p.pacote_recomendado);
-  const evento=aniv?"do aniversário":"do casamento de vocês";
-  const imaginar=aniv?"você imaginou":"vocês imaginaram";
-  const det=[];
-  if(p.evento_data) det.push("no dia "+dataLongaP(p.evento_data));
-  if(p.evento_local) det.push("no "+p.evento_local);
-  let m="Preparei a proposta "+evento;
-  if(det.length) m+=" pensando "+det.join(", ");
-  if(p.evento_convidados) m+=", com a estrutura ideal para receber "+p.evento_convidados+" convidados";
-  return m+", com a experiência que "+imaginar+".";
+  const imaginar=isNiver(p.pacote_recomendado)?"você imaginou":"vocês imaginaram";
+  const partes=[];
+  if(p.evento_data) partes.push("pro dia "+dataLongaP(p.evento_data));
+  if(p.evento_local) partes.push("no "+p.evento_local);
+  if(p.evento_convidados) partes.push("pra receber "+p.evento_convidados+" convidados");
+  if(!partes.length) return "";
+  return "Pensei cada detalhe "+partes.join(", ")+(partes.length>1?", ":" ")+"do jeito que "+imaginar+".";
 }
 function waMsg(p){
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
@@ -222,31 +220,54 @@ function waMsg(p){
   if(p.status==="visualizada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Vi que você deu uma olhada na proposta. Posso tirar alguma dúvida ou ajustar algum ponto? ${link}`;
   if(p.status==="negociando") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Dando sequência à nossa conversa, qualquer dúvida estou por aqui: ${link}`;
   if(p.status==="reservada"||p.status==="fechada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Que alegria ter você com a gente! Vamos alinhar os próximos passos?`;
-  const suj=aniv?"você":"vocês";
-  const conseguir=aniv?"consiga":"consigam";
-  const buscar=aniv?"está buscando":"estão buscando";
-  const atmosfera=aniv?"da festa":"do casamento de vocês";
-  return [
-    `Oi, ${primeiro}`,
-    `Aqui é o ${quem}, da Bellus Eventos.`,
-    ``,
-    propMeio(p),
-    ``,
-    `Deixei tudo organizado aqui para você visualizar com calma:`,
-    ``,
-    link,
-    ``,
-    `A ideia é que ${suj} ${conseguir} sentir como a Bellus pode cuidar desse dia, desde a recepção dos convidados até os detalhes que constroem a atmosfera ${atmosfera}.`,
-    ``,
-    `Depois que olhar, me chama por aqui. Se fizer sentido, eu te ajudo a ajustar qualquer ponto para deixar a proposta ainda mais alinhada com o que ${suj} ${buscar}.`
-  ].join("\n");
+  const meio=propMeio(p);
+  const L=[];
+  if(aniv){
+    L.push(`${primeiro}, aqui é o ${quem}, da Bellus Eventos. A proposta do filme da sua festa já está pronta.`);
+    L.push(``);
+    L.push(`Você pediu a disponibilidade pelo nosso site, e eu separei um tempo pra montar essa proposta pensando só em você.`);
+    if(meio){ L.push(``); L.push(meio); }
+    L.push(``);
+    L.push(`Tem uma parte da festa que você não vai conseguir ver acontecendo, porque vai estar vivendo tudo de dentro: quem chegou antes de você, a pista no auge depois que você já tinha passado por ali. É justamente ali que mora o filme, e foi a partir disso que montei tudo.`);
+    L.push(``);
+    L.push(`A sua proposta está aqui, pronta pra ver com calma: ${link}`);
+    L.push(``);
+    L.push(`Sem pressa. Depois que olhar, me conta o que sentiu. Fico por aqui.`);
+  } else {
+    L.push(`${primeiro}, aqui é o ${quem}, da Bellus Eventos. A proposta do filme de casamento de vocês já está pronta.`);
+    L.push(``);
+    L.push(`Vocês pediram a disponibilidade pelo nosso site, e eu separei um tempo pra montar essa proposta pensando só em vocês.`);
+    if(meio){ L.push(``); L.push(meio); }
+    L.push(``);
+    L.push(`Tem uma parte do casamento que vocês não vão conseguir ver acontecendo, porque vão estar vivendo tudo de dentro: a mãe arrumando o vestido, a pista depois que vocês já tinham saído. É justamente ali que mora o filme, e foi a partir disso que montei tudo.`);
+    L.push(``);
+    L.push(`A proposta de vocês está aqui, pronta pra ver com calma: ${link}`);
+    L.push(``);
+    L.push(`Sem pressa. Depois que olharem, me contem o que sentiram. Fico por aqui.`);
+  }
+  return L.join("\n");
 }
 function waLink(p){ const d=waDigits(p.cliente_telefone); return d ? `https://wa.me/${d}?text=${encodeURIComponent(waMsg(p))}` : ""; }
 function mailLink(p){
   if(!p.cliente_email) return "";
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
-  const corpo=`Oi ${primeiro},\n\n${propMeio(p)}\n\nDeixei tudo organizado aqui para você visualizar com calma:\n${link}\n\nDepois que olhar, me chama que eu ajudo a ajustar qualquer ponto para deixar a proposta ainda mais alinhada com o que você procura.\n\nAbraço,\n${quem}\nBellus Eventos`;
-  return `mailto:${p.cliente_email}?subject=${encodeURIComponent("Sua proposta - Bellus Eventos")}&body=${encodeURIComponent(corpo)}`;
+  const aniv=isNiver(p.pacote_recomendado); const meio=propMeio(p);
+  const assunto = aniv ? `${primeiro}, a proposta do filme da sua festa está pronta` : `${primeiro}, a proposta do filme de casamento de vocês está pronta`;
+  const L=[`Oi, ${primeiro}.`,``];
+  if(aniv){
+    L.push(`Aqui é o ${quem}, da Bellus Eventos. Você pediu a disponibilidade pelo nosso site, e eu separei um tempo pra montar a proposta do filme da sua festa, pensando só em você.`);
+    if(meio){ L.push(``); L.push(meio); }
+    L.push(``); L.push(`No dia, você vai estar vivendo cada momento de dentro. Tem uma parte da festa que quase ninguém percebe acontecendo: quem chegou antes, a pista no auge depois que você já tinha passado. É justamente ali que mora o filme, e foi a partir disso que montei tudo.`);
+  } else {
+    L.push(`Aqui é o ${quem}, da Bellus Eventos. Vocês pediram a disponibilidade pelo nosso site, e eu separei um tempo pra montar a proposta do filme de casamento de vocês, pensando só em vocês.`);
+    if(meio){ L.push(``); L.push(meio); }
+    L.push(``); L.push(`No dia, vocês vão estar vivendo cada momento de dentro. Tem uma parte do casamento que quase ninguém percebe acontecendo: a mãe arrumando o vestido, o pai esperando vocês, a pista depois que vocês já tinham saído. É justamente ali que mora o filme, e foi a partir disso que montei tudo.`);
+  }
+  L.push(``); L.push(`A ${aniv?"sua proposta":"proposta de vocês"} está aqui, pronta pra ver com calma:`); L.push(link);
+  L.push(``); L.push(aniv?`Sem pressa. Depois que olhar, me conta o que sentiu. Fico por aqui.`:`Sem pressa. Depois que olharem, me contem o que sentiram. Fico por aqui.`);
+  L.push(``); L.push(quem); L.push(`Bellus Eventos`);
+  const corpo=L.join("\n");
+  return `mailto:${p.cliente_email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
 }
 function contatoBtns(p){
   const wl=waLink(p), ml=mailLink(p);
