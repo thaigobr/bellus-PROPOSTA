@@ -202,22 +202,50 @@ function desdeTxt(ts){ const d=diasDesde(ts); if(d==null) return ""; if(d<=0) re
 function fmtTs(ts){ if(!ts) return "—"; const dt=new Date(ts); const p=(n)=>String(n).padStart(2,"0"); return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()}`; }
 function tsRel(ts){ if(!ts) return "—"; return `${fmtTs(ts)} (${desdeTxt(ts)})`; }
 function waDigits(tel){ const d=(tel||"").replace(/\D/g,""); if(!d) return ""; return d.length<=11 ? "55"+d : d; }
+function primeiroNome(p){ const n=(p.cliente_nome||"").trim(); return n.split(/\s+/)[0]||n; }
+function dataLongaP(d){ if(!d) return ""; const M=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]; const x=String(d).slice(0,10).split("-"); if(x.length!==3) return fmtData(d); return parseInt(x[2],10)+" de "+M[parseInt(x[1],10)-1]+" de "+x[0]; }
+function propMeio(p){
+  const aniv=isNiver(p.pacote_recomendado);
+  const evento=aniv?"do aniversário":"do casamento de vocês";
+  const imaginar=aniv?"você imaginou":"vocês imaginaram";
+  const det=[];
+  if(p.evento_data) det.push("no dia "+dataLongaP(p.evento_data));
+  if(p.evento_local) det.push("no "+p.evento_local);
+  let m="Preparei a proposta "+evento;
+  if(det.length) m+=" pensando "+det.join(", ");
+  if(p.evento_convidados) m+=", com a estrutura ideal para receber "+p.evento_convidados+" convidados";
+  return m+", com a experiência que "+imaginar+".";
+}
 function waMsg(p){
-  const nome=p.cliente_nome||""; const link=propLink(p); const quem=p.consultor||"Thiago";
-  const ola=`Oi ${nome}! Aqui é o ${quem}, da Bellus Eventos.`;
-  let corpo;
-  if(p.status==="enviada") corpo=`Enviei a proposta do casamento de vocês e queria saber se conseguiu dar uma olhada. Segue o link: ${link}`;
-  else if(p.status==="visualizada") corpo=`Vi que vocês deram uma olhada na proposta. Posso tirar alguma dúvida ou ajustar algo pra vocês? ${link}`;
-  else if(p.status==="negociando") corpo=`Dando sequência à nossa conversa sobre o casamento de vocês. Qualquer dúvida, estou por aqui: ${link}`;
-  else if(p.status==="reservada"||p.status==="fechada") corpo=`Que alegria ter vocês com a gente! Vamos alinhar os próximos passos?`;
-  else corpo=`Preparei a proposta do casamento de vocês, segue o link: ${link}`;
-  return `${ola} ${corpo}`;
+  const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
+  const aniv=isNiver(p.pacote_recomendado);
+  if(p.status==="visualizada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Vi que você deu uma olhada na proposta. Posso tirar alguma dúvida ou ajustar algum ponto? ${link}`;
+  if(p.status==="negociando") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Dando sequência à nossa conversa, qualquer dúvida estou por aqui: ${link}`;
+  if(p.status==="reservada"||p.status==="fechada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Que alegria ter você com a gente! Vamos alinhar os próximos passos?`;
+  const suj=aniv?"você":"vocês";
+  const conseguir=aniv?"consiga":"consigam";
+  const buscar=aniv?"está buscando":"estão buscando";
+  const atmosfera=aniv?"da festa":"do casamento de vocês";
+  return [
+    `Oi, ${primeiro}`,
+    `Aqui é o ${quem}, da Bellus Eventos.`,
+    ``,
+    propMeio(p),
+    ``,
+    `Deixei tudo organizado aqui para você visualizar com calma:`,
+    ``,
+    link,
+    ``,
+    `A ideia é que ${suj} ${conseguir} sentir como a Bellus pode cuidar desse dia, desde a recepção dos convidados até os detalhes que constroem a atmosfera ${atmosfera}.`,
+    ``,
+    `Depois que olhar, me chama por aqui. Se fizer sentido, eu te ajudo a ajustar qualquer ponto para deixar a proposta ainda mais alinhada com o que ${suj} ${buscar}.`
+  ].join("\n");
 }
 function waLink(p){ const d=waDigits(p.cliente_telefone); return d ? `https://wa.me/${d}?text=${encodeURIComponent(waMsg(p))}` : ""; }
 function mailLink(p){
   if(!p.cliente_email) return "";
-  const nome=p.cliente_nome||""; const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
-  const corpo=`Oi ${nome},\n\nSegue a proposta do casamento de vocês:\n${link}\n\nQualquer dúvida, é só responder este e-mail.\n\nAbraço,\n${quem}\nBellus Eventos`;
+  const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
+  const corpo=`Oi ${primeiro},\n\n${propMeio(p)}\n\nDeixei tudo organizado aqui para você visualizar com calma:\n${link}\n\nDepois que olhar, me chama que eu ajudo a ajustar qualquer ponto para deixar a proposta ainda mais alinhada com o que você procura.\n\nAbraço,\n${quem}\nBellus Eventos`;
   return `mailto:${p.cliente_email}?subject=${encodeURIComponent("Sua proposta - Bellus Eventos")}&body=${encodeURIComponent(corpo)}`;
 }
 function contatoBtns(p){
