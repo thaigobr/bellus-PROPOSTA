@@ -225,6 +225,21 @@ function propPartes(p){
     fecho: aniv ? "Sem pressa. Depois que olhar, me conta o que sentiu. Fico por aqui." : "Sem pressa. Depois que olharem, me contem o que sentiram. Fico por aqui."
   };
 }
+// Pede com carinho as infos faltantes (data/cidade/local/convidados) p/ fechar valores e logística
+function propPedido(p){
+  const f=[];
+  if(!p.evento_data) f.push("a data");
+  if(!p.evento_cidade) f.push("a cidade");
+  if(!p.evento_local) f.push("o local");
+  if(!p.evento_convidados) f.push("a quantidade de convidados");
+  if(!f.length) return "";
+  const lista = f.length===1 ? f[0] : f.slice(0,-1).join(", ")+" e "+f[f.length-1];
+  const aniv=isNiver(p.pacote_recomendado);
+  const base = !p.evento_cidade
+    ? "Pra eu te passar os valores exatos e calcular a logística de deslocamento até o evento, você consegue me confirmar "
+    : "Pra eu deixar a proposta com tudo exato, você consegue me confirmar ";
+  return base + lista + "? Com isso eu atualizo a proposta certinho pra " + (aniv?"você":"vocês") + ".";
+}
 function waMsg(p){
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const meio=propMeio(p); const pp=propPartes(p);
@@ -238,6 +253,7 @@ function waMsg(p){
   L.push(``); L.push(pp.hook);
   L.push(``); L.push(pp.posse+" está aqui, pronta pra ver com calma");
   L.push(``); L.push(link);
+  const ped=propPedido(p); if(ped){ L.push(``); L.push(ped); }
   L.push(``); L.push(pp.fecho);
   return L.join("\n");
 }
@@ -254,6 +270,7 @@ function mailLink(p){
   L.push(``); L.push(pp.hook);
   L.push(``); L.push(pp.posse+" está aqui, pronta pra ver com calma");
   L.push(``); L.push(link);
+  const ped=propPedido(p); if(ped){ L.push(``); L.push(ped); }
   L.push(``); L.push(pp.fecho);
   L.push(``); L.push(quem); L.push(`Bellus Eventos`);
   const corpo=L.join("\n");
