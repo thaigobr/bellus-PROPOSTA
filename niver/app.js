@@ -12,9 +12,9 @@
 
   var PACOTES = [
     { id:"niver-esmeralda", nome:"Niver Esmeralda", preco:3470, pos:"O essencial, com emoção.", best:"Para guardar os principais momentos da festa em um filme enxuto e bonito.",
-      entregas:[["Filme de 5 minutos",1],["Trailer de até 1 minuto"],["Cobertura dos momentos principais"],["Making of da preparação (opcional)"],["Prévia em até 15 dias"],["Entrega digital"]], noTimeAddon:true },
+      entregas:[["Filme de 5 minutos",1],["Cobertura dos momentos principais"],["Making of da preparação (opcional)"],["Prévia em até 15 dias"],["Entrega digital"]], noTimeAddon:true },
     { id:"niver-rubi", nome:"Niver Rubi", preco:4470, pos:"A festa em cinema.", best:"Para reviver a festa inteira, com mais detalhes, drone e um olhar cinematográfico.",
-      entregas:[["Filme de 8 minutos",1],["Trailer de até 2 minutos"],["Cobertura ampla da festa"],["Captação aprofundada de detalhes"],["Drone quando possível"],["Making of da preparação (opcional)"],["Prévia em até 15 dias"],["Pendrive + entrega digital"]] },
+      entregas:[["Filme de 8 minutos",1],["Trailer de até 2 minutos"],["Cobertura ampla da festa"],["Captação aprofundada de detalhes"],["Making of da preparação (opcional)"],["Prévia em até 15 dias"],["Pendrive + entrega digital"]] },
     { id:"niver-diamante", nome:"Niver Diamante", preco:5970, pos:"A experiência completa.", best:"Para guardar tudo, do início ao fim, com o máximo de detalhes e reações.",
       entregas:[["Filme cinematográfico de até 15 minutos",1],["Trailer de até 2 minutos"],["Cobertura do início ao fim da festa",1],["Captação reforçada de detalhes e reações"],["Drone quando possível"],["Making of da preparação (opcional)"],["Prévia em até 15 dias"],["Pendrive + entrega digital"]] },
   ];
@@ -36,12 +36,13 @@
     ["Produção","Selecionamos, montamos e damos forma à narrativa da sua festa."],
     ["Entrega","Prévia em até 15 dias; filme e trailer entre 60 e 90 dias (máximo 150), por link ou pendrive."],
   ];
-  var PORTFOLIO = [ ["ePwx8bsoztI",1.35], ["We-jTlYiLC4",1.35], ["_O0Kialgkzo",0] ];
+  var PORTFOLIO = [ ["HMYMWuEQ2Xs",0], ["AqhcNuJ15P0",0], ["-Fbz-Wqffdw",0] ];
   var FEATURES = [
     ["Filme da festa",{"niver-esmeralda":"5 min","niver-rubi":"8 min","niver-diamante":"até 15 min"}],
-    ["Trailer",{"niver-esmeralda":true,"niver-rubi":true,"niver-diamante":true}],
+    ["Trailer",{"niver-esmeralda":false,"niver-rubi":true,"niver-diamante":true}],
     ["Cobertura",{"niver-esmeralda":"Momentos principais","niver-rubi":"Ampla","niver-diamante":"Início ao fim"}],
-    ["Captação aprofundada + drone",{"niver-esmeralda":false,"niver-rubi":true,"niver-diamante":true}],
+    ["Captação aprofundada",{"niver-esmeralda":false,"niver-rubi":true,"niver-diamante":true}],
+    ["Drone",{"niver-esmeralda":false,"niver-rubi":false,"niver-diamante":true}],
     ["Making of da preparação (opcional)",{"niver-esmeralda":true,"niver-rubi":true,"niver-diamante":true}],
     ["Prévia em 15 dias",{"niver-esmeralda":true,"niver-rubi":true,"niver-diamante":true}],
     ["Entrega",{"niver-esmeralda":"Digital","niver-rubi":"Pendrive + digital","niver-diamante":"Pendrive + digital"}],
