@@ -16,6 +16,10 @@ const STATUS = [["rascunho","Rascunho"],["enviada","Enviada"],["visualizada","Vi
 const DISP = [["available","Disponível"],["on_hold","Pré-reserva"],["unavailable","Indisponível"]];
 const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Funcionário" };
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
+const NIVER_BASE = "https://www.belluseventos.com.br/niver/p/";
+const NIVER_PACOTES = [{id:"niver-esmeralda",nome:"Niver Esmeralda"},{id:"niver-rubi",nome:"Niver Rubi"},{id:"niver-diamante",nome:"Niver Diamante"}];
+const isNiver = (pk)=> typeof pk==="string" && pk.indexOf("niver-")===0;
+const propLink = (p)=> (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE) + (p ? p.slug : "");
 
 const root = document.getElementById("root");
 const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
@@ -199,7 +203,7 @@ function fmtTs(ts){ if(!ts) return "—"; const dt=new Date(ts); const p=(n)=>St
 function tsRel(ts){ if(!ts) return "—"; return `${fmtTs(ts)} (${desdeTxt(ts)})`; }
 function waDigits(tel){ const d=(tel||"").replace(/\D/g,""); if(!d) return ""; return d.length<=11 ? "55"+d : d; }
 function waMsg(p){
-  const nome=p.cliente_nome||""; const link=LINK_BASE+p.slug; const quem=p.consultor||"Thiago";
+  const nome=p.cliente_nome||""; const link=propLink(p); const quem=p.consultor||"Thiago";
   const ola=`Oi ${nome}! Aqui é o ${quem}, da Bellus Eventos.`;
   let corpo;
   if(p.status==="enviada") corpo=`Enviei a proposta do casamento de vocês e queria saber se conseguiu dar uma olhada. Segue o link: ${link}`;
@@ -212,7 +216,7 @@ function waMsg(p){
 function waLink(p){ const d=waDigits(p.cliente_telefone); return d ? `https://wa.me/${d}?text=${encodeURIComponent(waMsg(p))}` : ""; }
 function mailLink(p){
   if(!p.cliente_email) return "";
-  const nome=p.cliente_nome||""; const link=LINK_BASE+p.slug; const quem=p.consultor||"Thiago Rodrigues";
+  const nome=p.cliente_nome||""; const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const corpo=`Oi ${nome},\n\nSegue a proposta do casamento de vocês:\n${link}\n\nQualquer dúvida, é só responder este e-mail.\n\nAbraço,\n${quem}\nBellus Eventos`;
   return `mailto:${p.cliente_email}?subject=${encodeURIComponent("Sua proposta - Bellus Eventos")}&body=${encodeURIComponent(corpo)}`;
 }
@@ -576,6 +580,7 @@ function viewLeads(){
 function viewForm(){
   const ed = state.editing;
   const v = (n, def="") => (ed ? (ed[n] ?? "") : def);
+  const serv = isNiver(v("pacote_recomendado")) ? "aniversario" : "casamento";
   return `
   <div class="page-head"><h2 class="serif">${ed?"Editar proposta":"Nova proposta"}</h2><button class="btn btn-ghost" data-go="lista">Voltar</button></div>
   <form class="card-form" id="form-proposta">
@@ -589,8 +594,9 @@ function viewForm(){
       ${field("WhatsApp / telefone","cliente_telefone",{ph:"(21) 90000-0000",val:v("cliente_telefone")})}
     </div>
     <div class="section-label">Evento</div>
+    <label class="field"><span>Tipo de serviço</span><select id="f-servico"><option value="casamento" ${serv==="casamento"?"selected":""}>Casamento</option><option value="aniversario" ${serv==="aniversario"?"selected":""}>Aniversário</option></select></label>
     <div class="grid cols-2">
-      ${field("Tipo","evento_tipo",{val:v("evento_tipo","Casamento")})}
+      ${field("Tipo","evento_tipo",{val:v("evento_tipo", serv==="aniversario"?"Aniversário":"Casamento")})}
       ${field("Data","evento_data",{type:"date",val:v("evento_data")})}
       ${field("Local","evento_local",{ph:"Espaço / igreja",val:v("evento_local")})}
       ${field("Cidade","evento_cidade",{ph:"Teresópolis",val:v("evento_cidade")})}
@@ -601,7 +607,7 @@ function viewForm(){
     ${field("Observações","evento_notas",{textarea:true,ph:"O que o casal contou",val:v("evento_notas")})}
     <div class="section-label">Proposta</div>
     <div class="grid cols-2">
-      ${field("Experiência recomendada","pacote_recomendado",{select:[["","Nenhuma"]].concat(PACOTES.map((p)=>[p.id,p.nome])),val:v("pacote_recomendado")})}
+      ${field("Experiência recomendada","pacote_recomendado",{select:[["","Nenhuma"]].concat((serv==="aniversario"?NIVER_PACOTES:PACOTES).map((p)=>[p.id,p.nome])),val:v("pacote_recomendado")})}
       ${field("Status","status",{select:STATUS,val:v("status","rascunho")})}
       ${field("Validade da proposta","expira_em",{type:"date",val:v("expira_em")})}
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
@@ -679,10 +685,10 @@ function viewDetalhe(){
     ${detPagamento(p)}
     <div class="linkbox">
       <span>Link para enviar à noiva</span>
-      <code id="prop-link">${esc(LINK_BASE + p.slug)}</code>
+      <code id="prop-link">${esc(propLink(p))}</code>
       <div class="linkactions">
         <button class="btn btn-ghost" id="btn-copiar">Copiar link</button>
-        <a class="btn btn-ghost" href="${esc(LINK_BASE + p.slug)}" target="_blank" rel="noopener">Abrir</a>
+        <a class="btn btn-ghost" href="${esc(propLink(p))}" target="_blank" rel="noopener">Abrir</a>
       </div>
     </div>
     <div class="form-actions" id="det-actions">
@@ -694,7 +700,7 @@ function viewDetalhe(){
 function viewAgenda(){
   const ag = state.agenda.filter((p)=>inPeriodo(p.evento_data, state.agendaPeriodo, refDe(state.agendaPeriodo, state.agendaMes, state.agendaAno)));
   const items = ag.map((p)=>{
-    const n=diasAte(p.evento_data); const urg=(n!=null&&n>=0&&n<=30); const link=LINK_BASE+p.slug;
+    const n=diasAte(p.evento_data); const urg=(n!=null&&n>=0&&n<=30); const link=propLink(p);
     return `<div class="agenda-item">
       <div class="data">${esc(fmtData(p.evento_data))}<small>${esc(statusTxt(p.status))}</small></div>
       <div class="ag-main">
@@ -796,7 +802,7 @@ function wire(){
 
   const cop=document.getElementById("btn-copiar");
   if (cop) cop.addEventListener("click", async ()=>{
-    try { await navigator.clipboard.writeText(LINK_BASE + state.current.slug); cop.textContent="Copiado!"; setTimeout(()=>{cop.textContent="Copiar link";},1600); }
+    try { await navigator.clipboard.writeText(propLink(state.current)); cop.textContent="Copiado!"; setTimeout(()=>{cop.textContent="Copiar link";},1600); }
     catch(e){ cop.textContent="Copie o link acima"; }
   });
 
@@ -811,6 +817,17 @@ function wire(){
     if (err){ btn.disabled=false; btn.textContent="Salvar"; return setMsg("form-msg","Erro ao salvar: "+err,"err"); }
     state.editing=null; go("lista");
   });
+
+  const servSel=document.getElementById("f-servico");
+  if (servSel && fp){
+    servSel.addEventListener("change", ()=>{
+      const aniv = servSel.value==="aniversario";
+      const pk = fp.querySelector('[name="pacote_recomendado"]');
+      if(pk){ const list=(aniv?NIVER_PACOTES:PACOTES); pk.innerHTML='<option value="">Nenhuma</option>'+list.map((p)=>`<option value="${p.id}">${esc(p.nome)}</option>`).join(""); }
+      const et = fp.querySelector('[name="evento_tipo"]');
+      if(et && (!et.value || et.value==="Casamento" || et.value==="Aniversário")){ et.value = aniv?"Aniversário":"Casamento"; }
+    });
+  }
 
   const ll=document.getElementById("lead-list");
   if (ll){
