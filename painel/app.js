@@ -101,7 +101,7 @@ function armIdle(){ clearTimeout(idleTimer); if(!state.user) return; idleTimer=s
 // ---------- data ----------
 async function loadPropostas(){
   const { data } = await supabase.from("propostas")
-    .select("id,slug,status,cliente_nome,cliente_parceiro,cliente_email,cliente_telefone,evento_data,criado_em,enviada_em,visualizada_em,visualizacoes,pacote_recomendado,consultor")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,cliente_email,cliente_telefone,evento_data,criado_em,enviada_em,visualizada_em,visualizacoes,pacote_recomendado,consultor,motivo_perda")
     .order("criado_em", { ascending: false });
   state.propostas = data || [];
 }
@@ -416,6 +416,24 @@ async function renderCharts(){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:LINE}}}}
     }));
   }
+  // perdemos por que (motivo da perda)
+  const perdidas = ps.filter((p)=>lost(p.status));
+  const elPerda = document.getElementById("ch-perda");
+  if(elPerda){
+    if(perdidas.length){
+      const counts = {};
+      perdidas.forEach((p)=>{ const k=p.motivo_perda||"sem-motivo"; counts[k]=(counts[k]||0)+1; });
+      const keys = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+      const labels = keys.map((k)=> k==="sem-motivo" ? "Sem motivo informado" : motivoPerdaTxt(k));
+      dashCharts.push(new Chart(elPerda, {
+        type:"bar",
+        data:{ labels:labels, datasets:[{data:keys.map((k)=>counts[k]),backgroundColor:REDISH,borderRadius:4}]},
+        options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:LINE}},y:{grid:{display:false}}}}
+      }));
+    } else {
+      const box=elPerda.closest(".chart-box"); if(box) box.innerHTML='<p class="muted" style="padding:1rem;text-align:center">Nenhuma proposta perdida ainda. Quando houver, o motivo aparece aqui.</p>';
+    }
+  }
 }
 async function renderMovimentacoes(){
   const host = document.getElementById("mov-list");
@@ -475,6 +493,7 @@ function viewDashboard(){
     <div class="chart-card"><div class="chart-title">Distribuição por status</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Funil de conversão</div><div class="chart-box"><canvas id="ch-funil"></canvas></div></div>
     <div class="chart-card chart-wide"><div class="chart-title">Entrada de leads (por mês)</div><div class="chart-box"><canvas id="ch-leads"></canvas></div></div>
+    <div class="chart-card chart-wide"><div class="chart-title">Por que perdemos</div><div class="chart-box"><canvas id="ch-perda"></canvas></div></div>
   </div>
   <div class="section-label" style="margin-top:1.8rem">Conversão e movimentação</div>
   <div class="conv-metrics">
