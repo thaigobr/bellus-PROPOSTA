@@ -896,8 +896,12 @@ function bloqueiosSecaoHtml(){
     ? bs.map((b)=>{
         const multi = b.data_fim && b.data_fim!==b.data_inicio;
         const per = multi ? `${fmtData(b.data_inicio)} a ${fmtData(b.data_fim)}` : fmtData(b.data_inicio);
+        const isG = b.origem==="google";
         const desc = [motivoBloqueioTxt(b.motivo), (b.titulo||"").trim()].filter(Boolean).join(" · ");
-        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem .2rem;border-bottom:1px solid var(--line)"><div style="display:flex;flex-direction:column"><b>${esc(per)}</b><small style="color:#7e7367">${esc(desc)}</small></div><button type="button" class="cbtn" data-del-bloq="${esc(b.id)}">Remover</button></div>`;
+        const tag = isG ? `<span style="font-size:.62rem;background:#eee7da;color:#6b6258;border-radius:4px;padding:.05rem .4rem;margin-left:.45rem;vertical-align:middle">Google Agenda</span>` : "";
+        const det = (b.snapshot && b.snapshot.descricao) ? `<small style="display:block;color:#9a9088;margin-top:.2rem;line-height:1.35">${esc(b.snapshot.descricao)}</small>` : "";
+        const al = b.alerta ? `<small style="display:block;color:#a85454;font-weight:600;margin-top:.2rem">⚠ ${esc(b.alerta)}</small>` : "";
+        return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;padding:.6rem .2rem;border-bottom:1px solid var(--line)"><div style="flex:1;min-width:0"><div><b>${esc(per)}</b>${tag}</div><small style="color:#7e7367">${esc(desc)}</small>${det}${al}</div><button type="button" class="cbtn" data-del-bloq="${esc(b.id)}">Remover</button></div>`;
       }).join("")
     : `<p class="muted">Nenhuma data bloqueada. Marque aqui quando estiver viajando, de férias ou com um compromisso que impeça atender um evento. A data fica fechada para reserva.</p>`;
   return `<div class="section-label">Datas que você não atende</div>
