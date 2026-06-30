@@ -274,12 +274,13 @@ function mailLink(p){
   L.push(``); L.push(pp.fecho);
   L.push(``); L.push(quem); L.push(`Bellus Eventos`);
   const corpo=L.join("\n");
-  return `mailto:${p.cliente_email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  // Abre o Gmail (compose web), nao o app padrao do SO (Outlook).
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(p.cliente_email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
 }
 function contatoBtns(p){
   const wl=waLink(p), ml=mailLink(p);
   return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
-       + (ml?`<a class="cbtn em" href="${esc(ml)}">E-mail</a>`:"");
+       + (ml?`<a class="cbtn em" href="${esc(ml)}" target="_blank" rel="noopener">E-mail</a>`:"");
 }
 function detContato(p){
   const wl=waLink(p), ml=mailLink(p);
@@ -576,7 +577,7 @@ function leadMailLink(l){
 function leadContatoBtns(l){
   const wl=leadWaLink(l), ml=leadMailLink(l);
   return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
-       + (ml?`<a class="cbtn em" href="${esc(ml)}">E-mail</a>`:"");
+       + (ml?`<a class="cbtn em" href="${esc(ml)}" target="_blank" rel="noopener">E-mail</a>`:"");
 }
 function leadCard(l){
   const par=l.nome_parceiro ? ` & ${esc(l.nome_parceiro)}` : "";
