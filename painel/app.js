@@ -28,7 +28,7 @@ const isNiver = (pk)=> typeof pk==="string" && pk.indexOf("niver-")===0;
 const propLink = (p)=> (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE) + (p ? p.slug : "");
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, bloqueios: [], datasBloqueadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, bloqueios: [], datasBloqueadas: {}, syncMsg: "", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -905,6 +905,7 @@ function bloqueiosSecaoHtml(){
       }).join("")
     : `<p class="muted">Nenhuma data bloqueada. Marque aqui quando estiver viajando, de férias ou com um compromisso que impeça atender um evento. A data fica fechada para reserva.</p>`;
   return `<div class="section-label">Datas que você não atende</div>
+  <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem;flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="btn-sync-google">↻ Sincronizar com Google agora</button>${state.syncMsg?`<span style="font-size:.8rem;color:#1d7a4f">${esc(state.syncMsg)}</span>`:""}</div>
   <form id="form-bloqueio" style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin-bottom:.7rem">
     <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem">De<input type="date" name="data_inicio" required style="padding:.45rem"></label>
     <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem">Até (opcional)<input type="date" name="data_fim" style="padding:.45rem"></label>
@@ -938,6 +939,16 @@ function wireBloqueios(){
       await loadBloqueios(); render();
     });
   }
+  const sb=document.getElementById("btn-sync-google");
+  if(sb){ sb.addEventListener("click", async ()=>{
+    sb.disabled=true; sb.textContent="Sincronizando..."; state.syncMsg="";
+    try{
+      const { data, error } = await supabase.functions.invoke("sync-google-agenda");
+      if(error) throw error;
+      state.syncMsg = `Atualizado: ${data.novos||0} novo(s), ${data.atualizados||0} alterado(s), ${data.removidos||0} removido(s).`;
+      await loadBloqueios(); render();
+    }catch(e){ sb.disabled=false; sb.textContent="↻ Sincronizar com Google agora"; alert("Erro ao sincronizar: "+(e&&e.message?e.message:e)); }
+  }); }
   document.querySelectorAll("[data-del-bloq]").forEach((b)=> b.addEventListener("click", async ()=>{
     if(!confirm("Remover este bloqueio? A data volta a ficar livre para reserva.")) return;
     const err=await removeBloqueio(b.getAttribute("data-del-bloq"));
