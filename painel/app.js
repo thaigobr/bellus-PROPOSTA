@@ -912,6 +912,7 @@ function wire(){
     e.preventDefault();
     const o={}; new FormData(fp).forEach((v,k)=>{ const s=String(v).trim(); o[k]= s===""?null:s; });
     o.deslocamento = Math.max(0, Math.round(parseFloat(o.deslocamento) || 0));
+    if(o.status==="perdida") o.disponibilidade="unavailable"; // Perdida bloqueia o pagamento (reusa a trava de indisponivel, no cliente e no servidor)
     if (!o.cliente_nome) return setMsg("form-msg","Informe o nome do cliente.","err");
     const btn=document.getElementById("salvar"); btn.disabled=true; btn.textContent="Salvando...";
     const err = await saveProposta(o, state.editing?.id || null);
