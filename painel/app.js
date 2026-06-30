@@ -17,6 +17,7 @@ const DISP = [["available","Disponível"],["on_hold","Pré-reserva"],["unavailab
 const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Funcionário" };
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
 const NIVER_BASE = "https://www.belluseventos.com.br/niver/p/";
+const BELLUS_EMAIL = "contato@belluseventos.com.br"; // remetente do botao de e-mail (abre o Gmail nessa conta)
 const NIVER_PACOTES = [{id:"niver-esmeralda",nome:"Niver Esmeralda"},{id:"niver-rubi",nome:"Niver Rubi"},{id:"niver-diamante",nome:"Niver Diamante"}];
 const isNiver = (pk)=> typeof pk==="string" && pk.indexOf("niver-")===0;
 const propLink = (p)=> (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE) + (p ? p.slug : "");
@@ -274,8 +275,8 @@ function mailLink(p){
   L.push(``); L.push(pp.fecho);
   L.push(``); L.push(quem); L.push(`Bellus Eventos`);
   const corpo=L.join("\n");
-  // Abre o Gmail (compose web), nao o app padrao do SO (Outlook).
-  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(p.cliente_email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  // Abre o Gmail (compose web) JA na conta contato@belluseventos.com.br, nao o app padrao do SO (Outlook).
+  return `https://mail.google.com/mail/u/${BELLUS_EMAIL}/?view=cm&fs=1&to=${encodeURIComponent(p.cliente_email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
 }
 function contatoBtns(p){
   const wl=waLink(p), ml=mailLink(p);
