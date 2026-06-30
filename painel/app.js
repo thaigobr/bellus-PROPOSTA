@@ -15,6 +15,9 @@ const PACOTES = [
 const STATUS = [["rascunho","Rascunho"],["enviada","Enviada"],["visualizada","Visualizada"],["negociando","Negociando"],["reservada","Reservada"],["fechada","Fechada"],["perdida","Perdida"]];
 const MOTIVOS_PERDA = [["","Selecione o motivo"],["contato-invalido","Contato inválido (e-mail/telefone errado)"],["sem-retorno","Sem retorno"],["recusou","Recusou a proposta"],["fechou-outro","Fechou com outro"],["fora-orcamento","Fora do orçamento"],["mudou-data","Mudou a data ou desistiu do evento"],["outro","Outro"]];
 function motivoPerdaTxt(v){ if(!v) return ""; const m=MOTIVOS_PERDA.find((x)=>x[0]===v); return m?m[1]:v; }
+const MOTIVOS_BLOQUEIO = [["viagem","Viagem"],["ferias","Férias"],["compromisso","Compromisso"],["outro","Outro"]];
+function motivoBloqueioTxt(v){ const m=MOTIVOS_BLOQUEIO.find((x)=>x[0]===v); return m?m[1]:(v||"Ocupado"); }
+function bloqueioLabel(b){ return (b && b.titulo && b.titulo.trim()) ? b.titulo.trim() : motivoBloqueioTxt(b&&b.motivo); }
 const DISP = [["available","Disponível"],["on_hold","Pré-reserva"],["unavailable","Indisponível"]];
 const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Funcionário" };
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
@@ -25,7 +28,7 @@ const isNiver = (pk)=> typeof pk==="string" && pk.indexOf("niver-")===0;
 const propLink = (p)=> (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE) + (p ? p.slug : "");
 
 const root = document.getElementById("root");
-const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
+const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, bloqueios: [], datasBloqueadas: {}, prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
 
 const esc = (s) => (s == null ? "" : String(s)).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 function slugify(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
@@ -83,7 +86,7 @@ async function init(){
 }
 async function loadMembro(user){
   const { data } = await supabase.from("proposta_equipe").select("nome,papel,ativo").eq("id", user.id).maybeSingle();
-  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); await loadLeads(); await loadLeadsUsados(); await loadDatasOcupadas(); }
+  if (data && data.ativo){ state.user=user; state.membro=data; await loadPropostas(); await loadLeads(); await loadLeadsUsados(); await loadDatasOcupadas(); await loadBloqueios(); }
   else { await supabase.auth.signOut(); state.user=null; state.membro=null; }
 }
 async function doLogin(email, password){
@@ -132,6 +135,20 @@ async function loadDatasOcupadas(){
   (data||[]).forEach((p)=>{ if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, slug:p.slug, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
   state.datasOcupadas = map;
 }
+async function loadBloqueios(){
+  const { data } = await supabase.from("agenda_bloqueios").select("*").order("data_inicio",{ascending:true});
+  state.bloqueios = data || [];
+  const map={};
+  state.bloqueios.forEach((b)=>{
+    const ini=b.data_inicio, fim=b.data_fim||b.data_inicio;
+    if(!ini) return;
+    let d=new Date(ini+"T00:00:00"); const e=new Date(fim+"T00:00:00");
+    let g=0;
+    while(d<=e && g<400){ const ymd=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; if(!map[ymd]) map[ymd]={id:b.id,motivo:b.motivo,titulo:b.titulo,label:bloqueioLabel(b)}; d.setDate(d.getDate()+1); g++; }
+  });
+  state.datasBloqueadas = map;
+}
+function dataBloqueada(d){ return (d && (state.datasBloqueadas||{})[d]) || null; }
 async function getProposta(id){
   const { data } = await supabase.from("propostas").select("*").eq("id", id).maybeSingle();
   if (data){
@@ -163,13 +180,13 @@ async function trocarSenha(novaSenha){
 async function go(view){
   if (view === "lista" || view === "dashboard") await loadPropostas();
   if (view === "agenda") await loadAgenda();
-  await Promise.all([loadLeads(), loadLeadsUsados(), loadDatasOcupadas()]);
+  await Promise.all([loadLeads(), loadLeadsUsados(), loadDatasOcupadas(), loadBloqueios()]);
   state.view = view; render();
 }
-async function novaProposta(){ state.editing = null; await Promise.all([loadLeads(), loadDatasOcupadas()]); state.view = "form"; render(); }
-async function criarPropostaDeLead(id){ const lead=state.leads.find((x)=>x.id===id); state.editing=null; state.prefillLead=lead||null; await loadDatasOcupadas(); state.view="form"; render(); }
+async function novaProposta(){ state.editing = null; await Promise.all([loadLeads(), loadDatasOcupadas(), loadBloqueios()]); state.view = "form"; render(); }
+async function criarPropostaDeLead(id){ const lead=state.leads.find((x)=>x.id===id); state.editing=null; state.prefillLead=lead||null; await loadDatasOcupadas(); await loadBloqueios(); state.view="form"; render(); }
 async function openProposta(id){ const p = await getProposta(id); if (p){ state.current = p; state.view = "detalhe"; render(); } }
-async function editProposta(id){ const p = await getProposta(id); if (p){ state.editing = p; await loadDatasOcupadas(); state.view = "form"; render(); } }
+async function editProposta(id){ const p = await getProposta(id); if (p){ state.editing = p; await loadDatasOcupadas(); await loadBloqueios(); state.view = "form"; render(); } }
 
 // ---------- render ----------
 function render(){
@@ -559,16 +576,17 @@ function renderCalendario(ym){
   for(let d=1; d<=daysInMonth; d++){
     const ymd=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     const ev=(state.datasOcupadas||{})[ymd];
-    const cls=["cal-cell"]; if(ev) cls.push("has-ev", ev.status); if(ymd===hojeYmd) cls.push("hoje");
-    const primeiro=ev?(ev.nome||"").split(" & ")[0].split(" ")[0]:"";
-    const attr=ev?`data-open="${esc(ev.id)}" title="${esc(ev.nome)} · ${esc(statusTxt(ev.status))}"`:"";
-    cells+=`<div class="${cls.join(" ")}" ${attr}><span class="cal-d">${d}</span>${ev?`<span class="cal-ev">${esc(primeiro)}</span>`:""}</div>`;
+    const bl=!ev?(state.datasBloqueadas||{})[ymd]:null;
+    const cls=["cal-cell"]; if(ev) cls.push("has-ev", ev.status); else if(bl) cls.push("has-ev","bloqueio"); if(ymd===hojeYmd) cls.push("hoje");
+    const primeiro=ev?(ev.nome||"").split(" & ")[0].split(" ")[0]:(bl?(bl.label||"Ocupado"):"");
+    const attr=ev?`data-open="${esc(ev.id)}" title="${esc(ev.nome)} · ${esc(statusTxt(ev.status))}"`:(bl?`title="Ocupado · ${esc(bl.label||motivoBloqueioTxt(bl.motivo))}"`:"");
+    cells+=`<div class="${cls.join(" ")}" ${attr}><span class="cal-d">${d}</span>${(ev||bl)?`<span class="cal-ev">${esc(primeiro)}</span>`:""}</div>`;
   }
   return `<div class="cal">
     <div class="cal-head"><button class="cal-nav" data-cal-delta="-1" type="button" aria-label="Mês anterior">‹</button><div class="cal-title">${esc(mesAno(ym))}</div><button class="cal-nav" data-cal-delta="1" type="button" aria-label="Próximo mês">›</button></div>
     <div class="cal-grid cal-dows">${dows.map((x)=>`<div class="cal-dow">${x}</div>`).join("")}</div>
     <div class="cal-grid cal-days">${cells}</div>
-    <div class="cal-legend"><span class="cl-item"><span class="cl-dot reservada"></span>Reservada</span><span class="cl-item"><span class="cl-dot fechada"></span>Fechada</span><span class="cl-item"><span class="cl-dot hoje-mk"></span>Hoje</span></div>
+    <div class="cal-legend"><span class="cl-item"><span class="cl-dot reservada"></span>Reservada</span><span class="cl-item"><span class="cl-dot fechada"></span>Fechada</span><span class="cl-item"><span class="cl-dot bloqueio"></span>Ocupado</span><span class="cl-item"><span class="cl-dot hoje-mk"></span>Hoje</span></div>
   </div>`;
 }
 function proximosBlockHtml(max){
@@ -640,10 +658,14 @@ function checkDataConflito(){
   if(!el||!f) return;
   const di=f.querySelector('[name="evento_data"]'); const dval=di?di.value:"";
   const oc=(state.datasOcupadas||{})[dval];
+  const bl=dval?(state.datasBloqueadas||{})[dval]:null;
   const selfId=state.editing&&state.editing.id;
   if(dval && oc && oc.id!==selfId){
     el.className="data-aviso show";
     el.innerHTML=`<b>Atenção:</b> ${esc(fmtData(dval))} já está <b>${esc(statusTxt(oc.status))}</b> com ${esc(oc.nome)}. Evite enviar proposta com a mesma data.`;
+  } else if(dval && bl){
+    el.className="data-aviso show";
+    el.innerHTML=`<b>Atenção:</b> ${esc(fmtData(dval))} está marcada como <b>ocupada</b> na sua agenda (${esc(bl.label||motivoBloqueioTxt(bl.motivo))}). Essa data está fechada para reserva.`;
   } else { el.className="data-aviso"; el.innerHTML=""; }
 }
 // ---------- leads (entrada de contatos) ----------
@@ -862,9 +884,62 @@ function viewAgenda(){
   return `<div class="page-head"><h2 class="serif">Agenda</h2><button class="btn btn-ghost" data-go="lista">Propostas</button></div>
   ${avisoCasamentoHtml()}
   <div class="section-label">Calendário</div>${renderCalendario(state.calMes)}
+  ${bloqueiosSecaoHtml()}
   ${proxBlock}
   <div class="section-label">Todas as datas</div>
   ${bar}${list}`;
+}
+// ---------- bloqueios de agenda (datas em que o Thiago nao atende) ----------
+function bloqueiosSecaoHtml(){
+  const bs=(state.bloqueios||[]);
+  const lista = bs.length
+    ? bs.map((b)=>{
+        const multi = b.data_fim && b.data_fim!==b.data_inicio;
+        const per = multi ? `${fmtData(b.data_inicio)} a ${fmtData(b.data_fim)}` : fmtData(b.data_inicio);
+        const desc = [motivoBloqueioTxt(b.motivo), (b.titulo||"").trim()].filter(Boolean).join(" · ");
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.55rem .2rem;border-bottom:1px solid var(--line)"><div style="display:flex;flex-direction:column"><b>${esc(per)}</b><small style="color:#7e7367">${esc(desc)}</small></div><button type="button" class="cbtn" data-del-bloq="${esc(b.id)}">Remover</button></div>`;
+      }).join("")
+    : `<p class="muted">Nenhuma data bloqueada. Marque aqui quando estiver viajando, de férias ou com um compromisso que impeça atender um evento. A data fica fechada para reserva.</p>`;
+  return `<div class="section-label">Datas que você não atende</div>
+  <form id="form-bloqueio" style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end;margin-bottom:.7rem">
+    <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem">De<input type="date" name="data_inicio" required style="padding:.45rem"></label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem">Até (opcional)<input type="date" name="data_fim" style="padding:.45rem"></label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem">Motivo<select name="motivo" style="padding:.45rem">${MOTIVOS_BLOQUEIO.map((m)=>`<option value="${esc(m[0])}">${esc(m[1])}</option>`).join("")}</select></label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;gap:.2rem;flex:1;min-width:150px">Descrição (opcional)<input type="text" name="titulo" placeholder="ex.: Viagem em família" style="padding:.45rem"></label>
+    <button class="btn btn-primary" type="submit">Bloquear data</button>
+  </form>
+  <p class="msg" id="bloq-msg" style="margin:.2rem 0"></p>
+  <div>${lista}</div>`;
+}
+async function addBloqueio(o){
+  const ini=o.data_inicio; let fim=o.data_fim||ini;
+  if(!ini) return "Informe a data inicial.";
+  if(fim<ini) fim=ini;
+  const { error } = await supabase.from("agenda_bloqueios").insert({ data_inicio:ini, data_fim:fim, motivo:o.motivo||"outro", titulo:(o.titulo||"").trim()||null, origem:"manual" });
+  return error ? error.message : null;
+}
+async function removeBloqueio(id){
+  const { error } = await supabase.from("agenda_bloqueios").delete().eq("id", id);
+  return error ? error.message : null;
+}
+function wireBloqueios(){
+  const f=document.getElementById("form-bloqueio");
+  if(f){
+    f.addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const o={}; new FormData(f).forEach((v,k)=>{ o[k]=String(v).trim(); });
+      setMsg("bloq-msg","Salvando...");
+      const err=await addBloqueio(o);
+      if(err) return setMsg("bloq-msg","Erro: "+err,"err");
+      await loadBloqueios(); render();
+    });
+  }
+  document.querySelectorAll("[data-del-bloq]").forEach((b)=> b.addEventListener("click", async ()=>{
+    if(!confirm("Remover este bloqueio? A data volta a ficar livre para reserva.")) return;
+    const err=await removeBloqueio(b.getAttribute("data-del-bloq"));
+    if(err){ alert("Erro ao remover: "+err); return; }
+    await loadBloqueios(); render();
+  }));
 }
 function viewConta(){
   return `
@@ -919,6 +994,7 @@ function wire(){
   });
   if (document.getElementById("dash-charts")) renderCharts();
   if (document.getElementById("mov-list")) renderMovimentacoes();
+  wireBloqueios();
   document.querySelectorAll("[data-nova]").forEach((b)=> b.addEventListener("click", novaProposta));
   document.querySelectorAll("[data-nova-lead]").forEach((b)=> b.addEventListener("click", ()=>criarPropostaDeLead(b.getAttribute("data-nova-lead"))));
   document.querySelectorAll("[data-open]").forEach((b)=> b.addEventListener("click", ()=>openProposta(b.getAttribute("data-open"))));

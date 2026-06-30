@@ -268,6 +268,7 @@ a { color:inherit; }
 .cal-cell.has-ev .cal-d { color:#fff; font-weight:700; }
 .cal-cell.has-ev.reservada { background:var(--st-reservada); }
 .cal-cell.has-ev.fechada { background:var(--st-fechada); }
+.cal-cell.has-ev.bloqueio { background:#6b6258; }
 .cal-cell.has-ev:hover { filter:brightness(1.06); }
 .cal-ev { font-size:.62rem; line-height:1.15; color:#fff; margin-top:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
 .cal-cell.hoje { box-shadow:inset 0 0 0 2px var(--gold); }
@@ -277,6 +278,7 @@ a { color:inherit; }
 .cl-dot { width:.75rem; height:.75rem; border-radius:3px; }
 .cl-dot.reservada { background:var(--st-reservada); }
 .cl-dot.fechada { background:var(--st-fechada); }
+.cl-dot.bloqueio { background:#6b6258; }
 .cl-dot.hoje-mk { background:#fff; box-shadow:inset 0 0 0 2px var(--gold); }
 
 /* ---------- proximos casamentos ---------- */
