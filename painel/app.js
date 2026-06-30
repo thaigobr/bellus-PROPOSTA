@@ -13,6 +13,8 @@ const PACOTES = [
   { id: "alianca", nome: "Aliança" },
 ];
 const STATUS = [["rascunho","Rascunho"],["enviada","Enviada"],["visualizada","Visualizada"],["negociando","Negociando"],["reservada","Reservada"],["fechada","Fechada"],["perdida","Perdida"]];
+const MOTIVOS_PERDA = [["","Selecione o motivo"],["contato-invalido","Contato inválido (e-mail/telefone errado)"],["sem-retorno","Sem retorno"],["recusou","Recusou a proposta"],["fechou-outro","Fechou com outro"],["fora-orcamento","Fora do orçamento"],["mudou-data","Mudou a data ou desistiu do evento"],["outro","Outro"]];
+function motivoPerdaTxt(v){ if(!v) return ""; const m=MOTIVOS_PERDA.find((x)=>x[0]===v); return m?m[1]:v; }
 const DISP = [["available","Disponível"],["on_hold","Pré-reserva"],["unavailable","Indisponível"]];
 const PAPEL = { owner: "Proprietário", admin: "Administrador", funcionario: "Funcionário" };
 const LINK_BASE = "https://www.belluseventos.com.br/p/";
@@ -710,6 +712,7 @@ function viewForm(){
       ${field("Validade da proposta","expira_em",{type:"date",val:v("expira_em")})}
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
     </div>
+    <div id="motivo-perda-wrap" style="${v("status")==="perdida"?"":"display:none"}">${field("Motivo da perda","motivo_perda",{select:MOTIVOS_PERDA,val:v("motivo_perda")})}</div>
     ${field("Deslocamento e logística (R$)","deslocamento",{type:"number",ph:"0",val:v("deslocamento",0)})}
     <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">
       <button type="button" id="calc-desloc" class="btn btn-ghost btn-mini">Calcular pela cidade</button>
@@ -778,7 +781,7 @@ function viewDetalhe(){
     <div class="detalhe-head"><h3>${esc(nomes(p))}</h3><span class="badge ${esc(p.status)}">${esc(statusTxt(p.status))}</span></div>
     ${detContato(p)}
     ${detSection("Evento", [["Tipo",p.evento_tipo],["Data",fmtData(p.evento_data)],["Local",p.evento_local],["Cidade",p.evento_cidade],["Convidados",p.evento_convidados],["Disponibilidade",dispTxt(p.disponibilidade)],["Observações",p.evento_notas]])}
-    ${detSection("Proposta", [["Experiência recomendada",pacoteNome(p.pacote_recomendado)],["Validade",fmtData(p.expira_em)],["Consultor",p.consultor],["Motivo da recomendação",p.recomendacao_motivo],["Mensagem pessoal",p.mensagem_pessoal]])}
+    ${detSection("Proposta", [...(p.status==="perdida"?[["Motivo da perda",motivoPerdaTxt(p.motivo_perda)]]:[]),["Experiência recomendada",pacoteNome(p.pacote_recomendado)],["Validade",fmtData(p.expira_em)],["Consultor",p.consultor],["Motivo da recomendação",p.recomendacao_motivo],["Mensagem pessoal",p.mensagem_pessoal]])}
     ${detSection("Acompanhamento", [["Enviada", tsRel(p.enviada_em)],["Visualizada", p.visualizada_em?tsRel(p.visualizada_em):"Ainda não abriu"],["Visualizações", String(p.visualizacoes||0)]])}
     ${detPagamento(p)}
     <div class="linkbox">
@@ -926,6 +929,10 @@ function wire(){
       if(et && (!et.value || et.value==="Casamento" || et.value==="Aniversário")){ et.value = aniv?"Aniversário":"Casamento"; }
     });
   }
+
+  const stSel = fp.querySelector('[name="status"]');
+  const mpWrap = document.getElementById("motivo-perda-wrap");
+  if(stSel && mpWrap){ stSel.addEventListener("change", ()=>{ mpWrap.style.display = stSel.value==="perdida" ? "" : "none"; }); }
 
   const ll=document.getElementById("lead-list");
   if (ll){
