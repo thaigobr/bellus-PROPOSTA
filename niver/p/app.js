@@ -30,7 +30,7 @@
   var CTA_LABEL = { signal:"Reservar minha data", full:"Confirmar e reservar", installments:"Continuar para reservar" };
   var PROCESS = [
     ["Escolha da experiência","Você escolhe a experiência que combina com a festa."],
-    ["Reserva com sinal","A data é garantida após a assinatura e o pagamento do sinal. O saldo é parcelado até a festa."],
+    ["Reserva com sinal","A data é garantida após a assinatura e o pagamento do sinal. O saldo é parcelado no Pix ou em até 12x no cartão."],
     ["Alinhamento","Conversamos sobre a aniversariante, o roteiro da festa e o que não pode faltar."],
     ["Cobertura do evento","Estamos presentes com discrição, atentos ao que acontece de verdade, sem conduzir."],
     ["Produção","Selecionamos, montamos e damos forma à narrativa da sua festa."],
@@ -347,7 +347,7 @@
     h+='<hr class="shr"><div class="sline"><span class="l">Subtotal</span><span class="v tnum">'+brl(b.subtotal)+'</span></div>';
     if(b.disc>0)h+='<div class="sline accent"><span class="l">Desconto à vista</span><span class="v tnum">menos '+brl(b.disc)+'</span></div>';
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';
-    if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo até a festa</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
+    if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo restante</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
     if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x no cartão</span><span class="v tnum">'+brlC(b.iv)+'</span></div><div class="sline"><span class="l">Total no cartão (com a taxa)</span><span class="v tnum">'+brlC(b.icTotal)+'</span></div></div>';
     var dval=p.expira_em?diasPara(String(p.expira_em).slice(0,10)):null;
     var validadeTxt=dval==null?"":(dval>1?'<span class="sval-urge">Esta condição vale por mais '+dval+' dias.</span> ':dval===1?'<span class="sval-urge">Esta condição vale só até amanhã.</span> ':dval===0?'<span class="sval-urge">Esta condição vale só até hoje.</span> ':"");

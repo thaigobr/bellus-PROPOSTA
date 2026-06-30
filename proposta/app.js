@@ -33,7 +33,7 @@
   var CTA_LABEL = { signal:"Reservar minha data", full:"Confirmar e reservar", installments:"Continuar para reservar" };
   var PROCESS = [
     ["Escolha da experiência","Vocês selecionam a experiência que combina com o seu dia."],
-    ["Reserva com sinal","A data é garantida após a assinatura e o pagamento do sinal. O saldo é parcelado até o casamento."],
+    ["Reserva com sinal","A data é garantida após a assinatura e o pagamento do sinal. O saldo é parcelado no Pix ou em até 12x no cartão."],
     ["Alinhamento","Conversamos sobre a história de vocês, o roteiro do dia e o que é importante."],
     ["Cobertura do evento","Estamos presentes com discrição, atentos ao que acontece de verdade, sem conduzir."],
     ["Produção","Selecionamos, montamos e damos forma à narrativa do seu dia."],
@@ -350,7 +350,7 @@
     h+='<hr class="shr"><div class="sline"><span class="l">Subtotal</span><span class="v tnum">'+brl(b.subtotal)+'</span></div>';
     if(b.disc>0)h+='<div class="sline accent"><span class="l">Desconto à vista</span><span class="v tnum">menos '+brl(b.disc)+'</span></div>';
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';
-    if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo até o casamento</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
+    if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Sinal para reservar</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo restante</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
     if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x no cartão</span><span class="v tnum">'+brlC(b.iv)+'</span></div><div class="sline"><span class="l">Total no cartão (com a taxa)</span><span class="v tnum">'+brlC(b.icTotal)+'</span></div></div>';
     var dval=p.expira_em?diasPara(String(p.expira_em).slice(0,10)):null;
     var validadeTxt=dval==null?"":(dval>1?'<span class="sval-urge">Esta condição vale por mais '+dval+' dias.</span> ':dval===1?'<span class="sval-urge">Esta condição vale só até amanhã.</span> ':dval===0?'<span class="sval-urge">Esta condição vale só até hoje.</span> ':"");
@@ -519,7 +519,7 @@
       topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>'+sc;
     }
     var imgsNds=(p.imagens||[]);
-    var galeria = imgsNds.length ? ('<section class="section" id="previa-noiva"><div class="container"><div class="shead"><p class="eyebrow">Sua prévia Noiva dos Sonhos</p><h2 class="serif">Você, antes do grande dia</h2><p class="sub">As imagens que você criou na experiência Noiva dos Sonhos. Baixe as que quiser guardar.</p></div><div class="nds-grid" id="nds-grid">'+imgsNds.map(function(im){return '<figure class="nds-fig"><img class="nds-img" src="'+esc(im.url)+'" alt="Sua prévia de noiva" loading="lazy"/><a class="nds-dl" href="'+esc(im.url)+'?download" target="_blank" rel="noopener">Baixar</a></figure>';}).join("")+'</div><p class="nds-note">Por segurança, essas imagens ficam disponíveis por tempo limitado e depois são removidas. Baixe as suas para guardar.</p></div></section>') : '';
+    var galeria = imgsNds.length ? ('<section class="section" id="previa-noiva"><div class="container"><div class="shead"><p class="eyebrow">Sua prévia Noiva dos Sonhos</p><h2 class="serif">Você, antes do grande dia</h2><p class="sub">As imagens que você criou na experiência Noiva dos Sonhos. Toque em uma para ver em tela cheia, ou baixe as que quiser guardar.</p></div><div class="nds-grid" id="nds-grid">'+imgsNds.map(function(im){return '<figure class="nds-fig"><img class="nds-img" src="'+esc(im.url)+'" data-full="'+esc(im.url)+'" alt="Sua prévia de noiva" loading="lazy"/><a class="nds-dl" href="'+esc(im.url)+'?download" target="_blank" rel="noopener">Baixar</a></figure>';}).join("")+'</div><p class="nds-note">Por segurança, essas imagens ficam disponíveis por tempo limitado e depois são removidas. Baixe as suas para guardar.</p></div></section>') : '';
     document.getElementById("app").innerHTML=
     '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
@@ -561,10 +561,21 @@
       t.innerHTML=""; t.appendChild(f); t.classList.add("playing");
     });});
     var ndsGrid=document.getElementById("nds-grid");
-    if(ndsGrid){ ndsGrid.querySelectorAll(".nds-img").forEach(function(img){ img.addEventListener("error",function(){ var fig=img.closest(".nds-fig"); if(fig)fig.remove(); if(!ndsGrid.querySelector(".nds-fig")){ var sec=document.getElementById("previa-noiva"); if(sec)sec.style.display="none"; } }); }); }
+    if(ndsGrid){ ndsGrid.querySelectorAll(".nds-img").forEach(function(img){ img.addEventListener("error",function(){ var fig=img.closest(".nds-fig"); if(fig)fig.remove(); if(!ndsGrid.querySelector(".nds-fig")){ var sec=document.getElementById("previa-noiva"); if(sec)sec.style.display="none"; } }); img.addEventListener("click",function(){ abrirNdsLightbox(img.getAttribute("data-full")||img.src); }); }); }
     document.querySelectorAll("[data-particles]").forEach(initParticles);
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
+  }
+  function abrirNdsLightbox(url){
+    if(!url) return;
+    var ov=document.createElement("div"); ov.className="ndsov"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-modal","true");
+    ov.innerHTML='<button class="ndsov-x" type="button" aria-label="Fechar">&times;</button><div class="ndsov-in"><img src="'+esc(url)+'" alt="Prévia Noiva dos Sonhos"/><a class="ndsov-dl" href="'+esc(url)+'?download" target="_blank" rel="noopener">Baixar em alta qualidade</a></div>';
+    function fechar(){ ov.remove(); document.removeEventListener("keydown",onKey); document.body.style.overflow=""; }
+    function onKey(e){ if(e.key==="Escape") fechar(); }
+    ov.addEventListener("click",function(e){ if(e.target===ov||(e.target.className&&String(e.target.className).indexOf("ndsov-x")>=0)) fechar(); });
+    document.addEventListener("keydown",onKey);
+    document.body.appendChild(ov); document.body.style.overflow="hidden";
+    var x=ov.querySelector(".ndsov-x"); if(x) x.focus();
   }
   function erro(msg){document.getElementById("app").innerHTML='<div class="state"><div><p class="eyebrow eyebrow--light">Bellus Eventos</p><p class="serif">'+esc(msg)+'</p><p>Confira o link com a Bellus pelo WhatsApp.</p></div></div>';}
 
