@@ -335,6 +335,28 @@ document.addEventListener("click",(e)=>{
   if(!b) return; e.preventDefault();
   abrirEmailModal({ to:b.getAttribute("data-to"), nome:b.getAttribute("data-nome"), su:b.getAttribute("data-su"), body:b.getAttribute("data-body") });
 });
+// ---------- salvar + modal de motivo da perda (abre ao salvar como Perdida) ----------
+async function finalizarProposta(o){
+  const btn=document.getElementById("salvar"); if(btn){ btn.disabled=true; btn.textContent="Salvando..."; }
+  const err = await saveProposta(o, state.editing?.id || null);
+  if (err){ if(btn){ btn.disabled=false; btn.textContent="Salvar"; } return setMsg("form-msg","Erro ao salvar: "+err,"err"); }
+  state.editing=null; go("lista");
+}
+function fecharMotivoModal(){ const o=document.getElementById("motivoov"); if(o)o.remove(); document.body.style.overflow=""; }
+function abrirMotivoModal(onPick){
+  fecharMotivoModal();
+  const opts = MOTIVOS_PERDA.filter((m)=>m[0]).map((m)=>`<button type="button" class="btn btn-ghost" data-mp="${esc(m[0])}" style="display:block;width:100%;text-align:left;margin-bottom:.5rem;padding:.7rem .9rem;cursor:pointer">${esc(m[1])}</button>`).join("");
+  const ov=document.createElement("div"); ov.id="motivoov";
+  ov.setAttribute("style","position:fixed;inset:0;background:rgba(20,16,12,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem");
+  ov.innerHTML=`<div role="dialog" aria-modal="true" style="background:#fff;max-width:460px;width:100%;max-height:90vh;overflow:auto;border-radius:14px;padding:1.4rem;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3)">`
+    +`<h3 style="margin:0 0 .3rem;font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:500">Por que essa proposta foi perdida?</h3>`
+    +`<p style="margin:0 0 1rem;font-size:.85rem;color:#7e7367">Toque no motivo para registrar e salvar.</p>`
+    +opts
+    +`</div>`;
+  document.body.appendChild(ov); document.body.style.overflow="hidden";
+  ov.addEventListener("click",(e)=>{ if(e.target===ov) fecharMotivoModal(); });
+  ov.querySelectorAll("[data-mp]").forEach((b)=>b.addEventListener("click",()=>{ const v=b.getAttribute("data-mp"); fecharMotivoModal(); onPick(v); }));
+}
 // ---------- dashboard ----------
 let dashCharts = [];
 async function renderCharts(){
@@ -912,12 +934,9 @@ function wire(){
     e.preventDefault();
     const o={}; new FormData(fp).forEach((v,k)=>{ const s=String(v).trim(); o[k]= s===""?null:s; });
     o.deslocamento = Math.max(0, Math.round(parseFloat(o.deslocamento) || 0));
-    if(o.status==="perdida") o.disponibilidade="unavailable"; // Perdida bloqueia o pagamento (reusa a trava de indisponivel, no cliente e no servidor)
     if (!o.cliente_nome) return setMsg("form-msg","Informe o nome do cliente.","err");
-    const btn=document.getElementById("salvar"); btn.disabled=true; btn.textContent="Salvando...";
-    const err = await saveProposta(o, state.editing?.id || null);
-    if (err){ btn.disabled=false; btn.textContent="Salvar"; return setMsg("form-msg","Erro ao salvar: "+err,"err"); }
-    state.editing=null; go("lista");
+    if (o.status==="perdida" && !o.motivo_perda){ abrirMotivoModal((m)=>{ o.motivo_perda=m; finalizarProposta(o); }); return; }
+    finalizarProposta(o);
   });
 
   const servSel=document.getElementById("f-servico");
