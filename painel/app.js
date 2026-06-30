@@ -259,11 +259,11 @@ function waMsg(p){
   return L.join("\n");
 }
 function waLink(p){ const d=waDigits(p.cliente_telefone); return d ? `https://wa.me/${d}?text=${encodeURIComponent(waMsg(p))}` : ""; }
-function mailLink(p){
-  if(!p.cliente_email) return "";
+function emailData(p){
+  if(!p.cliente_email) return null;
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const aniv=isNiver(p.pacote_recomendado); const meio=propMeio(p); const pp=propPartes(p);
-  const assunto = aniv ? `${primeiro}, a proposta do filme da sua festa está pronta` : `${primeiro}, a proposta do filme de casamento de vocês está pronta`;
+  const su = aniv ? `${primeiro}, a proposta do filme da sua festa está pronta` : `${primeiro}, a proposta do filme de casamento de vocês está pronta`;
   const L=[`Oi, ${primeiro}.`, ``, `Aqui é o ${quem}, da Bellus Eventos.`, ``];
   if(meio) L.push(meio);
   L.push(pp.pediram);
@@ -274,18 +274,20 @@ function mailLink(p){
   const ped=propPedido(p); if(ped){ L.push(``); L.push(ped); }
   L.push(``); L.push(pp.fecho);
   L.push(``); L.push(quem); L.push(`Bellus Eventos`);
-  const corpo=L.join("\n");
-  // Abre o Gmail (compose web) JA na conta contato@belluseventos.com.br, nao o app padrao do SO (Outlook).
-  return `https://mail.google.com/mail/u/${BELLUS_EMAIL}/?view=cm&fs=1&to=${encodeURIComponent(p.cliente_email)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  return { to:p.cliente_email, nome:(p.cliente_nome||""), su:su, corpo:L.join("\n") };
+}
+function emailBtnHtml(ed){
+  if(!ed) return "";
+  return `<a class="cbtn em" href="#" data-emailbtn data-to="${esc(ed.to)}" data-nome="${esc(ed.nome)}" data-su="${esc(ed.su)}" data-body="${esc(ed.corpo)}">E-mail</a>`;
 }
 function contatoBtns(p){
-  const wl=waLink(p), ml=mailLink(p);
+  const wl=waLink(p);
   return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
-       + (ml?`<a class="cbtn em" href="${esc(ml)}" target="_blank" rel="noopener">E-mail</a>`:"");
+       + emailBtnHtml(emailData(p));
 }
 function detContato(p){
-  const wl=waLink(p), ml=mailLink(p);
-  const emailCell = ml ? `<a href="${esc(ml)}">${esc(p.cliente_email)}</a>` : esc(p.cliente_email||"—");
+  const wl=waLink(p);
+  const emailCell = esc(p.cliente_email||"—");
   const telCell = wl ? `<a href="${esc(wl)}" target="_blank" rel="noopener">${esc(p.cliente_telefone)}</a>` : esc(p.cliente_telefone||"—");
   return `<div class="section-label">Cliente</div>
   <div class="detbox">
@@ -294,6 +296,43 @@ function detContato(p){
   </div>
   <div class="contato-acoes">${contatoBtns(p)}</div>`;
 }
+// ---------- modal de e-mail (copiar e colar no Gmail) ----------
+function emailCopiar(txt,btn){
+  const orig=btn.textContent;
+  const ok=()=>{ btn.textContent="Copiado!"; setTimeout(()=>{ btn.textContent=orig; },1500); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok).catch(()=>window.prompt("Copie:",txt)); }
+  else window.prompt("Copie:",txt);
+}
+function fecharEmailModal(){ const o=document.getElementById("emailov"); if(o)o.remove(); document.body.style.overflow=""; }
+function abrirEmailModal(d){
+  fecharEmailModal();
+  const campo=(id,label,val,multi)=>{
+    const ctrl = multi
+      ? `<textarea id="${id}" readonly rows="11" style="width:100%;font:inherit;padding:.6rem;border:1px solid #d8cfc2;border-radius:8px;resize:vertical;background:#fbf9f6">${esc(val)}</textarea>`
+      : `<input id="${id}" readonly value="${esc(val)}" style="width:100%;font:inherit;padding:.5rem;border:1px solid #d8cfc2;border-radius:8px;background:#fbf9f6"/>`;
+    return `<div style="margin-bottom:.9rem"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><span style="font-size:.74rem;color:#7e7367;text-transform:uppercase;letter-spacing:.04em">${esc(label)}</span><button type="button" class="btn btn-ghost btn-mini" data-cp="${id}">Copiar</button></div>${ctrl}</div>`;
+  };
+  const ov=document.createElement("div"); ov.id="emailov";
+  ov.setAttribute("style","position:fixed;inset:0;background:rgba(20,16,12,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem");
+  ov.innerHTML=`<div role="dialog" aria-modal="true" style="background:#fff;max-width:580px;width:100%;max-height:92vh;overflow:auto;border-radius:14px;padding:1.4rem;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3)">`
+    +`<button type="button" id="emailx" aria-label="Fechar" style="position:absolute;top:.5rem;right:.8rem;background:none;border:none;font-size:1.7rem;line-height:1;cursor:pointer;color:#7e7367">&times;</button>`
+    +`<h3 style="margin:0 0 .2rem;font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:500">Enviar por e-mail</h3>`
+    +`<p style="margin:0 0 1.1rem;font-size:.85rem;color:#7e7367;line-height:1.5">Abra o seu Gmail, comece um e-mail novo e cole cada parte. É só tocar em Copiar.</p>`
+    +campo("ef-to","E-mail do cliente (Para)",d.to||"")
+    +campo("ef-nome","Nome",d.nome||"")
+    +campo("ef-su","Assunto",d.su||"")
+    +campo("ef-body","Mensagem",d.body||"",true)
+    +`</div>`;
+  document.body.appendChild(ov); document.body.style.overflow="hidden";
+  document.getElementById("emailx").addEventListener("click",fecharEmailModal);
+  ov.addEventListener("click",(e)=>{ if(e.target===ov) fecharEmailModal(); });
+  ov.querySelectorAll("[data-cp]").forEach((b)=>b.addEventListener("click",()=>{ const el=document.getElementById(b.getAttribute("data-cp")); if(el) emailCopiar(el.value,b); }));
+}
+document.addEventListener("click",(e)=>{
+  const b=e.target&&e.target.closest?e.target.closest("[data-emailbtn]"):null;
+  if(!b) return; e.preventDefault();
+  abrirEmailModal({ to:b.getAttribute("data-to"), nome:b.getAttribute("data-nome"), su:b.getAttribute("data-su"), body:b.getAttribute("data-body") });
+});
 // ---------- dashboard ----------
 let dashCharts = [];
 async function renderCharts(){
@@ -570,15 +609,16 @@ function leadWaLink(l){
   const msg=`Oi ${l.nome||""}! Aqui é o Thiago, da Bellus Eventos. Recebi o contato de vocês pelo nosso site e queria conversar sobre o filme do casamento.`;
   return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`;
 }
-function leadMailLink(l){
-  if(!l.email) return "";
-  const corpo=`Oi ${l.nome||""},\n\nRecebi o contato de vocês pelo nosso site e fico feliz com o interesse no filme do casamento.\n\nVou preparar uma proposta personalizada para vocês. Qualquer dúvida, é só responder este e-mail.\n\nAbraço,\nThiago Rodrigues\nBellus Eventos`;
-  return `mailto:${l.email}?subject=${encodeURIComponent("Bellus Eventos")}&body=${encodeURIComponent(corpo)}`;
+function leadEmailData(l){
+  if(!l.email) return null;
+  const primeiro=((l.nome||"").trim().split(/\s+/)[0])||(l.nome||"");
+  const corpo=[`Oi, ${primeiro}.`,``,`Aqui é o Thiago Rodrigues, da Bellus Eventos. Recebi o seu contato pelo nosso site e fico muito feliz com o seu interesse.`,``,`Já vou preparar uma proposta personalizada e te envio em seguida. Qualquer coisa, é só responder por aqui.`,``,`Abraço,`,`Thiago Rodrigues`,`Bellus Eventos`].join("\n");
+  return { to:l.email, nome:(l.nome||""), su:"Recebemos o seu contato - Bellus Eventos", corpo:corpo };
 }
 function leadContatoBtns(l){
-  const wl=leadWaLink(l), ml=leadMailLink(l);
+  const wl=leadWaLink(l);
   return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
-       + (ml?`<a class="cbtn em" href="${esc(ml)}" target="_blank" rel="noopener">E-mail</a>`:"");
+       + emailBtnHtml(leadEmailData(l));
 }
 function leadCard(l){
   const par=l.nome_parceiro ? ` & ${esc(l.nome_parceiro)}` : "";
