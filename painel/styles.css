@@ -280,6 +280,10 @@ a { color:inherit; }
 .cl-dot.fechada { background:var(--st-fechada); }
 .cl-dot.bloqueio { background:#6b6258; }
 .cl-dot.hoje-mk { background:#fff; box-shadow:inset 0 0 0 2px var(--gold); }
+/* check de follow-up enviado (ao lado dos botoes WhatsApp/E-mail) */
+.fu-check { display:inline-flex; align-items:center; justify-content:center; width:1.55rem; height:1.55rem; margin-left:.25rem; border:1.5px solid var(--line); border-radius:50%; background:#fff; color:#cabfae; font-size:.78rem; line-height:1; cursor:pointer; vertical-align:middle; padding:0; transition:background .15s, border-color .15s, color .15s; }
+.fu-check:hover { border-color:var(--st-fechada); color:var(--st-fechada); }
+.fu-check.on { background:var(--st-fechada); border-color:var(--st-fechada); color:#fff; }
 
 /* ---------- proximos casamentos ---------- */
 .prox-list { display:grid; gap:.5rem; margin-bottom:1.4rem; }

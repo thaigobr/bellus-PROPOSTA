@@ -104,7 +104,7 @@ function armIdle(){ clearTimeout(idleTimer); if(!state.user) return; idleTimer=s
 // ---------- data ----------
 async function loadPropostas(){
   const { data } = await supabase.from("propostas")
-    .select("id,slug,status,cliente_nome,cliente_parceiro,cliente_email,cliente_telefone,evento_data,criado_em,enviada_em,visualizada_em,visualizacoes,pacote_recomendado,consultor,motivo_perda")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,cliente_email,cliente_telefone,evento_data,criado_em,enviada_em,visualizada_em,visualizacoes,pacote_recomendado,consultor,motivo_perda,followups")
     .order("criado_em", { ascending: false });
   state.propostas = data || [];
 }
@@ -303,10 +303,14 @@ function emailBtnHtml(ed){
   if(!ed) return "";
   return `<a class="cbtn em" href="#" data-emailbtn data-to="${esc(ed.to)}" data-nome="${esc(ed.nome)}" data-su="${esc(ed.su)}" data-body="${esc(ed.corpo)}">E-mail</a>`;
 }
+function fuCheck(p, ch){
+  const st=p.status||""; const on=!!(p.followups && p.followups[st] && p.followups[st][ch]);
+  return `<button type="button" class="fu-check${on?" on":""}" data-fucheck="${esc(p.id)}" data-fuch="${ch}" aria-pressed="${on}" title="${on?"Follow-up já enviado":"Marcar follow-up como enviado"} · ${esc(statusTxt(st))}">✓</button>`;
+}
 function contatoBtns(p){
-  const wl=waLink(p);
-  return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>`:"")
-       + emailBtnHtml(emailData(p));
+  const wl=waLink(p); const ed=emailData(p);
+  return (wl?`<a class="cbtn wa" href="${esc(wl)}" target="_blank" rel="noopener">WhatsApp</a>${fuCheck(p,"whatsapp")}`:"")
+       + (ed?`${emailBtnHtml(ed)}${fuCheck(p,"email")}`:"");
 }
 function detContato(p){
   const wl=waLink(p);
@@ -355,6 +359,23 @@ document.addEventListener("click",(e)=>{
   const b=e.target&&e.target.closest?e.target.closest("[data-emailbtn]"):null;
   if(!b) return; e.preventDefault();
   abrirEmailModal({ to:b.getAttribute("data-to"), nome:b.getAttribute("data-nome"), su:b.getAttribute("data-su"), body:b.getAttribute("data-body") });
+});
+// check de "follow-up enviado" por status+canal (ao lado dos botoes WhatsApp/E-mail)
+document.addEventListener("click", async (e)=>{
+  const b=e.target&&e.target.closest?e.target.closest("[data-fucheck]"):null;
+  if(!b) return; e.preventDefault();
+  const id=b.getAttribute("data-fucheck"), ch=b.getAttribute("data-fuch");
+  const p=(state.propostas||[]).find((x)=>x.id===id) || ((state.current&&state.current.id===id)?state.current:null);
+  if(!p) return;
+  const st=p.status||"";
+  const fu = (p.followups && typeof p.followups==="object") ? JSON.parse(JSON.stringify(p.followups)) : {};
+  if(!fu[st]) fu[st]={};
+  const novo=!fu[st][ch]; fu[st][ch]=novo;
+  b.classList.toggle("on", novo); b.setAttribute("aria-pressed", String(novo));
+  b.title=(novo?"Follow-up já enviado":"Marcar follow-up como enviado")+" · "+statusTxt(st);
+  const prev=p.followups; p.followups=fu;
+  const { error } = await supabase.from("propostas").update({ followups: fu }).eq("id", id);
+  if(error){ b.classList.toggle("on", !novo); b.setAttribute("aria-pressed", String(!novo)); p.followups=prev; alert("Não consegui salvar o check: "+error.message); }
 });
 // ---------- salvar + modal de motivo da perda (abre ao salvar como Perdida) ----------
 async function finalizarProposta(o){
