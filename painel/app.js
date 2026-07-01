@@ -25,7 +25,10 @@ const NIVER_BASE = "https://www.belluseventos.com.br/niver/p/";
 const BELLUS_EMAIL = "contato@belluseventos.com.br"; // remetente do botao de e-mail (abre o Gmail nessa conta)
 const NIVER_PACOTES = [{id:"niver-esmeralda",nome:"Niver Esmeralda"},{id:"niver-rubi",nome:"Niver Rubi"},{id:"niver-diamante",nome:"Niver Diamante"}];
 const isNiver = (pk)=> typeof pk==="string" && pk.indexOf("niver-")===0;
-const propLink = (p)=> (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE) + (p ? p.slug : "");
+const PRO_BASE = "https://www.belluseventos.com.br/thiagobellus/p/";
+const PRO_PACOTES = [{id:"pro-foto",nome:"Foto"},{id:"pro-video",nome:"Vídeo"},{id:"pro-video-foto",nome:"Vídeo e Foto"}];
+const isPro = (pk)=> typeof pk==="string" && pk.indexOf("pro-")===0;
+const propLink = (p)=> (p && isPro(p.pacote_recomendado) ? PRO_BASE : (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE)) + (p ? p.slug : "");
 
 const root = document.getElementById("root");
 const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, bloqueios: [], datasBloqueadas: {}, syncMsg: "", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
@@ -36,7 +39,7 @@ function fmtData(d){ if(!d) return "Data a definir"; const [y,m,dd]=d.split("-")
 function nomes(p){ return p.cliente_parceiro ? `${p.cliente_nome} & ${p.cliente_parceiro}` : p.cliente_nome; }
 const statusTxt = (v) => (STATUS.find((s)=>s[0]===v)||[v,v])[1];
 const dispTxt = (v) => (DISP.find((d)=>d[0]===v)||[v,""])[1];
-const pacoteNome = (id) => (PACOTES.find((p)=>p.id===id)||{}).nome || "";
+const pacoteNome = (id) => ([...PACOTES,...NIVER_PACOTES,...PRO_PACOTES].find((p)=>p.id===id)||{}).nome || "";
 function setMsg(id,t,kind){ const el=document.getElementById(id); if(el){ el.textContent=t; el.className="msg "+(kind||""); } }
 const isAdmin = () => ["owner","admin"].includes(state.membro?.papel);
 function curYM(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
@@ -122,17 +125,18 @@ async function loadLeadsUsados(){
 }
 async function loadAgenda(){
   const { data } = await supabase.from("propostas")
-    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data,pacote_recomendado")
     .in("status", ["reservada","fechada"]).not("evento_data","is",null)
     .order("evento_data", { ascending: true });
   state.agenda = data || [];
 }
 async function loadDatasOcupadas(){
   const { data } = await supabase.from("propostas")
-    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data")
+    .select("id,slug,status,cliente_nome,cliente_parceiro,evento_data,pacote_recomendado")
     .in("status", ["reservada","fechada"]).not("evento_data","is",null);
   const map={};
-  (data||[]).forEach((p)=>{ if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, slug:p.slug, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
+  // Serviços avulsos (pro-) EMPILHAM: não fecham o dia nem entram no mapa de datas ocupadas.
+  (data||[]).forEach((p)=>{ if(isPro(p.pacote_recomendado)) return; if(p.evento_data && !map[p.evento_data]) map[p.evento_data]={ id:p.id, slug:p.slug, status:p.status, nome:p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome }; });
   state.datasOcupadas = map;
 }
 async function loadBloqueios(){
@@ -226,7 +230,7 @@ function primeiroNome(p){ const n=(p.cliente_nome||"").trim(); return n.split(/\
 function dataLongaP(d){ if(!d) return ""; const M=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]; const x=String(d).slice(0,10).split("-"); if(x.length!==3) return fmtData(d); return parseInt(x[2],10)+" de "+M[parseInt(x[1],10)-1]+" de "+x[0]; }
 // Parágrafo de prova personalizada (some inteiro se não houver data/local/convidados)
 function propMeio(p){
-  const imaginar=isNiver(p.pacote_recomendado)?"você imaginou":"vocês imaginaram";
+  const imaginar=isPro(p.pacote_recomendado)?"você planejou":(isNiver(p.pacote_recomendado)?"você imaginou":"vocês imaginaram");
   const partes=[];
   if(p.evento_data) partes.push("pro dia "+dataLongaP(p.evento_data));
   if(p.evento_local) partes.push("no "+p.evento_local);
@@ -236,6 +240,13 @@ function propMeio(p){
 }
 // Blocos de texto que mudam entre casamento e aniversario
 function propPartes(p){
+  if(isPro(p.pacote_recomendado)) return {
+    pediram: "Você pediu um orçamento, e eu separei um tempo pra montar essa proposta pensando no seu projeto.",
+    pronta: "A proposta do seu projeto já está pronta.",
+    hook: "Vídeo e foto são a primeira impressão do que você faz. Um registro profissional valoriza o seu projeto hoje e continua valendo depois.",
+    posse: "A sua proposta",
+    fecho: "Sem pressa. Depois que olhar, me diz o que achou. Fico por aqui."
+  };
   const aniv=isNiver(p.pacote_recomendado);
   return {
     pediram: aniv ? "Você pediu a disponibilidade pelo nosso site, e eu separei um tempo pra montar essa proposta pensando só em você." : "Vocês pediram a disponibilidade pelo nosso site, e eu separei um tempo pra montar essa proposta pensando só em vocês.",
@@ -263,7 +274,7 @@ function propPedido(p){
 function waMsg(p){
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const meio=propMeio(p); const pp=propPartes(p);
-  const ocasiao = isNiver(p.pacote_recomendado) ? "da festa" : "do casamento";
+  const ocasiao = isPro(p.pacote_recomendado) ? "do seu evento" : (isNiver(p.pacote_recomendado) ? "da festa" : "do casamento");
   // Follow-up NÃO ABRIU (status enviada): despertar curiosidade — nunca repete a mensagem do 1º contato
   if(p.status==="enviada") return `Oi, ${primeiro}\n\nEnquanto preparava a proposta, fiquei pensando.\nQual é a cena ${ocasiao} que vocês mais gostariam de reviver daqui a 20 anos?\n\n${link}`;
   // Follow-up ABRIU E NÃO RESPONDEU (status visualizada): despertar emoção/opinião
@@ -286,7 +297,7 @@ function emailData(p){
   if(!p.cliente_email) return null;
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const aniv=isNiver(p.pacote_recomendado); const meio=propMeio(p); const pp=propPartes(p);
-  const su = aniv ? `${primeiro}, a proposta do filme da sua festa está pronta` : `${primeiro}, a proposta do filme de casamento de vocês está pronta`;
+  const su = isPro(p.pacote_recomendado) ? `${primeiro}, a proposta do seu projeto está pronta` : (aniv ? `${primeiro}, a proposta do filme da sua festa está pronta` : `${primeiro}, a proposta do filme de casamento de vocês está pronta`);
   const L=[`Oi, ${primeiro}.`, ``, `Aqui é o ${quem}, da Bellus Eventos.`, ``];
   if(meio) L.push(meio);
   L.push(pp.pediram);
@@ -768,7 +779,8 @@ function viewLeads(){
 function viewForm(){
   const ed = state.editing;
   const v = (n, def="") => (ed ? (ed[n] ?? "") : def);
-  const serv = isNiver(v("pacote_recomendado")) ? "aniversario" : "casamento";
+  const serv = isPro(v("pacote_recomendado")) ? "pro" : (isNiver(v("pacote_recomendado")) ? "aniversario" : "casamento");
+  const provs = (ed && ed.price_overrides) || {};
   return `
   <div class="page-head"><h2 class="serif">${ed?"Editar proposta":"Nova proposta"}</h2><button class="btn btn-ghost" data-go="lista">Voltar</button></div>
   <form class="card-form" id="form-proposta">
@@ -782,9 +794,9 @@ function viewForm(){
       ${field("WhatsApp / telefone","cliente_telefone",{ph:"(21) 90000-0000",val:v("cliente_telefone")})}
     </div>
     <div class="section-label">Evento</div>
-    <label class="field"><span>Tipo de serviço</span><select id="f-servico"><option value="casamento" ${serv==="casamento"?"selected":""}>Casamento</option><option value="aniversario" ${serv==="aniversario"?"selected":""}>Aniversário</option></select></label>
+    <label class="field"><span>Tipo de serviço</span><select id="f-servico"><option value="casamento" ${serv==="casamento"?"selected":""}>Casamento</option><option value="aniversario" ${serv==="aniversario"?"selected":""}>Aniversário</option><option value="pro" ${serv==="pro"?"selected":""}>Serviços (Thiago Bellus)</option></select></label>
     <div class="grid cols-2">
-      ${field("Tipo","evento_tipo",{val:v("evento_tipo", serv==="aniversario"?"Aniversário":"Casamento")})}
+      ${field("Tipo","evento_tipo",{val:v("evento_tipo", serv==="pro"?"Serviço audiovisual":(serv==="aniversario"?"Aniversário":"Casamento"))})}
       ${field("Data","evento_data",{type:"date",val:v("evento_data")})}
       ${field("Local","evento_local",{ph:"Espaço / igreja",val:v("evento_local")})}
       ${field("Cidade","evento_cidade",{ph:"Teresópolis",val:v("evento_cidade")})}
@@ -795,12 +807,21 @@ function viewForm(){
     ${field("Observações","evento_notas",{textarea:true,ph:"O que o casal contou",val:v("evento_notas")})}
     <div class="section-label">Proposta</div>
     <div class="grid cols-2">
-      ${field("Experiência recomendada","pacote_recomendado",{select:[["","Nenhuma"]].concat((serv==="aniversario"?NIVER_PACOTES:PACOTES).map((p)=>[p.id,p.nome])),val:v("pacote_recomendado")})}
+      ${field("Experiência recomendada","pacote_recomendado",{select:[["","Nenhuma"]].concat((serv==="pro"?PRO_PACOTES:(serv==="aniversario"?NIVER_PACOTES:PACOTES)).map((p)=>[p.id,p.nome])),val:v("pacote_recomendado")})}
       ${field("Status","status",{select:STATUS,val:v("status","rascunho")})}
       ${field("Validade da proposta","expira_em",{type:"date",val:v("expira_em")})}
       ${field("Consultor","consultor",{val:v("consultor","Thiago Rodrigues")})}
     </div>
     <div id="motivo-perda-wrap" style="${v("status")==="perdida"?"":"display:none"}">${field("Motivo da perda","motivo_perda",{select:MOTIVOS_PERDA,val:v("motivo_perda")})}</div>
+    <div id="pro-precos-wrap" style="${serv==="pro"?"":"display:none"}">
+      <div class="section-label">Valores dos formatos (orçamento livre)</div>
+      <div class="grid cols-2">
+        <label class="field"><span>Vídeo (R$)</span><input type="number" id="pv-pro-video" min="0" step="1" placeholder="Ex.: 2500" value="${esc(provs["pro-video"]||"")}"/></label>
+        <label class="field"><span>Foto (R$)</span><input type="number" id="pv-pro-foto" min="0" step="1" placeholder="Ex.: 1500" value="${esc(provs["pro-foto"]||"")}"/></label>
+        <label class="field"><span>Vídeo e Foto (R$)</span><input type="number" id="pv-pro-video-foto" min="0" step="1" placeholder="Ex.: 3500" value="${esc(provs["pro-video-foto"]||"")}"/></label>
+      </div>
+      <p style="margin:.2rem 0 .6rem;color:#7e7367;font-size:.8rem;line-height:1.5">Preencha só os formatos que quer oferecer nesta proposta. Formato sem valor fica oculto pro cliente. Pagamento: Pix à vista ou cartão em até 3x (taxa embutida).</p>
+    </div>
     ${field("Deslocamento e logística (R$)","deslocamento",{type:"number",ph:"0",val:v("deslocamento",0)})}
     <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.4rem">
       <button type="button" id="calc-desloc" class="btn btn-ghost btn-mini">Calcular pela cidade</button>
@@ -1069,6 +1090,14 @@ function wire(){
     e.preventDefault();
     const o={}; new FormData(fp).forEach((v,k)=>{ const s=String(v).trim(); o[k]= s===""?null:s; });
     o.deslocamento = Math.max(0, Math.round(parseFloat(o.deslocamento) || 0));
+    const servNow=(document.getElementById("f-servico")||{}).value;
+    if(servNow==="pro"){
+      const po={};
+      ["pro-video","pro-foto","pro-video-foto"].forEach((k)=>{ const el=document.getElementById("pv-"+k); const n=el?Math.round(parseFloat(el.value)||0):0; if(n>0) po[k]=n; });
+      if(!Object.keys(po).length) return setMsg("form-msg","Defina o valor de pelo menos um formato (Vídeo, Foto ou Vídeo e Foto).","err");
+      if(o.pacote_recomendado && !po[o.pacote_recomendado]) return setMsg("form-msg","O formato recomendado precisa ter valor definido.","err");
+      o.price_overrides=po;
+    }
     if (!o.cliente_nome) return setMsg("form-msg","Informe o nome do cliente.","err");
     if (o.status==="perdida" && !o.motivo_perda){ abrirMotivoModal((m)=>{ o.motivo_perda=m; finalizarProposta(o); }); return; }
     finalizarProposta(o);
@@ -1077,11 +1106,12 @@ function wire(){
   const servSel=document.getElementById("f-servico");
   if (servSel && fp){
     servSel.addEventListener("change", ()=>{
-      const aniv = servSel.value==="aniversario";
+      const mode = servSel.value; // casamento | aniversario | pro
       const pk = fp.querySelector('[name="pacote_recomendado"]');
-      if(pk){ const list=(aniv?NIVER_PACOTES:PACOTES); pk.innerHTML='<option value="">Nenhuma</option>'+list.map((p)=>`<option value="${p.id}">${esc(p.nome)}</option>`).join(""); }
+      if(pk){ const list=(mode==="pro"?PRO_PACOTES:(mode==="aniversario"?NIVER_PACOTES:PACOTES)); pk.innerHTML='<option value="">Nenhuma</option>'+list.map((p)=>`<option value="${p.id}">${esc(p.nome)}</option>`).join(""); }
       const et = fp.querySelector('[name="evento_tipo"]');
-      if(et && (!et.value || et.value==="Casamento" || et.value==="Aniversário")){ et.value = aniv?"Aniversário":"Casamento"; }
+      if(et && (!et.value || et.value==="Casamento" || et.value==="Aniversário" || et.value==="Serviço audiovisual")){ et.value = mode==="pro"?"Serviço audiovisual":(mode==="aniversario"?"Aniversário":"Casamento"); }
+      const pw=document.getElementById("pro-precos-wrap"); if(pw) pw.style.display = mode==="pro"?"":"none";
     });
   }
 
