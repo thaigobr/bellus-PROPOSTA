@@ -263,7 +263,11 @@ function propPedido(p){
 function waMsg(p){
   const primeiro=primeiroNome(p); const link=propLink(p); const quem=p.consultor||"Thiago Rodrigues";
   const meio=propMeio(p); const pp=propPartes(p);
-  if(p.status==="visualizada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Vi que você deu uma olhada na proposta. Posso tirar alguma dúvida ou ajustar algum ponto?\n\n${link}`;
+  const ocasiao = isNiver(p.pacote_recomendado) ? "da festa" : "do casamento";
+  // Follow-up NÃO ABRIU (status enviada): despertar curiosidade — nunca repete a mensagem do 1º contato
+  if(p.status==="enviada") return `Oi, ${primeiro} 🤍\n\nEnquanto preparava a proposta, fiquei pensando.\nQual é a cena ${ocasiao} que vocês mais gostariam de reviver daqui a 20 anos?\n\n${link}`;
+  // Follow-up ABRIU E NÃO RESPONDEU (status visualizada): despertar emoção/opinião
+  if(p.status==="visualizada") return `Oi, ${primeiro} 🤍\n\nFiquei curioso.\nQual foi a primeira sensação que vocês tiveram ao ver a proposta?\n\n${link}`;
   if(p.status==="negociando") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Dando sequência à nossa conversa, qualquer dúvida estou por aqui.\n\n${link}`;
   if(p.status==="reservada"||p.status==="fechada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Que alegria ter você com a gente! Vamos alinhar os próximos passos?`;
   const L=[`${primeiro}, aqui é o ${quem}, da Bellus Eventos.`, ``];
