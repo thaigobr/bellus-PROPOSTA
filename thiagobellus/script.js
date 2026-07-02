@@ -93,8 +93,8 @@
             form.classList.remove("is-error");
             form.classList.add("is-ok");
             if (window.fbq) fbq("track", "Lead");
-            submitBtn.textContent = "Projeto recebido. Corta para: o seu evento.";
-            setFeedback("Recebemos a sua ordem de produção. Em breve o Thiago fala com você pelo WhatsApp.", "ok");
+            submitBtn.textContent = "Orçamento recebido!";
+            setFeedback("Recebemos o seu pedido. Em breve o Thiago fala com você pelo WhatsApp.", "ok");
             var slate = document.querySelector(".callsheet__slate");
             if (slate && window.gsap && !reduceMotion) gsap.fromTo(slate, { scaleY: 1 }, { scaleY: 1.6, duration: 0.15, yoyo: true, repeat: 1, transformOrigin: "top" });
           } else {
@@ -309,20 +309,6 @@
       }, true);
     })();
 
-    // ── corte seco entre cenas (1x por secao por sessao) ──
-    var cutOv = document.getElementById("cut-overlay");
-    var cutLabel = document.getElementById("cut-label");
-    var cutSeen = {};
-    try { cutSeen = JSON.parse(sessionStorage.getItem("tb-cuts") || "{}"); } catch (e) { cutSeen = {}; }
-    function cutTo(name) {
-      if (reduceMotion || !cutOv || cutSeen[name]) return;
-      cutSeen[name] = 1;
-      try { sessionStorage.setItem("tb-cuts", JSON.stringify(cutSeen)); } catch (e) { }
-      if (cutLabel) cutLabel.textContent = name;
-      gsap.set(cutOv, { autoAlpha: 1 });
-      gsap.to(cutOv, { autoAlpha: 0, duration: 0.25, delay: 0.09, ease: "power4.out" });
-    }
-
     gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", function () {
 
       // estados iniciais (via GSAP: sem JS a pagina fica visivel)
@@ -379,32 +365,18 @@
         scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true }
       });
       ScrollTrigger.create({
-        trigger: "#manifesto", start: "top 90%", once: true,
+        trigger: "#instagram", start: "top 90%", once: true,
         onEnter: function () { gsap.to(".hero__thirds", { autoAlpha: 0, duration: 0.4 }); }
       });
 
-      // cortes secos + letterbox por secao
-      document.querySelectorAll("[data-cena]").forEach(function (sec) {
-        ScrollTrigger.create({ trigger: sec, start: "top 55%", onEnter: function () { cutTo(sec.getAttribute("data-cena")); } });
-      });
-      document.querySelectorAll("[data-letterbox]").forEach(function (sec) {
-        ScrollTrigger.create({
-          trigger: sec, start: "top 60%", end: "bottom 40%",
-          onEnter: function () { gsap.to(".letterbox", { scaleY: 1, duration: 0.6, ease: "power3.inOut" }); },
-          onLeave: function () { if (!liveClip) gsap.to(".letterbox", { scaleY: 0, duration: 0.6, ease: "power3.inOut" }); },
-          onEnterBack: function () { gsap.to(".letterbox", { scaleY: 1, duration: 0.6, ease: "power3.inOut" }); },
-          onLeaveBack: function () { if (!liveClip) gsap.to(".letterbox", { scaleY: 0, duration: 0.6, ease: "power3.inOut" }); }
-        });
-      });
-
-      // S02 manifesto
+      // FILMMAKER (manifesto)
       gsap.to(".manifesto__quote .line__inner", {
         yPercent: 0, duration: 0.9, ease: "power3.out", stagger: 0.08,
         scrollTrigger: { trigger: ".manifesto__quote", start: "top 76%", once: true }
       });
       gsap.to(".still__corners", { autoAlpha: 1, duration: 0.6, scrollTrigger: { trigger: ".still--main", start: "top 60%", once: true } });
-      gsap.fromTo(".still--main", { y: 26 }, { y: -26, ease: "none", scrollTrigger: { trigger: "#manifesto", start: "top bottom", end: "bottom top", scrub: 1 } });
-      gsap.fromTo(".scene-number", { x: 0 }, { x: -40, ease: "none", scrollTrigger: { trigger: "#manifesto", start: "top bottom", end: "bottom top", scrub: 1 } });
+      gsap.fromTo(".still--main", { y: 26 }, { y: -26, ease: "none", scrollTrigger: { trigger: "#filmmaker", start: "top bottom", end: "bottom top", scrub: 1 } });
+      gsap.fromTo(".scene-number", { x: 0 }, { x: -40, ease: "none", scrollTrigger: { trigger: "#filmmaker", start: "top bottom", end: "bottom top", scrub: 1 } });
 
       // S03 indice
       gsap.to(".indice__row", {
@@ -412,34 +384,7 @@
         scrollTrigger: { trigger: "#indice-list", start: "top 78%", once: true }
       });
 
-      // S04/S05 bins: pin + scrub no desktop, fade no mobile
-      var mm2 = gsap.matchMedia();
-      mm2.add("(min-width: 1024px)", function () {
-        document.querySelectorAll(".sec--bin .bin__stage").forEach(function (stage) {
-          var lead = stage.querySelector(".clip--lead");
-          var sides = stage.querySelectorAll(".bin__side .clip");
-          var mirror = stage.closest(".sec--bin-mirror") !== null;
-          gsap.set(lead, { scale: 0.92, y: mirror ? 0 : 60, x: mirror ? 60 : 0, autoAlpha: 0 });
-          gsap.set(sides, { y: mirror ? 0 : 60, x: mirror ? 60 : 0, autoAlpha: 0 });
-          var tl = gsap.timeline({
-            scrollTrigger: { trigger: stage, start: "top 18%", end: "+=120%", scrub: true, pin: true, anticipatePin: 1 }
-          });
-          tl.to(lead, { scale: 1, y: 0, x: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, 0)
-            .add(function () { if (lead) lead.classList.add("is-set"); }, 0.35);
-          sides.forEach(function (c, i) {
-            tl.to(c, { y: 0, x: 0, autoAlpha: 1, duration: 0.3, ease: "power3.out" }, 0.35 + i * 0.2)
-              .add(function () { c.classList.add("is-set"); }, 0.55 + i * 0.2);
-          });
-          return function () { };
-        });
-      });
-      mm2.add("(max-width: 1023px)", function () {
-        document.querySelectorAll(".sec--bin .clip").forEach(function (c) {
-          gsap.set(c, { autoAlpha: 0, y: 40 });
-          gsap.to(c, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out", scrollTrigger: { trigger: c, start: "top 82%", once: true } });
-        });
-        return function () { };
-      });
+      // Bins: vídeos sempre visíveis, sem reveal de scroll (pedido do Thiago)
 
       // S06 barras de render
       document.querySelectorAll(".render-slot__bar i").forEach(function (bar) {
@@ -529,10 +474,6 @@
       });
     })();
 
-    // ig tiles com ancora interna via lenis
-    document.querySelectorAll('a.ig__tile[href^="#"]').forEach(function (a) {
-      a.addEventListener("click", function (e) { e.preventDefault(); scrollToEl(a.getAttribute("href")); });
-    });
   }
 
   if (document.readyState === "complete") boot();
