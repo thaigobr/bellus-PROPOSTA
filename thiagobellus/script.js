@@ -321,7 +321,6 @@
       gsap.set(".indice__row", { autoAlpha: 0 });
       gsap.set(".still__corners", { autoAlpha: 0 });
       gsap.set(".hud__corner", { autoAlpha: 0, scale: 0.4 });
-      gsap.set(".hero__thirds", { autoAlpha: 0 });
       gsap.set(".hero__overline", { clipPath: "inset(0 100% 0 0)" });
       gsap.set(".hero__sub", { autoAlpha: 0, y: 24 });
 
@@ -356,7 +355,6 @@
       var heroTitle = document.querySelector(".hero__title");
       var heroLoad = gsap.timeline({ delay: 0.15 });
       heroLoad.to(".hud__corner", { autoAlpha: 1, scale: 1, duration: 0.8, ease: "power3.out", stagger: 0.06 }, 0)
-        .to(".hero__thirds", { autoAlpha: 1, duration: 0.5 }, 0.3)
         .to(".hero__overline", { clipPath: "inset(0 0% 0 0)", autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.6)
         .add(function () { if (heroTitle && heroTitle._heroTl) heroTitle._heroTl.play(); }, 0.8)
         .to(".hero__sub", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, 1.4);
@@ -364,11 +362,6 @@
         y: "-8%", autoAlpha: 0.35, ease: "none",
         scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true }
       });
-      ScrollTrigger.create({
-        trigger: "#instagram", start: "top 90%", once: true,
-        onEnter: function () { gsap.to(".hero__thirds", { autoAlpha: 0, duration: 0.4 }); }
-      });
-
       // FILMMAKER (manifesto)
       gsap.to(".manifesto__quote .line__inner", {
         yPercent: 0, duration: 0.9, ease: "power3.out", stagger: 0.08,
@@ -437,7 +430,7 @@
     });
 
     gsap.matchMedia().add("(prefers-reduced-motion: reduce)", function () {
-      gsap.set("[data-anim],.line__inner,.ficha__fill,.ficha__row dt,.ficha__row dd,.ig__tile,.indice__row,.still__corners,.hud__corner,.hero__thirds,.hero__overline,.hero__sub,#fim", { clearProps: "all", autoAlpha: 1, y: 0, x: 0, scale: 1, yPercent: 0, clipPath: "none" });
+      gsap.set("[data-anim],.line__inner,.ficha__fill,.ficha__row dt,.ficha__row dd,.ig__tile,.indice__row,.still__corners,.hud__corner,.hero__overline,.hero__sub,#fim", { clearProps: "all", autoAlpha: 1, y: 0, x: 0, scale: 1, yPercent: 0, clipPath: "none" });
       return function () { };
     });
 

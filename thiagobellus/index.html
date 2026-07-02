@@ -84,10 +84,9 @@
   <nav class="timeline" id="timeline" aria-label="Navegação da página">
     <div class="timeline__track" id="timeline-track">
       <button class="timeline__clip" type="button" data-target="#hero">HERO</button>
-      <button class="timeline__clip" type="button" data-target="#instagram">SET</button>
-      <button class="timeline__clip" type="button" data-target="#indice">ÍNDICE</button>
-      <button class="timeline__clip" type="button" data-target="#bin-casamento">CASAMENTO</button>
-      <button class="timeline__clip" type="button" data-target="#bin-quinze">15 ANOS</button>
+      <button class="timeline__clip" type="button" data-target="#instagram">ÍNDICE</button>
+      <button class="timeline__clip" type="button" data-target="#comerciais">COMERCIAIS</button>
+      <button class="timeline__clip" type="button" data-target="#bin-eventos">EVENTOS</button>
       <button class="timeline__clip" type="button" data-target="#fila-render">RENDER</button>
       <button class="timeline__clip" type="button" data-target="#filmmaker">FILMMAKER</button>
       <button class="timeline__clip" type="button" data-target="#ficha">FICHA</button>
@@ -101,9 +100,8 @@
 
   <main>
 
-  <!-- ░░ S01 · HERO VIEWFINDER ░░ -->
+  <!-- ░░ S01 · HERO VIEWFINDER (sem grade) ░░ -->
   <section id="hero" class="sec sec--hero">
-    <div class="hero__thirds" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="hero__inner">
       <p class="hero__overline" data-anim="overline">Thiago Bellus · Filmmaker · Teresópolis, RJ</p>
       <h1 class="hero__title" data-split>Vídeo profissional,<br />com padrão de <em>cinema</em>.</h1>
@@ -112,10 +110,10 @@
     <div class="hero__scrollhint" aria-hidden="true"><span class="hero__scrollhint-line"></span>role para ver</div>
   </section>
 
-  <!-- ░░ S02 · SET · INSTAGRAM ░░ -->
+  <!-- ░░ S02 · ÍNDICE · INSTAGRAM ░░ -->
   <section id="instagram" class="sec sec--ig">
     <div class="wrap wrap--narrow">
-      <span class="bin__label bin__label--dark">INSTAGRAM · @THIAGO.BELLUS</span>
+      <span class="bin__label bin__label--dark">ÍNDICE · @THIAGO.BELLUS</span>
       <h2 class="bin__title bin__title--dark" data-split>Acompanhe o trabalho <em>de perto</em>.</h2>
       <div class="ig" data-anim="ig">
         <header class="ig__head">
@@ -127,7 +125,7 @@
           </div>
           <a class="ig__follow" id="ig-follow" href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener">Seguir</a>
         </header>
-        <div class="ig__grid">
+        <div class="ig__grid" id="ig-grid">
           <a class="ig__tile" href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener" aria-label="Abrir Instagram de Thiago Bellus"><img src="https://i.ytimg.com/vi/ePwx8bsoztI/hqdefault.jpg" loading="lazy" alt="Filme de casamento" /><span class="ig__reel" aria-hidden="true"></span></a>
           <a class="ig__tile" href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener" aria-label="Abrir Instagram de Thiago Bellus"><img src="https://i.ytimg.com/vi/HMYMWuEQ2Xs/hqdefault.jpg" loading="lazy" alt="Filme de quinze anos" /><span class="ig__reel" aria-hidden="true"></span></a>
           <a class="ig__tile ig__tile--type" href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener"><em>bastidor</em></a>
@@ -143,49 +141,28 @@
     </div>
   </section>
 
-  <!-- ░░ S03 · ÍNDICE ░░ -->
-  <section id="indice" class="sec sec--indice">
-    <div class="wrap">
-      <h2 class="sec__kicker">O que eu faço</h2>
-      <p class="sec__micro">cinco frentes de trabalho. toque para ver.</p>
-      <ul class="indice" id="indice-list">
-        <li class="indice__row">
-          <a class="indice__link" href="#bin-casamento" data-thumb="https://i.ytimg.com/vi/ePwx8bsoztI/hqdefault.jpg">
-            <span class="indice__num">01</span><span class="indice__title">Casamento</span>
-          </a>
-        </li>
-        <li class="indice__row">
-          <a class="indice__link" href="#bin-quinze" data-thumb="https://i.ytimg.com/vi/HMYMWuEQ2Xs/hqdefault.jpg">
-            <span class="indice__num">02</span><span class="indice__title">Quinze anos e aniversários</span>
-          </a>
-        </li>
-        <li class="indice__row">
-          <a class="indice__link indice__link--soon" href="#fila-render">
-            <span class="indice__num">03</span><span class="indice__title">Comercial e institucional</span><span class="indice__soon">EM BREVE</span>
-          </a>
-        </li>
-        <li class="indice__row">
-          <a class="indice__link indice__link--soon" href="#fila-render">
-            <span class="indice__num">04</span><span class="indice__title">Shows e música</span><span class="indice__soon">EM BREVE</span>
-          </a>
-        </li>
-        <li class="indice__row">
-          <a class="indice__link indice__link--soon" href="#fila-render">
-            <span class="indice__num">05</span><span class="indice__title">Fotografia</span><span class="indice__soon">EM BREVE</span>
-          </a>
-        </li>
-      </ul>
-      <div class="indice__float" id="indice-float" aria-hidden="true"><img alt="" /></div>
+  <!-- ░░ S03 · COMERCIAIS ░░ -->
+  <section id="comerciais" class="sec sec--render">
+    <div class="wrap wrap--narrow">
+      <span class="bin__label">BIN 01 · COMERCIAIS</span>
+      <h2 class="bin__title" data-split>Vídeo para <em>marcas</em>.</h2>
+      <p class="bin__sub" data-anim="fade">Institucional, produto e conteúdo para redes. Novos trabalhos entram no ar em breve.</p>
+      <article class="render-slot" data-anim="card" style="margin-top:2.4rem">
+        <div class="render-slot__screen" data-player data-yt="">
+          <span class="render-slot__status">EM FINALIZAÇÃO</span>
+          <div class="render-slot__bar"><i></i></div>
+        </div>
+      </article>
     </div>
   </section>
 
-  <!-- ░░ S04 · BIN 01 CASAMENTO ░░ -->
-  <section id="bin-casamento" class="sec sec--bin">
+  <!-- ░░ S04 · EVENTOS SOCIAIS ░░ -->
+  <section id="bin-eventos" class="sec sec--bin">
     <div class="wrap">
       <header class="bin__head">
-        <span class="bin__label">BIN 01 · CASAMENTO</span>
-        <h2 class="bin__title" data-split>Filmes de <em>casamento</em>.</h2>
-        <p class="bin__sub" data-anim="fade">Três trabalhos reais. Aperte o play e avalie a imagem, o som e a edição.</p>
+        <span class="bin__label">BIN 02 · EVENTOS SOCIAIS</span>
+        <h2 class="bin__title" data-split>Casamentos e <em>aniversários</em>.</h2>
+        <p class="bin__sub" data-anim="fade">Filmes de casamento, quinze anos e festas. Aperte o play e avalie a imagem, o som e a edição.</p>
       </header>
       <div class="bin__stage">
         <figure class="clip clip--lead is-set" data-yt="ePwx8bsoztI">
@@ -205,75 +182,38 @@
             </button>
             <span class="clip__tracklabel">V2</span>
           </figure>
-          <figure class="clip is-set" data-yt="_O0Kialgkzo">
-            <div class="clip__slate"><span>CENA 03 · O GRANDE DIA</span><span class="clip__tc">00:02:47:00</span></div>
-            <button class="clip__facade" type="button" aria-label="Assistir filme O grande dia">
-              <img class="clip__poster" src="https://i.ytimg.com/vi/_O0Kialgkzo/maxresdefault.jpg" loading="lazy" width="640" height="360" alt="Frame de filme de casamento" />
+          <figure class="clip is-set" data-yt="HMYMWuEQ2Xs">
+            <div class="clip__slate"><span>CENA 03 · QUINZE ANOS</span><span class="clip__tc">00:05:40:20</span></div>
+            <button class="clip__facade" type="button" aria-label="Assistir filme de quinze anos">
+              <img class="clip__poster" src="https://i.ytimg.com/vi/HMYMWuEQ2Xs/maxresdefault.jpg" loading="lazy" width="640" height="360" alt="Frame de filme de quinze anos" />
               <span class="clip__play" aria-hidden="true"></span>
             </button>
             <span class="clip__tracklabel">V3</span>
           </figure>
-        </div>
-      </div>
-      <a class="bin__link" href="https://www.belluseventos.com.br/" target="_blank" rel="noopener">ver o site de casamento <span aria-hidden="true">&rarr;</span></a>
-    </div>
-  </section>
-
-  <!-- ░░ S05 · BIN 02 ANIVERSÁRIOS E 15 ANOS ░░ -->
-  <section id="bin-quinze" class="sec sec--bin sec--bin-mirror">
-    <div class="wrap">
-      <header class="bin__head">
-        <span class="bin__label">BIN 02 · ANIVERSÁRIOS E 15 ANOS</span>
-        <h2 class="bin__title" data-split>Quinze anos e <em>aniversários</em>.</h2>
-        <p class="bin__sub" data-anim="fade">Filmes de festa com a mesma qualidade de captação e edição.</p>
-      </header>
-      <div class="bin__stage">
-        <div class="bin__side">
           <figure class="clip is-set" data-yt="AqhcNuJ15P0">
-            <div class="clip__slate"><span>CENA 02 · FESTA</span><span class="clip__tc">00:03:05:16</span></div>
-            <button class="clip__facade" type="button" aria-label="Assistir filme de festa de 15 anos">
-              <img class="clip__poster" src="https://i.ytimg.com/vi/AqhcNuJ15P0/maxresdefault.jpg" loading="lazy" width="640" height="360" alt="Frame de filme de 15 anos" />
+            <div class="clip__slate"><span>CENA 04 · FESTA</span><span class="clip__tc">00:03:05:16</span></div>
+            <button class="clip__facade" type="button" aria-label="Assistir filme de festa">
+              <img class="clip__poster" src="https://i.ytimg.com/vi/AqhcNuJ15P0/maxresdefault.jpg" loading="lazy" width="640" height="360" alt="Frame de filme de festa" />
               <span class="clip__play" aria-hidden="true"></span>
             </button>
-            <span class="clip__tracklabel">V2</span>
-          </figure>
-          <figure class="clip is-set" data-yt="-Fbz-Wqffdw">
-            <div class="clip__slate"><span>CENA 03 · CELEBRAÇÃO</span><span class="clip__tc">00:02:22:04</span></div>
-            <button class="clip__facade" type="button" aria-label="Assistir filme de celebração">
-              <img class="clip__poster" src="https://i.ytimg.com/vi/-Fbz-Wqffdw/maxresdefault.jpg" loading="lazy" width="640" height="360" alt="Frame de filme de celebração" />
-              <span class="clip__play" aria-hidden="true"></span>
-            </button>
-            <span class="clip__tracklabel">V3</span>
+            <span class="clip__tracklabel">V4</span>
           </figure>
         </div>
-        <figure class="clip clip--lead is-set" data-yt="HMYMWuEQ2Xs">
-          <div class="clip__slate"><span>CENA 01 · QUINZE ANOS · THIAGO BELLUS</span><span class="clip__tc">00:05:40:20</span></div>
-          <button class="clip__facade" type="button" aria-label="Assistir filme de quinze anos">
-            <img class="clip__poster" src="https://i.ytimg.com/vi/HMYMWuEQ2Xs/maxresdefault.jpg" loading="lazy" width="1280" height="720" alt="Frame de filme de quinze anos" />
-            <span class="clip__play" aria-hidden="true"></span>
-          </button>
-          <span class="clip__tracklabel">V1</span>
-        </figure>
       </div>
-      <a class="bin__link" href="https://www.belluseventos.com.br/niver/" target="_blank" rel="noopener">ver o site de aniversários <span aria-hidden="true">&rarr;</span></a>
+      <div style="display:flex;gap:2.4rem;flex-wrap:wrap">
+        <a class="bin__link" href="https://www.belluseventos.com.br/" target="_blank" rel="noopener">ver o site de casamento <span aria-hidden="true">&rarr;</span></a>
+        <a class="bin__link" href="https://www.belluseventos.com.br/niver/" target="_blank" rel="noopener">ver o site de aniversários <span aria-hidden="true">&rarr;</span></a>
+      </div>
     </div>
   </section>
 
-  <!-- ░░ S06 · FILA DE RENDER ░░ -->
+  <!-- ░░ S05 · FILA DE RENDER ░░ -->
   <section id="fila-render" class="sec sec--render">
     <div class="wrap">
       <span class="bin__label">FILA DE RENDER</span>
-      <h2 class="bin__title" data-split>Comercial, shows e <em>fotografia</em>.</h2>
+      <h2 class="bin__title" data-split>Shows e <em>fotografia</em>.</h2>
       <p class="sec__micro" data-anim="fade">novos trabalhos entram no ar em breve.</p>
-      <div class="render__queue">
-        <article class="render-slot" data-anim="card">
-          <div class="render-slot__screen" data-player data-yt="">
-            <span class="render-slot__status">EM FINALIZAÇÃO</span>
-            <div class="render-slot__bar"><i></i></div>
-          </div>
-          <h3>Comercial e institucional</h3>
-          <p>Vídeo para empresas e marcas: institucional, produto e conteúdo para redes.</p>
-        </article>
+      <div class="render__queue" style="grid-template-columns:repeat(2,1fr)">
         <article class="render-slot" data-anim="card">
           <div class="render-slot__screen" data-player data-yt="">
             <span class="render-slot__status">AGUARDANDO CORTE FINAL</span>
@@ -299,7 +239,7 @@
     </div>
   </section>
 
-  <!-- ░░ S07 · FILMMAKER ░░ -->
+  <!-- ░░ S06 · FILMMAKER ░░ -->
   <section id="filmmaker" class="sec sec--manifesto">
     <span class="scene-number" aria-hidden="true">TB</span>
     <div class="wrap manifesto__grid">
@@ -307,39 +247,40 @@
         <h2 class="sec__kicker">Filmmaker</h2>
         <blockquote class="manifesto__quote" data-lines>
           <span class="line"><span class="line__inner">Sou formado em Programação Visual</span></span>
-          <span class="line"><span class="line__inner">e trabalho como filmmaker.</span></span>
-          <span class="line"><span class="line__inner">Antes de filmar, eu desenho cada cena:</span></span>
-          <span class="line"><span class="line__inner">enquadramento, luz e cor são decididos</span></span>
-          <span class="line"><span class="line__inner">antes de a câmera ligar.</span></span>
-          <span class="line"><span class="line__inner">O resultado é um vídeo <em>pensado</em>, não improvisado.</span></span>
+          <span class="line"><span class="line__inner">e trabalho com audiovisual.</span></span>
+          <span class="line"><span class="line__inner">Meu jeito de filmar é ler o momento:</span></span>
+          <span class="line"><span class="line__inner">nada de cena montada, eu percebo o instante</span></span>
+          <span class="line"><span class="line__inner">acontecendo e capturo na hora certa.</span></span>
+          <span class="line"><span class="line__inner">O resultado é um vídeo <em>vivo</em>, com a emoção</span></span>
+          <span class="line"><span class="line__inner">verdadeira de cada momento.</span></span>
         </blockquote>
-        <p class="manifesto__sign">Thiago Bellus</p>
+        <p class="manifesto__sign">Thiago Rodrigues</p>
       </div>
       <figure class="still still--main" data-speed="1.1">
         <span class="still__corners" aria-hidden="true"></span>
-        <img src="assets/wp/thiago-bellus.jpg" alt="Thiago Bellus, filmmaker" loading="lazy" width="520" height="650" />
+        <img src="assets/wp/thiago-bellus.jpg" alt="Thiago Rodrigues, filmmaker" loading="lazy" width="520" height="650" />
         <figcaption>43MM · F1.8 · ISO100</figcaption>
       </figure>
     </div>
   </section>
 
-  <!-- ░░ S08 · FICHA TÉCNICA ░░ -->
+  <!-- ░░ S07 · FICHA TÉCNICA ░░ -->
   <section id="ficha" class="sec sec--ficha">
     <div class="wrap wrap--narrow">
       <h2 class="sec__kicker">Ficha técnica</h2>
       <dl class="ficha">
-        <div class="ficha__row"><dt>Filmmaker</dt><span class="ficha__fill"></span><dd>Thiago Bellus</dd></div>
-        <div class="ficha__row"><dt>Estúdio</dt><span class="ficha__fill"></span><dd><a href="https://www.belluseventos.com.br/" target="_blank" rel="noopener">Bellus Eventos</a>, filmes de casamento premium</dd></div>
-        <div class="ficha__row"><dt>Formação</dt><span class="ficha__fill"></span><dd>Programação Visual e Design Gráfico</dd></div>
-        <div class="ficha__row"><dt>Base</dt><span class="ficha__fill"></span><dd>Teresópolis, RJ</dd></div>
-        <div class="ficha__row"><dt>Especialidade</dt><span class="ficha__fill"></span><dd>Captação e edição de vídeo</dd></div>
-        <div class="ficha__row"><dt>Sites no ar</dt><span class="ficha__fill"></span><dd><a href="https://www.belluseventos.com.br/" target="_blank" rel="noopener">casamento</a> e <a href="https://www.belluseventos.com.br/niver/" target="_blank" rel="noopener">aniversários</a></dd></div>
+        <div class="ficha__row"><dt>Filmmaker</dt><span class="ficha__fill"></span><dd>Thiago Rodrigues, fundador da Bellus</dd></div>
+        <div class="ficha__row"><dt>Estúdio</dt><span class="ficha__fill"></span><dd><a href="https://www.belluseventos.com.br/" target="_blank" rel="noopener">Bellus Eventos</a>, audiovisual</dd></div>
+        <div class="ficha__row"><dt>Formação</dt><span class="ficha__fill"></span><dd>Programação Visual</dd></div>
+        <div class="ficha__row"><dt>Base</dt><span class="ficha__fill"></span><dd>Teresópolis, RJ, com atendimento pelo mundo</dd></div>
+        <div class="ficha__row"><dt>Especialidade</dt><span class="ficha__fill"></span><dd>Captação e edição de vídeo, e amante da fotografia</dd></div>
+        <div class="ficha__row"><dt>Perfis no ar</dt><span class="ficha__fill"></span><dd><a href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener">@thiago.bellus</a> e <a href="https://www.instagram.com/belluscasamentos/" target="_blank" rel="noopener">@belluscasamentos</a></dd></div>
       </dl>
       <p class="ficha__fecho" data-anim="fade">Alguma dúvida? Preencha o formulário abaixo que eu respondo pessoalmente.</p>
     </div>
   </section>
 
-  <!-- ░░ S09 · ORÇAMENTO (FORM) ░░ -->
+  <!-- ░░ S08 · ORÇAMENTO (FORM) ░░ -->
   <section id="orcamento" class="sec sec--form">
     <div class="wrap wrap--narrow">
       <div class="callsheet" data-anim="sheet">
@@ -361,18 +302,18 @@
           </div>
           <label class="fp__field fp__field--full"><span>Detalhes do projeto</span><textarea name="mensagem" rows="3"></textarea></label>
           <button type="submit" class="callsheet__submit" id="lead-submit">pedir orçamento</button>
-          <p class="fp__note">Ao enviar, você concorda em ser contatado pelo Thiago Bellus. Seus dados não são compartilhados.</p>
+          <p class="fp__note">Ao enviar, você concorda em ser contatado pelo Thiago Rodrigues via WhatsApp ou E-mail. Seus dados não são compartilhados.</p>
           <p class="fp__feedback" id="lead-feedback" role="status" aria-live="polite"></p>
         </form>
       </div>
     </div>
   </section>
 
-  <!-- ░░ S10 · CRÉDITOS FINAIS ░░ -->
+  <!-- ░░ S09 · CRÉDITOS FINAIS ░░ -->
   <footer id="creditos" class="sec sec--footer">
     <div class="wrap wrap--narrow creditos">
       <div class="creditos__bloco" data-anim="fade">
-        <h2 class="creditos__dir">Thiago Bellus · <em>Filmmaker</em></h2>
+        <h2 class="creditos__dir">Thiago Rodrigues · <em>Filmmaker</em></h2>
         <p class="creditos__prod">Bellus Eventos</p>
       </div>
       <nav class="creditos__links" data-anim="fade" aria-label="Links">
@@ -391,6 +332,6 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
-  <script src="script.js?v=4" defer></script>
+  <script src="script.js?v=5" defer></script>
 </body>
 </html>
