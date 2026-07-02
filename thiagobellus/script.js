@@ -1,247 +1,35 @@
 /* ============================================================
-   Bellus Eventos — comportamento do site institucional
+   THIAGO BELLUS · SALA DE CORTE · motor de motion + form
+   GSAP + ScrollTrigger + Lenis via CDN (com fallback estático)
    ============================================================ */
 (function () {
   "use strict";
 
-  // ── Integração Supabase (chave publishable: segura para o navegador) ──
-  var SUPABASE_FN_URL =
-    "https://nngvxucybligmanbedrs.supabase.co/functions/v1/create-lead-bellus";
+  // ── Integração Supabase (chave publishable: segura no navegador) ──
+  var SUPABASE_FN_URL = "https://nngvxucybligmanbedrs.supabase.co/functions/v1/create-lead-bellus";
   var SUPABASE_ANON_KEY = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
   var WHATSAPP = "5521981636666";
-  // Mensagem do botão de WhatsApp: identifica que veio do site e conduz ao formulário.
-  var WA_MSG = "Olá, Thiago! Vim pela sua página e gostaria de um orçamento para um serviço audiovisual. Vou preencher o formulário para receber a proposta.";
 
-  var reduceMotion =
-    window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+  var isDesktop = window.matchMedia && window.matchMedia("(min-width: 1024px)").matches;
 
-  // ── Nav: estado ao rolar ───────────────────────────────
-  var nav = document.getElementById("nav");
-  function onScroll() {
-    if (!nav) return;
-    nav.classList.toggle("is-scrolled", window.scrollY > 24);
-  }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-
-  // ── Botão de WhatsApp da nav: aplica a mensagem que conduz ao formulário ──
-  var navCta = document.querySelector(".nav__cta");
-  if (navCta) navCta.href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(WA_MSG);
-
-  // ── Meta Pixel: clique em qualquer WhatsApp = conversão "Contact" ──
-  document.addEventListener("click", function (e) {
-    var a = e.target && e.target.closest ? e.target.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]') : null;
-    if (a && window.fbq) fbq("track", "Contact");
-  }, true);
-
-  // ── Vídeo de fundo do hero: pausa se o usuário pediu menos movimento ──
-  var heroVid = document.querySelector(".hero__video");
-  if (heroVid && reduceMotion) { heroVid.removeAttribute("autoplay"); heroVid.pause(); }
-
-  // ── Revelar seções ao entrar na viewport ───────────────
-  var revealEls = document.querySelectorAll(".reveal");
-  if (reduceMotion || !("IntersectionObserver" in window)) {
-    revealEls.forEach(function (el) { el.classList.add("is-visible"); });
-  } else {
-    var io = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) {
-            e.target.classList.add("is-visible");
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
-    );
-    revealEls.forEach(function (el) { io.observe(el); });
-  }
-
-  // ── Títulos: digitação (máquina de escrever, 1x por seção) + linha que cresce nos dois sentidos do scroll ──
-  function typeTitle(el) {
-    var tokens = el.innerHTML.split(/(<br\s*\/?>)/i);
-    var units = [];
-    tokens.forEach(function (t) {
-      if (!t) return;
-      if (/^<br/i.test(t)) units.push(t);
-      else for (var k = 0; k < t.length; k++) units.push(t.charAt(k));
-    });
-    if (!units.length) return;
-    el.style.minHeight = el.offsetHeight + "px";
-    var i = 0, buf = "";
-    function step() {
-      if (i >= units.length) { el.innerHTML = buf; el.style.minHeight = ""; return; }
-      buf += units[i]; i++;
-      el.innerHTML = buf + '<span class="tw-caret" aria-hidden="true"></span>';
-      setTimeout(step, 35);
-    }
-    el.innerHTML = '<span class="tw-caret" aria-hidden="true"></span>';
-    step();
-  }
-  var titleEls = document.querySelectorAll(".section__title, .hero__title, .manifesto__lead");
-  if (reduceMotion || !("IntersectionObserver" in window)) {
-    titleEls.forEach(function (el) { el.classList.add("is-inview"); });
-  } else {
-    var titleIO = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        var el = e.target;
-        if (e.isIntersecting) {
-          el.classList.add("is-inview");
-          if (!el.dataset.typed) { el.dataset.typed = "1"; typeTitle(el); }
-        } else {
-          el.classList.remove("is-inview");
-        }
-      });
-    }, { threshold: 0.25, rootMargin: "0px 0px -8% 0px" });
-    titleEls.forEach(function (el) { titleIO.observe(el); });
-  }
-
-  // ── FAQ: abre um e fecha os outros (acordeão) ───────────
-  var faqItems = document.querySelectorAll(".faq__item");
-  faqItems.forEach(function (item) {
-    item.addEventListener("toggle", function () {
-      if (item.open) {
-        faqItems.forEach(function (other) {
-          if (other !== item) other.open = false;
-        });
-      }
-    });
-  });
-
-  // ── Pó dourado em canvas (seções escuras), sincronizado ao SCROLL ──
-  // Porta do ParticlesCanvas do app de proposta: parallax por profundidade,
-  // embers, SEM loop ocioso (só desenha ao rolar/redimensionar), pausa fora da tela.
-  // Opcional via atributos: data-density (default 160), data-fade-bottom (0..1).
-  function initParticles(canvas) {
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    var reduced = reduceMotion;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var width = 0, height = 0, visible = true, ticking = false;
-    var particles = [];
-    var density = parseFloat(canvas.getAttribute("data-density")) || 160;
-
-    function seed() {
-      var rect = canvas.getBoundingClientRect();
-      width = rect.width; height = rect.height;
-      canvas.width = Math.max(1, Math.floor(width * dpr));
-      canvas.height = Math.max(1, Math.floor(height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var count = Math.round(Math.min(density, Math.max(70, (width * height) / 7000)));
-      particles = [];
-      for (var i = 0; i < count; i++) {
-        var ember = Math.random() < 0.12;
-        particles.push({
-          bx: Math.random(),
-          by: Math.random(),
-          r: ember ? 1.6 + Math.random() * 1.4 : 0.4 + Math.random() * 1.4,
-          depth: 0.12 + Math.random() * 0.9,
-          alpha: ember ? 0.55 + Math.random() * 0.3 : 0.22 + Math.random() * 0.45,
-          hue: 38 + Math.random() * 8,
-          sat: 45 + Math.random() * 18,
-          light: 58 + Math.random() * 22,
-          seed: Math.random() * Math.PI * 2,
-          drift: 6 + Math.random() * 18,
-          ember: ember,
-        });
-      }
-    }
-
-    function sectionProgress() {
-      var rect = canvas.getBoundingClientRect();
-      return window.innerHeight - rect.top;
-    }
-
-    function draw() {
-      var progress = reduced ? 0 : sectionProgress();
-      ctx.clearRect(0, 0, width, height);
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        var travel = progress * p.depth * 0.35;
-        var y = (p.by * height - travel) % height;
-        if (y < 0) y += height;
-        var x = p.bx * width + Math.sin(p.seed + progress * 0.0016) * p.drift;
-        ctx.beginPath();
-        if (p.ember) { ctx.shadowColor = "hsla(" + p.hue + ", " + p.sat + "%, " + p.light + "%, 0.9)"; ctx.shadowBlur = 6; }
-        else { ctx.shadowBlur = 0; }
-        ctx.fillStyle = "hsla(" + p.hue + ", " + p.sat + "%, " + p.light + "%, " + p.alpha + ")";
-        ctx.arc(x, y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.shadowBlur = 0;
-    }
-
-    function onScroll() {
-      if (reduced || !visible) return;
-      if (!ticking) { ticking = true; requestAnimationFrame(function () { draw(); ticking = false; }); }
-    }
-
-    seed(); draw();
-    var to;
-    window.addEventListener("resize", function () { clearTimeout(to); to = setTimeout(function () { seed(); draw(); }, 200); }, { passive: true });
-    if (!reduced) window.addEventListener("scroll", onScroll, { passive: true });
-
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (entries) {
-        visible = entries[0].isIntersecting;
-        if (visible) draw();
-      }, { threshold: 0 }).observe(canvas);
-    }
-
-    var fb = parseFloat(canvas.getAttribute("data-fade-bottom"));
-    if (!isNaN(fb)) {
-      var g = "linear-gradient(to bottom, #000 " + Math.round(fb * 100) + "%, transparent 100%)";
-      canvas.style.webkitMaskImage = g;
-      canvas.style.maskImage = g;
-    }
-  }
-  document.querySelectorAll("[data-particles]").forEach(initParticles);
-
-  // ── Portfólio: clique para tocar (pôster limpo, sem chrome do YouTube no repouso) ──
-  document.querySelectorAll(".pf-play[data-yt]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-yt");
-      var f = document.createElement("iframe");
-      f.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
-      f.title = "Prévia Bellus Eventos";
-      f.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
-      f.setAttribute("allowfullscreen", "");
-      btn.appendChild(f);
-      btn.classList.add("is-playing");
-    });
-  });
-
-  // ── Formulário de disponibilidade → Supabase ────────────
+  /* ════════════════ FORM · ORDEM DE PRODUÇÃO (máquina preservada) ════════════════ */
   var form = document.getElementById("lead-form");
-  var feedback = document.getElementById("lead-feedback");
   var submitBtn = document.getElementById("lead-submit");
-
-  // Data mínima = hoje (impede marcar data passada) + máscara de WhatsApp p/ preenchimento correto.
-  var hojeD = new Date();
-  var HOJE_ISO = hojeD.getFullYear() + "-" + String(hojeD.getMonth() + 1).padStart(2, "0") + "-" + String(hojeD.getDate()).padStart(2, "0");
-  var dataInput = form ? form.querySelector('[name="dataCasamento"]') : null;
-  if (dataInput) dataInput.min = HOJE_ISO;
-  var waInput = form ? form.querySelector('[name="whatsapp"]') : null;
-  function maskPhone(v) {
-    var d = (v || "").replace(/\D/g, "").slice(0, 11);
-    if (!d) return "";
-    if (d.length <= 2) return "(" + d;
-    if (d.length <= 6) return "(" + d.slice(0, 2) + ") " + d.slice(2);
-    if (d.length <= 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
-    return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
-  }
-  if (waInput) waInput.addEventListener("input", function () { waInput.value = maskPhone(waInput.value); });
+  var feedback = document.getElementById("lead-feedback");
+  var HOJE_ISO = (function () { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
 
   function setFeedback(msg, kind) {
     if (!feedback) return;
-    feedback.textContent = msg;
-    feedback.className = "form__feedback" + (kind ? " is-" + kind : "");
+    feedback.textContent = msg || "";
+    form.classList.remove("is-ok", "is-error");
+    if (kind === "ok") form.classList.add("is-ok");
+    if (kind === "error") form.classList.add("is-error");
   }
-
   function waFallbackLink(data) {
     var parts = [
-      "Olá! Tentei enviar pela página do Thiago Bellus mas tive um problema no envio. Seguem meus dados para consultar a disponibilidade:",
+      "Olá, Thiago! Tentei enviar pela sua página mas tive um problema no envio. Seguem meus dados para o orçamento:",
       "Nome: " + (data.nome || ""),
       data.servico ? "Serviço: " + data.servico : "",
       "WhatsApp: " + (data.whatsapp || ""),
@@ -254,37 +42,38 @@
     ].filter(Boolean);
     return "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(parts.join("\n"));
   }
-
-  // Erro no envio: avisa, deixa o form avermelhado e abre o WhatsApp já com os dados.
   function failToWhatsapp(data, msg) {
     form.classList.remove("is-ok");
     form.classList.add("is-error");
     setFeedback((msg || "Não foi possível enviar agora.") + " Sem problema: vamos abrir o WhatsApp já com os seus dados para você concluir por lá.", "error");
     setTimeout(function () { window.location.href = waFallbackLink(data); }, 1800);
   }
-
+  function shakeForm() {
+    if (window.gsap && !reduceMotion) gsap.fromTo(form, { x: -4 }, { x: 4, duration: 0.08, repeat: 5, yoyo: true, clearProps: "x" });
+  }
   if (form) {
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var fd = new FormData(form);
+      var servico = (fd.get("servico") || "").toString().trim();
       var data = {
         nome: (fd.get("nome") || "").toString().trim(),
-        nomeParceiro: "", servico: (fd.get("servico") || "").toString().trim(),
+        nomeParceiro: "",
+        servico: servico,
         whatsapp: (fd.get("whatsapp") || "").toString().trim(),
         email: (fd.get("email") || "").toString().trim(),
         dataCasamento: (fd.get("dataCasamento") || "").toString().trim(),
         cidade: (fd.get("cidade") || "").toString().trim(),
         local: (fd.get("local") || "").toString().trim(),
         convidados: (fd.get("convidados") || "").toString().trim(),
-        mensagem: "[Thiago Bellus]" + (((fd.get("servico") || "").toString().trim()) ? " [" + (fd.get("servico") || "").toString().trim() + "]" : "") + " " + (fd.get("mensagem") || "").toString().trim(),
+        mensagem: "[Thiago Bellus]" + (servico ? " [" + servico + "]" : "") + " " + (fd.get("mensagem") || "").toString().trim(),
       };
-
-      if (data.nome.length < 2) return setFeedback("Por favor, informe o seu nome.", "error");
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) return setFeedback("E-mail inválido. Confira o endereço, ex.: nome@email.com.", "error");
+      if (data.nome.length < 2) { shakeForm(); return setFeedback("Faltou um detalhe na ordem de produção. Confere o seu nome.", "error"); }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) { shakeForm(); return setFeedback("E-mail inválido. Confira o endereço, ex.: nome@email.com.", "error"); }
       var waDig = data.whatsapp.replace(/\D/g, "");
-      if (waDig.length < 10 || waDig.length > 11) return setFeedback("Informe um WhatsApp válido com DDD, ex.: (21) 90000-0000.", "error");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(data.dataCasamento)) return setFeedback("Informe a data do serviço.", "error");
-      if (data.dataCasamento < HOJE_ISO) return setFeedback("A data do serviço precisa ser hoje ou no futuro.", "error");
+      if (waDig.length < 10 || waDig.length > 11) { shakeForm(); return setFeedback("Informe um WhatsApp válido com DDD, ex.: (21) 90000-0000.", "error"); }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data.dataCasamento)) { shakeForm(); return setFeedback("Informe a data do evento.", "error"); }
+      if (data.dataCasamento < HOJE_ISO) { shakeForm(); return setFeedback("A data do evento precisa ser hoje ou no futuro.", "error"); }
 
       submitBtn.disabled = true;
       var originalLabel = submitBtn.textContent;
@@ -294,176 +83,458 @@
 
       fetch(SUPABASE_FN_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: "Bearer " + SUPABASE_ANON_KEY,
-        },
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
         body: JSON.stringify(data),
       })
-        .then(function (res) {
-          return res.json().then(function (body) {
-            return { ok: res.ok, body: body };
-          });
-        })
+        .then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); })
         .then(function (r) {
           if (r.ok && r.body && r.body.success) {
             form.reset();
             form.classList.remove("is-error");
             form.classList.add("is-ok");
             if (window.fbq) fbq("track", "Lead");
-            setFeedback("Recebemos os seus dados! Deu tudo certo. Em breve falamos com você pelo WhatsApp.", "ok");
+            submitBtn.textContent = "Projeto recebido. Corta para: o seu evento.";
+            setFeedback("Recebemos a sua ordem de produção. Em breve o Thiago fala com você pelo WhatsApp.", "ok");
+            var slate = document.querySelector(".callsheet__slate");
+            if (slate && window.gsap && !reduceMotion) gsap.fromTo(slate, { scaleY: 1 }, { scaleY: 1.6, duration: 0.15, yoyo: true, repeat: 1, transformOrigin: "top" });
           } else {
             var msg = (r.body && r.body.error) || "Não foi possível enviar agora.";
+            submitBtn.textContent = originalLabel;
             failToWhatsapp(data, msg);
           }
         })
-        .catch(function () {
-          failToWhatsapp(data, "Tivemos um problema de conexão.");
-        })
-        .finally(function () {
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalLabel;
-        });
+        .catch(function () { submitBtn.textContent = originalLabel; failToWhatsapp(data, "Tivemos um problema de conexão."); })
+        .finally(function () { submitBtn.disabled = false; });
     });
   }
 
-  // ── Avaliações do Google (via edge function com cache) ──────
-  var REVIEWS_URL =
-    "https://nngvxucybligmanbedrs.supabase.co/functions/v1/google-reviews";
-  var reviewsList = document.getElementById("reviews-list");
-  var reviewsSummary = document.getElementById("reviews-summary");
-  var reviewsSection = document.getElementById("avaliacoes");
-
-  function escHtml(str) {
-    return (str || "").replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  /* ════════════════ CLIPS · facade de vídeo (funciona mesmo sem GSAP) ════════════════ */
+  var liveClip = null; // { clip, facade, frame }
+  function destroyLive() {
+    if (!liveClip) return;
+    if (liveClip.frame && liveClip.frame.parentNode) liveClip.frame.parentNode.removeChild(liveClip.frame);
+    if (liveClip.facade) liveClip.facade.style.display = "";
+    liveClip.clip.classList.remove("is-playing");
+    liveClip = null;
+  }
+  function posterFallback(img) {
+    img.addEventListener("error", function () {
+      var n = parseInt(img.dataset.fb || "0", 10);
+      var id = img.closest(".clip") ? img.closest(".clip").getAttribute("data-yt") : null;
+      if (!id) return;
+      var next = ["sddefault", "hqdefault"][n];
+      if (!next) return;
+      img.dataset.fb = String(n + 1);
+      img.src = "https://i.ytimg.com/vi/" + id + "/" + next + ".jpg";
+    });
+    img.addEventListener("load", function () {
+      if (img.naturalWidth && img.naturalWidth < 640 && (img.dataset.fb || "0") === "0") {
+        img.dataset.fb = "1";
+        var id = img.closest(".clip") ? img.closest(".clip").getAttribute("data-yt") : null;
+        if (id) img.src = "https://i.ytimg.com/vi/" + id + "/sddefault.jpg";
+      }
     });
   }
-  function starRow(n) {
-    var full = Math.round(n || 5), s = "";
-    for (var i = 0; i < 5; i++) s += '<span class="star">' + (i < full ? "★" : "☆") + "</span>";
-    return s;
-  }
-  function renderReviews(data) {
-    if (!data || !data.reviews || !data.reviews.length || !reviewsList) return;
-    if (reviewsSummary) {
-      var score = Number(data.rating != null ? data.rating : 5).toFixed(1).replace(".", ",");
-      var link = data.url || "https://www.google.com/maps";
-      reviewsSummary.innerHTML =
-        '<a class="reviews__badge" href="' + escHtml(link) + '" target="_blank" rel="noopener">' +
-        '<span class="reviews__stars">' + starRow(data.rating) + "</span>" +
-        '<span class="reviews__score">' + score + "</span>" +
-        '<span class="reviews__count">' +
-        (data.total ? "· " + data.total + " avaliações no Google" : "· no Google") +
-        "</span></a>";
+  document.querySelectorAll(".clip").forEach(function (clip) {
+    var id = clip.getAttribute("data-yt");
+    if (!id) return;
+    var facade = clip.querySelector(".clip__facade");
+    var poster = clip.querySelector(".clip__poster");
+    if (poster) posterFallback(poster);
+    // scrub falso de thumbs no hover (so desktop)
+    if (finePointer && poster && !reduceMotion) {
+      var scrubTimer = null, scrubIdx = 0, preloaded = false, baseSrc = null;
+      clip.addEventListener("mouseenter", function () {
+        if (clip.classList.contains("is-playing")) return;
+        if (!preloaded) { preloaded = true; [1, 2, 3].forEach(function (n) { var im = new Image(); im.src = "https://i.ytimg.com/vi/" + id + "/" + n + ".jpg"; }); }
+        baseSrc = poster.src;
+        scrubTimer = setInterval(function () { scrubIdx = (scrubIdx % 3) + 1; poster.src = "https://i.ytimg.com/vi/" + id + "/" + scrubIdx + ".jpg"; }, 350);
+      });
+      clip.addEventListener("mouseleave", function () { if (scrubTimer) { clearInterval(scrubTimer); scrubTimer = null; } if (baseSrc) poster.src = baseSrc; });
+      clip.addEventListener("click", function () { if (scrubTimer) { clearInterval(scrubTimer); scrubTimer = null; } }, true);
     }
-    reviewsList.innerHTML = data.reviews.slice(0, 3).map(function (rv) {
-      var letter = ((rv.author || "?").trim().charAt(0) || "?").toUpperCase();
-      return '<figure class="review reveal is-visible">' +
-        '<div class="review__head"><span class="review__avatar" aria-hidden="true">' +
-        escHtml(letter) + "</span>" +
-        '<div><figcaption class="review__name">' + escHtml(rv.author) + "</figcaption>" +
-        '<span class="review__stars">' + starRow(rv.rating) + "</span></div></div>" +
-        '<blockquote class="review__text">' + escHtml(rv.text) + "</blockquote></figure>";
-    }).join("");
-    if (reviewsSection) reviewsSection.hidden = false;
-  }
-  if (reviewsList) {
-    fetch(REVIEWS_URL, { headers: { apikey: SUPABASE_ANON_KEY } })
-      .then(function (r) { return r.json(); })
-      .then(renderReviews)
-      .catch(function () { /* falhou: secao continua escondida */ });
-  }
-
-  // ── Reels: modal + arrastar com mouse + tocar o próximo ──
-  var reelModal = document.getElementById("reel-modal");
-  var reelVideo = document.getElementById("reel-video");
-  var reelStrip = document.querySelector(".reels-strip");
-  if (reelModal && reelVideo && reelStrip) {
-    var reelClose = reelModal.querySelector(".reel-modal__close");
-    var reelCards = Array.prototype.slice.call(reelStrip.querySelectorAll(".reel-card[data-src]"));
-    var reelSrcs = reelCards.map(function (c) { return c.getAttribute("data-src"); });
-    var reelIdx = -1;
-
-    function openReel(i) {
-      if (i < 0 || i >= reelSrcs.length) return;
-      reelIdx = i;
-      reelVideo.src = reelSrcs[i];
-      reelModal.classList.add("is-open");
-      reelModal.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-      var p = reelVideo.play();
-      if (p && p.catch) p.catch(function () {});
-    }
-    function closeReel() {
-      reelVideo.pause();
-      reelVideo.removeAttribute("src");
-      reelVideo.load();
-      reelModal.classList.remove("is-open");
-      reelModal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-      reelIdx = -1;
-    }
-    reelCards.forEach(function (card, i) {
-      card.addEventListener("click", function () { openReel(i); });
-    });
-    // ao terminar, já toca o próximo da sequência
-    reelVideo.addEventListener("ended", function () {
-      if (reelIdx + 1 < reelSrcs.length) openReel(reelIdx + 1);
-    });
-    if (reelClose) reelClose.addEventListener("click", closeReel);
-    reelModal.addEventListener("click", function (e) { if (e.target === reelModal) closeReel(); });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && reelModal.classList.contains("is-open")) closeReel();
-    });
-
-    // arrastar com o mouse para rolar a faixa (touch usa scroll nativo)
-    var down = false, startX = 0, startScroll = 0, moved = false;
-    reelStrip.addEventListener("pointerdown", function (e) {
-      if (e.pointerType !== "mouse") return;
-      down = true; moved = false; startX = e.clientX; startScroll = reelStrip.scrollLeft;
-      reelStrip.classList.add("is-grabbing");
-    });
-    window.addEventListener("pointermove", function (e) {
-      if (!down) return;
-      var dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) moved = true;
-      reelStrip.scrollLeft = startScroll - dx;
-    });
-    window.addEventListener("pointerup", function () {
-      if (down) { down = false; reelStrip.classList.remove("is-grabbing"); }
-    });
-    // se arrastou, não abre o vídeo no soltar
-    reelStrip.addEventListener("click", function (e) {
-      if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
-    }, true);
-
-    // setas (desktop)
-    function cardStep() {
-      var c = reelStrip.querySelector(".reel-card");
-      return c ? c.getBoundingClientRect().width + 16 : 260;
-    }
-    var navPrev = document.querySelector(".reels-nav--prev");
-    var navNext = document.querySelector(".reels-nav--next");
-    if (navPrev) navPrev.addEventListener("click", function () { reelStrip.scrollBy({ left: -cardStep(), behavior: "smooth" }); });
-    if (navNext) navNext.addEventListener("click", function () { reelStrip.scrollBy({ left: cardStep(), behavior: "smooth" }); });
-  }
-
-  // ── Botões "Seguir" no Instagram (indicador visual após o clique) ──
-  // O Instagram não permite seguir nem verificar follow a partir de outro site;
-  // isto apenas abre o perfil em nova aba e marca um check visual após o clique.
-  document.querySelectorAll("[data-follow]").forEach(function (btn) {
-    var key = "bellus_follow_" + btn.getAttribute("data-follow");
-    var label = btn.querySelector(".follow-btn__label");
-    function markFollowing() {
-      btn.classList.add("is-following");
-      if (label) label.textContent = "✓ Seguindo";
-    }
-    try { if (localStorage.getItem(key) === "1") markFollowing(); } catch (e) {}
-    btn.addEventListener("click", function () {
-      try { localStorage.setItem(key, "1"); } catch (e) {}
-      setTimeout(markFollowing, 500);
+    if (facade) facade.addEventListener("click", function () {
+      destroyLive();
+      var frame = document.createElement("div");
+      frame.className = "clip__frame";
+      var ifr = document.createElement("iframe");
+      ifr.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
+      ifr.title = facade.getAttribute("aria-label") || "Filme";
+      ifr.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+      ifr.setAttribute("allowfullscreen", "");
+      frame.appendChild(ifr);
+      facade.style.display = "none";
+      facade.parentNode.insertBefore(frame, facade.nextSibling);
+      clip.classList.add("is-playing");
+      liveClip = { clip: clip, facade: facade, frame: frame };
+      if (window.gsap && !reduceMotion) {
+        gsap.to(".letterbox--top,.letterbox--bottom", { scaleY: 1, duration: 0.6, ease: "power3.inOut" });
+      }
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
     });
   });
+
+  // slot de render vira clip quando ganhar data-yt (futuro)
+  document.querySelectorAll(".render-slot__screen[data-player]").forEach(function (sc) {
+    var id = sc.getAttribute("data-yt");
+    if (!id) return;
+    sc.innerHTML = "";
+    var b = document.createElement("button");
+    b.className = "clip__facade"; b.type = "button"; b.setAttribute("aria-label", "Assistir");
+    b.innerHTML = '<img class="clip__poster" src="https://i.ytimg.com/vi/' + id + '/maxresdefault.jpg" loading="lazy" alt=""/><span class="clip__play" aria-hidden="true"></span>';
+    sc.appendChild(b);
+  });
+
+  /* ════════════════ MOTION (GSAP + Lenis, com guarda) ════════════════ */
+  function boot() {
+    if (!window.gsap || !window.ScrollTrigger) { document.documentElement.classList.add("gsap-failed"); return; }
+    gsap.registerPlugin(ScrollTrigger);
+
+    var lenis = null;
+    var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    if (window.Lenis && !isTouch && !reduceMotion) {
+      lenis = new Lenis({ smoothWheel: true, syncTouch: false });
+      lenis.on("scroll", ScrollTrigger.update);
+      gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
+      gsap.ticker.lagSmoothing(0);
+    }
+    function scrollToEl(target) {
+      var el = typeof target === "string" ? document.querySelector(target) : target;
+      if (!el) return;
+      if (lenis) lenis.scrollTo(el, { duration: 1.2, easing: function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }, offset: -20 });
+      else el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+    }
+
+    // ── split por palavra (preserva <em> e <br>) ──
+    function splitWords(el) {
+      function process(node) {
+        Array.prototype.slice.call(node.childNodes).forEach(function (child) {
+          if (child.nodeType === 3) {
+            var words = child.textContent.split(/(\s+)/);
+            var frag = document.createDocumentFragment();
+            words.forEach(function (w) {
+              if (!w) return;
+              if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(" ")); return; }
+              var outer = document.createElement("span"); outer.className = "w";
+              var inner = document.createElement("span"); inner.className = "w__inner";
+              inner.textContent = w; outer.appendChild(inner); frag.appendChild(outer);
+            });
+            node.replaceChild(frag, child);
+          } else if (child.nodeType === 1 && child.tagName !== "BR") {
+            process(child);
+          }
+        });
+      }
+      el.setAttribute("aria-label", el.textContent.trim());
+      process(el);
+      return el.querySelectorAll(".w__inner");
+    }
+
+    // ── HUD: timecode + playhead + clip ativo (um ticker so) ──
+    var tcEl = document.getElementById("hud-timecode");
+    var playhead = document.getElementById("timeline-playhead");
+    var track = document.getElementById("timeline-track");
+    var clipsNav = Array.prototype.slice.call(document.querySelectorAll(".timeline__clip"));
+    var secEls = clipsNav.map(function (b) { return document.querySelector(b.getAttribute("data-target")); });
+    var tcFrozen = false;
+    function fmtTC(sec) {
+      var fr = Math.floor((sec % 1) * 24);
+      var s = Math.floor(sec) % 60, m = Math.floor(sec / 60) % 60, h = Math.floor(sec / 3600);
+      function p(n) { return String(n).padStart(2, "0"); }
+      return p(h) + ":" + p(m) + ":" + p(s) + ":" + p(fr);
+    }
+    function sizeTimeline() {
+      var totalH = 0, hs = secEls.map(function (s) { var h = s ? s.offsetHeight : 1; totalH += h; return h; });
+      clipsNav.forEach(function (b, i) { b.style.flexGrow = String(Math.max(hs[i] / totalH * 100, 3)); });
+    }
+    sizeTimeline();
+    var rsT = null;
+    window.addEventListener("resize", function () { clearTimeout(rsT); rsT = setTimeout(function () { sizeTimeline(); ScrollTrigger.refresh(); }, 200); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
+
+    gsap.ticker.add(function () {
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var prog = max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
+      if (tcEl && !tcFrozen) tcEl.textContent = fmtTC(prog * 180);
+      if (playhead && track) {
+        var w = track.clientWidth - 22;
+        playhead.style.transform = "translateX(" + (prog * w) + "px)";
+      }
+      var mid = window.scrollY + window.innerHeight * 0.5, active = 0;
+      for (var i = 0; i < secEls.length; i++) { if (secEls[i] && secEls[i].offsetTop <= mid) active = i; }
+      clipsNav.forEach(function (b, i) { b.classList.toggle("is-active", i === active); });
+    });
+    clipsNav.forEach(function (b) { b.addEventListener("click", function () { scrollToEl(b.getAttribute("data-target")); }); });
+
+    // ── grão de filme (desktop, 8fps, tiles pre-gerados) ──
+    (function grain() {
+      if (reduceMotion || window.innerWidth < 768 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) return;
+      var cv = document.querySelector(".grain"); if (!cv) return;
+      var ctx = cv.getContext("2d"); if (!ctx) return;
+      var tiles = [];
+      for (var t = 0; t < 6; t++) {
+        var tc = document.createElement("canvas"); tc.width = 128; tc.height = 128;
+        var tctx = tc.getContext("2d"), idata = tctx.createImageData(128, 128);
+        for (var i = 0; i < idata.data.length; i += 4) { var v = Math.random() * 255; idata.data[i] = v; idata.data[i + 1] = v; idata.data[i + 2] = v; idata.data[i + 3] = 255; }
+        tctx.putImageData(idata, 0, 0); tiles.push(tc);
+      }
+      function size() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
+      size(); window.addEventListener("resize", size, { passive: true });
+      var fi = 0, timer = setInterval(function () {
+        if (document.hidden) return;
+        fi = (fi + 1) % 6;
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = ctx.createPattern(tiles[fi], "repeat");
+        ctx.fillRect(0, 0, cv.width, cv.height);
+      }, 125);
+      void timer;
+    })();
+
+    // ── cursor custom (pointer fine) ──
+    (function cursor() {
+      if (!finePointer || reduceMotion) return;
+      var cur = document.getElementById("cursor"); if (!cur) return;
+      document.body.classList.add("has-cursor");
+      var label = cur.querySelector(".cursor__label");
+      var x = -100, y = -100, cx = -100, cy = -100;
+      document.addEventListener("mousemove", function (e) { x = e.clientX; y = e.clientY; }, { passive: true });
+      gsap.ticker.add(function () {
+        cx += (x - cx) * 0.16; cy += (y - cy) * 0.16;
+        cur.style.transform = "translate(" + cx + "px," + cy + "px)";
+      });
+      document.addEventListener("mouseover", function (e) {
+        var clip = e.target.closest ? e.target.closest(".clip__facade") : null;
+        if (clip) { cur.classList.add("is-play"); if (label) label.textContent = "PLAY"; return; }
+        cur.classList.remove("is-play");
+      }, true);
+    })();
+
+    // ── corte seco entre cenas (1x por secao por sessao) ──
+    var cutOv = document.getElementById("cut-overlay");
+    var cutLabel = document.getElementById("cut-label");
+    var cutSeen = {};
+    try { cutSeen = JSON.parse(sessionStorage.getItem("tb-cuts") || "{}"); } catch (e) { cutSeen = {}; }
+    function cutTo(name) {
+      if (reduceMotion || !cutOv || cutSeen[name]) return;
+      cutSeen[name] = 1;
+      try { sessionStorage.setItem("tb-cuts", JSON.stringify(cutSeen)); } catch (e) { }
+      if (cutLabel) cutLabel.textContent = name;
+      gsap.set(cutOv, { autoAlpha: 1 });
+      gsap.to(cutOv, { autoAlpha: 0, duration: 0.25, delay: 0.09, ease: "power4.out" });
+    }
+
+    gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", function () {
+
+      // estados iniciais (via GSAP: sem JS a pagina fica visivel)
+      gsap.set("[data-anim]", { autoAlpha: 0, y: 32 });
+      gsap.set('[data-anim="sheet"]', { y: 80 });
+      gsap.set(".line__inner", { yPercent: 110 });
+      gsap.set(".ficha__fill", { scaleX: 0 });
+      gsap.set(".ficha__row dt,.ficha__row dd", { yPercent: 120, autoAlpha: 0 });
+      gsap.set(".ig__tile", { autoAlpha: 0, scale: 0.96 });
+      gsap.set(".indice__row", { autoAlpha: 0 });
+      gsap.set(".still__corners", { autoAlpha: 0 });
+      gsap.set(".hud__corner", { autoAlpha: 0, scale: 0.4 });
+      gsap.set(".hero__thirds", { autoAlpha: 0 });
+      gsap.set(".hero__overline", { clipPath: "inset(0 100% 0 0)" });
+      gsap.set(".hero__sub", { autoAlpha: 0, y: 24 });
+
+      // headings com split + contador RENDER
+      document.querySelectorAll("[data-split]").forEach(function (h) {
+        var inners = splitWords(h);
+        gsap.set(inners, { yPercent: 110 });
+        var counter = document.createElement("span");
+        counter.className = "render-counter"; counter.setAttribute("aria-hidden", "true"); counter.textContent = "RENDER 0%";
+        h.appendChild(counter);
+        var isHero = h.classList.contains("hero__title");
+        var obj = { v: 0 };
+        var tl = gsap.timeline({
+          paused: isHero,
+          scrollTrigger: isHero ? undefined : { trigger: h, start: "top 82%", once: true },
+          onComplete: function () { gsap.to(counter, { autoAlpha: 0, duration: 0.5, delay: 0.5 }); }
+        });
+        tl.to(inners, { yPercent: 0, duration: 0.9, ease: "power3.out", stagger: 0.04 }, 0)
+          .to(obj, {
+            v: 100, duration: 0.9, ease: "power2.out", snap: { v: 1 },
+            onUpdate: function () { counter.textContent = "RENDER " + Math.round(obj.v) + "%"; }
+          }, 0);
+        if (isHero) h._heroTl = tl;
+      });
+
+      // fades genericos
+      document.querySelectorAll('[data-anim="fade"],[data-anim="card"],[data-anim="ig"],[data-anim="sheet"]').forEach(function (el) {
+        gsap.to(el, { autoAlpha: 1, y: 0, duration: 0.9, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 82%", once: true } });
+      });
+
+      // S01 HERO: timeline de load
+      var heroTitle = document.querySelector(".hero__title");
+      var heroLoad = gsap.timeline({ delay: 0.15 });
+      heroLoad.to(".hud__corner", { autoAlpha: 1, scale: 1, duration: 0.8, ease: "power3.out", stagger: 0.06 }, 0)
+        .to(".hero__thirds", { autoAlpha: 1, duration: 0.5 }, 0.3)
+        .to(".hero__overline", { clipPath: "inset(0 0% 0 0)", autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.6)
+        .add(function () { if (heroTitle && heroTitle._heroTl) heroTitle._heroTl.play(); }, 0.8)
+        .to(".hero__sub", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, 1.4);
+      gsap.to(".hero__inner", {
+        y: "-8%", autoAlpha: 0.35, ease: "none",
+        scrollTrigger: { trigger: "#hero", start: "top top", end: "bottom top", scrub: true }
+      });
+      ScrollTrigger.create({
+        trigger: "#manifesto", start: "top 90%", once: true,
+        onEnter: function () { gsap.to(".hero__thirds", { autoAlpha: 0, duration: 0.4 }); }
+      });
+
+      // cortes secos + letterbox por secao
+      document.querySelectorAll("[data-cena]").forEach(function (sec) {
+        ScrollTrigger.create({ trigger: sec, start: "top 55%", onEnter: function () { cutTo(sec.getAttribute("data-cena")); } });
+      });
+      document.querySelectorAll("[data-letterbox]").forEach(function (sec) {
+        ScrollTrigger.create({
+          trigger: sec, start: "top 60%", end: "bottom 40%",
+          onEnter: function () { gsap.to(".letterbox", { scaleY: 1, duration: 0.6, ease: "power3.inOut" }); },
+          onLeave: function () { if (!liveClip) gsap.to(".letterbox", { scaleY: 0, duration: 0.6, ease: "power3.inOut" }); },
+          onEnterBack: function () { gsap.to(".letterbox", { scaleY: 1, duration: 0.6, ease: "power3.inOut" }); },
+          onLeaveBack: function () { if (!liveClip) gsap.to(".letterbox", { scaleY: 0, duration: 0.6, ease: "power3.inOut" }); }
+        });
+      });
+
+      // S02 manifesto
+      gsap.to(".manifesto__quote .line__inner", {
+        yPercent: 0, duration: 0.9, ease: "power3.out", stagger: 0.08,
+        scrollTrigger: { trigger: ".manifesto__quote", start: "top 76%", once: true }
+      });
+      gsap.to(".still__corners", { autoAlpha: 1, duration: 0.6, scrollTrigger: { trigger: ".still--main", start: "top 60%", once: true } });
+      gsap.fromTo(".still--main", { y: 26 }, { y: -26, ease: "none", scrollTrigger: { trigger: "#manifesto", start: "top bottom", end: "bottom top", scrub: 1 } });
+      gsap.fromTo(".scene-number", { x: 0 }, { x: -40, ease: "none", scrollTrigger: { trigger: "#manifesto", start: "top bottom", end: "bottom top", scrub: 1 } });
+
+      // S03 indice
+      gsap.to(".indice__row", {
+        autoAlpha: 1, duration: 0.8, ease: "power3.inOut", stagger: 0.1,
+        scrollTrigger: { trigger: "#indice-list", start: "top 78%", once: true }
+      });
+
+      // S04/S05 bins: pin + scrub no desktop, fade no mobile
+      var mm2 = gsap.matchMedia();
+      mm2.add("(min-width: 1024px)", function () {
+        document.querySelectorAll(".sec--bin .bin__stage").forEach(function (stage) {
+          var lead = stage.querySelector(".clip--lead");
+          var sides = stage.querySelectorAll(".bin__side .clip");
+          var mirror = stage.closest(".sec--bin-mirror") !== null;
+          gsap.set(lead, { scale: 0.92, y: mirror ? 0 : 60, x: mirror ? 60 : 0, autoAlpha: 0 });
+          gsap.set(sides, { y: mirror ? 0 : 60, x: mirror ? 60 : 0, autoAlpha: 0 });
+          var tl = gsap.timeline({
+            scrollTrigger: { trigger: stage, start: "top 18%", end: "+=120%", scrub: true, pin: true, anticipatePin: 1 }
+          });
+          tl.to(lead, { scale: 1, y: 0, x: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, 0)
+            .add(function () { if (lead) lead.classList.add("is-set"); }, 0.35);
+          sides.forEach(function (c, i) {
+            tl.to(c, { y: 0, x: 0, autoAlpha: 1, duration: 0.3, ease: "power3.out" }, 0.35 + i * 0.2)
+              .add(function () { c.classList.add("is-set"); }, 0.55 + i * 0.2);
+          });
+          return function () { };
+        });
+      });
+      mm2.add("(max-width: 1023px)", function () {
+        document.querySelectorAll(".sec--bin .clip").forEach(function (c) {
+          gsap.set(c, { autoAlpha: 0, y: 40 });
+          gsap.to(c, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out", scrollTrigger: { trigger: c, start: "top 82%", once: true } });
+        });
+        return function () { };
+      });
+
+      // S06 barras de render
+      document.querySelectorAll(".render-slot__bar i").forEach(function (bar) {
+        gsap.fromTo(bar, { width: "62%" }, {
+          width: "84%", duration: 6, ease: "sine.inOut", yoyo: true, repeat: -1,
+          scrollTrigger: { trigger: bar, start: "top 95%", toggleActions: "play pause resume pause" }
+        });
+      });
+
+      // S07 instagram
+      gsap.to(".ig__tile", {
+        autoAlpha: 1, scale: 1, duration: 0.5, ease: "power2.out",
+        stagger: { each: 0.05, grid: [3, 3], from: "center" },
+        scrollTrigger: { trigger: ".ig__grid", start: "top 80%", once: true }
+      });
+      ScrollTrigger.create({
+        trigger: "#instagram", start: "top 45%", once: true,
+        onEnter: function () {
+          var f = document.getElementById("ig-follow");
+          if (f) gsap.fromTo(f, { scale: 1 }, { scale: 1.05, duration: 0.3, yoyo: true, repeat: 1, ease: "power2.inOut" });
+          var ring = document.querySelector(".ig__avatar-ring");
+          if (ring) gsap.fromTo(ring, { rotate: -180 }, { rotate: 0, duration: 0.8, ease: "power2.out" });
+        }
+      });
+
+      // S08 ficha tecnica
+      document.querySelectorAll(".ficha__row").forEach(function (row, i) {
+        var fill = row.querySelector(".ficha__fill");
+        var parts = row.querySelectorAll("dt,dd");
+        var tl = gsap.timeline({ scrollTrigger: { trigger: row, start: "top 84%", once: true }, delay: (i % 3) * 0.05 });
+        tl.to(parts, { yPercent: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" }, 0);
+        if (fill) tl.to(fill, { scaleX: 1, duration: 0.5, ease: "power2.out" }, 0.15);
+      });
+
+      // S10 creditos: REC apaga + timecode congela + FIM
+      var fim = document.getElementById("fim");
+      if (fim) gsap.set(fim, { autoAlpha: 0, filter: "blur(6px)" });
+      ScrollTrigger.create({
+        trigger: "#creditos", start: "top 70%", once: true,
+        onEnter: function () {
+          var dot = document.querySelector(".hud__rec-dot");
+          var rec = document.querySelector(".hud__rec");
+          if (dot) { dot.style.animation = "none"; gsap.timeline().to(dot, { opacity: 0.15, duration: 0.18, yoyo: true, repeat: 3 }).to(rec, { autoAlpha: 0, duration: 0.4 }); }
+          tcFrozen = true;
+          if (fim) gsap.to(fim, { autoAlpha: 1, filter: "blur(0px)", duration: 1, ease: "expo.out", delay: 0.4 });
+        }
+      });
+
+      return function () { };
+    });
+
+    gsap.matchMedia().add("(prefers-reduced-motion: reduce)", function () {
+      gsap.set("[data-anim],.line__inner,.ficha__fill,.ficha__row dt,.ficha__row dd,.ig__tile,.indice__row,.still__corners,.hud__corner,.hero__thirds,.hero__overline,.hero__sub,#fim", { clearProps: "all", autoAlpha: 1, y: 0, x: 0, scale: 1, yPercent: 0, clipPath: "none" });
+      return function () { };
+    });
+
+    // ── indice: thumb flutuante + foco de linha (desktop) ──
+    (function indiceFloat() {
+      var list = document.getElementById("indice-list");
+      var float = document.getElementById("indice-float");
+      if (!list) return;
+      var img = float ? float.querySelector("img") : null;
+      var links = list.querySelectorAll(".indice__link");
+      links.forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          var href = a.getAttribute("href");
+          if (href && href.charAt(0) === "#") { e.preventDefault(); scrollToEl(href); }
+        });
+        if (!finePointer || !float || reduceMotion) return;
+        a.addEventListener("mouseenter", function () {
+          list.classList.add("is-hovering");
+          var th = a.getAttribute("data-thumb");
+          if (th && img) {
+            img.src = th;
+            gsap.to(float, { clipPath: "circle(75% at 50% 50%)", duration: 0.35, ease: "power3.out" });
+          }
+        });
+        a.addEventListener("mousemove", function (e) {
+          if (!float) return;
+          var r = list.getBoundingClientRect();
+          gsap.to(float, { y: e.clientY - r.top - 60, duration: 0.35, ease: "power3.out" });
+        });
+        a.addEventListener("mouseleave", function () {
+          list.classList.remove("is-hovering");
+          if (float) gsap.to(float, { clipPath: "circle(0% at 50% 50%)", duration: 0.3, ease: "power3.in" });
+        });
+      });
+    })();
+
+    // ig tiles com ancora interna via lenis
+    document.querySelectorAll('a.ig__tile[href^="#"]').forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); scrollToEl(a.getAttribute("href")); });
+    });
+  }
+
+  if (document.readyState === "complete") boot();
+  else window.addEventListener("load", boot);
 })();
