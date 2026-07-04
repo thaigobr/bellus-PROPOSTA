@@ -1115,7 +1115,7 @@ function wire(){
     });
   }
 
-  const stSel = fp.querySelector('[name="status"]');
+  const stSel = fp ? fp.querySelector('[name="status"]') : null;
   const mpWrap = document.getElementById("motivo-perda-wrap");
   if(stSel && mpWrap){ stSel.addEventListener("change", ()=>{ mpWrap.style.display = stSel.value==="perdida" ? "" : "none"; }); }
 
