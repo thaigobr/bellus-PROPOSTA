@@ -759,7 +759,7 @@ function leadCard(l){
     ${meta?`<div class="lead-card-meta">${meta}</div>`:""}
     ${flag}
     ${msg}
-    <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div><div style="display:flex;gap:.5rem;align-items:center">${isAdmin()?`<button type="button" class="cbtn" data-del-lead="${esc(l.id)}" title="Excluir este lead">Excluir</button>`:""}${acao}</div></div>
+    <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div><div class="lead-actions">${isAdmin()?`<button type="button" class="cbtn del" data-del-lead="${esc(l.id)}" title="Excluir este lead">Excluir</button>`:""}${acao}</div></div>
   </div>`;
 }
 function leadsCardsHTML(q){

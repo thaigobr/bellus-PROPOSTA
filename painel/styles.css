@@ -223,8 +223,11 @@ a { color:inherit; }
 .lead-when { font-size:.78rem; color:var(--ink-soft); white-space:nowrap; flex:none; }
 .lead-card-meta { font-size:.85rem; color:var(--ink-soft); }
 .lead-msg { margin:.1rem 0 0; font-size:.86rem; color:var(--ink); font-style:italic; background:var(--cream); border-left:2px solid var(--gold-soft); padding:.45rem .6rem; border-radius:0 6px 6px 0; }
-.lead-card-foot { display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-top:auto; padding-top:.5rem; }
+.lead-card-foot { display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-top:auto; padding-top:.5rem; flex-wrap:wrap; }
 .lead-contato { display:flex; gap:.4rem; flex-wrap:wrap; }
+.lead-actions { display:flex; gap:.5rem; align-items:stretch; flex:none; margin-left:auto; }
+.lead-card-foot .cbtn, .lead-card-foot .lead-cta, .lead-card-foot .lead-tag { display:inline-flex; align-items:center; justify-content:center; min-height:2.3rem; box-sizing:border-box; }
+.cbtn.del { background:#f8eeec; border-color:#e9d3cf; color:#a2453a; cursor:pointer; font-family:inherit; line-height:1; }
 .lead-cta { min-height:2.3rem; padding:.45rem .9rem; font-size:.82rem; }
 .lead-tag { font-size:.76rem; font-weight:600; color:var(--green); background:#dcefe2; border-radius:999px; padding:.3rem .7rem; white-space:nowrap; }
 @media (max-width:600px){ .lead-cards { grid-template-columns:1fr; } .leads-banner { flex-wrap:wrap; } }
