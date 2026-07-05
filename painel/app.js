@@ -388,6 +388,22 @@ document.addEventListener("click", async (e)=>{
   const { error } = await supabase.from("propostas").update({ followups: fu }).eq("id", id);
   if(error){ b.classList.toggle("on", !novo); b.setAttribute("aria-pressed", String(!novo)); p.followups=prev; alert("Não consegui salvar o check: "+error.message); }
 });
+// excluir lead (admin) — listener delegado, sobrevive à re-renderização da busca
+document.addEventListener("click", async (e)=>{
+  const b=e.target&&e.target.closest?e.target.closest("[data-del-lead]"):null;
+  if(!b) return; e.preventDefault();
+  const id=b.getAttribute("data-del-lead");
+  const l=(state.leads||[]).find((x)=>x.id===id);
+  const quem=l?l.nome:"este lead";
+  if(!confirm(`Excluir o lead "${quem}"? Isso remove também o histórico dele na isca. Propostas já criadas não são afetadas.`)) return;
+  b.disabled=true; b.textContent="Excluindo...";
+  const { error, count } = await supabase.from("leads").delete({ count:"exact" }).eq("id", id);
+  if(error || !count){ b.disabled=false; b.textContent="Excluir"; alert("Não consegui excluir: "+(error?error.message:"nenhuma linha removida (permissão).")); return; }
+  state.leads=(state.leads||[]).filter((x)=>x.id!==id);
+  const card=b.closest(".lead-card"); if(card) card.remove();
+  const cont=document.getElementById("leads-cont");
+  if(cont && !(cont.querySelector(".lead-card"))) cont.innerHTML=leadsCardsHTML(state.leadsBusca||"");
+});
 // ---------- salvar + modal de motivo da perda (abre ao salvar como Perdida) ----------
 async function finalizarProposta(o){
   const btn=document.getElementById("salvar"); if(btn){ btn.disabled=true; btn.textContent="Salvando..."; }
@@ -743,7 +759,7 @@ function leadCard(l){
     ${meta?`<div class="lead-card-meta">${meta}</div>`:""}
     ${flag}
     ${msg}
-    <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div>${acao}</div>
+    <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div><div style="display:flex;gap:.5rem;align-items:center">${isAdmin()?`<button type="button" class="cbtn" data-del-lead="${esc(l.id)}" title="Excluir este lead">Excluir</button>`:""}${acao}</div></div>
   </div>`;
 }
 function leadsCardsHTML(q){
