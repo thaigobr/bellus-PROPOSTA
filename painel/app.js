@@ -79,7 +79,7 @@ function mensagemAbertura(nome, parc, ocupada){
   if(nome) return `${nome}, que alegria receber você por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do seu casamento. Veja com calma e, qualquer dúvida, é só me chamar.`;
   return `Que alegria receber vocês por aqui! Preparei esta proposta com todo o carinho para mostrar como a gente pode registrar cada emoção do casamento de vocês. Vejam com calma e, qualquer dúvida, é só me chamar.`;
 }
-function leadDataOcupada(d){ return !!(d && (state.datasOcupadas||{})[d]); }
+function leadDataOcupada(d){ return !!(d && ((state.datasOcupadas||{})[d] || (state.datasBloqueadas||{})[d])); }
 
 // ---------- auth ----------
 async function init(){
@@ -742,7 +742,9 @@ function leadCard(l){
   const tem=(state.leadsUsados||new Set()).has(l.id);
   const meta=[fmtData(l.data_casamento), l.cidade, l.convidados?`${esc(l.convidados)} convidados`:""].filter(Boolean).map(esc).join(" · ");
   const ocup = l.data_casamento && (state.datasOcupadas||{})[l.data_casamento];
-  const flag = ocup ? `<div class="lead-flag">A data ${esc(fmtData(l.data_casamento))} já está ${esc(statusTxt(ocup.status))} na agenda</div>` : "";
+  const bloq = (!ocup && l.data_casamento) ? dataBloqueada(l.data_casamento) : null;
+  const flag = ocup ? `<div class="lead-flag">A data ${esc(fmtData(l.data_casamento))} já está ${esc(statusTxt(ocup.status))} na agenda</div>`
+    : bloq ? `<div class="lead-flag">Atenção: ${esc(fmtData(l.data_casamento))} está marcada como ocupada na sua agenda (${esc(bloq.label||motivoBloqueioTxt(bloq.motivo))}). Essa data está fechada para reserva.</div>` : "";
   const quando = l.created_at ? `<span class="lead-when">${esc(desdeTxt(l.created_at))}</span>` : "";
   const msg = l.mensagem ? `<p class="lead-msg">${esc(l.mensagem)}</p>` : "";
   const prop=(state.propByLead||{})[l.id];
