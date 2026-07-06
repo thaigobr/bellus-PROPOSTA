@@ -200,7 +200,7 @@ h1,h2,h3,h4{font-weight:500;line-height:1.18;margin:0;}
 
 /* estados */
 .state{min-height:100svh;display:grid;place-items:center;text-align:center;padding:2rem;background:var(--charcoal);color:var(--cream);}
-.state__logo{height:6.8rem;margin-bottom:1.3rem;}
+.state__logo{height:6.8rem;margin:0 auto 1.3rem;}
 .state .serif{font-size:2rem;margin-top:.5rem;}.state p{color:rgba(244,241,235,.6);margin-top:.6rem;}
 
 /* particulas + dark */
