@@ -25,6 +25,20 @@ try {
   $edges = @($j.data.user.edge_owner_to_timeline_media.edges)
   if ($edges.Count -lt 6) { W ("descoberta retornou so {0} posts, mantendo" -f $edges.Count); exit 0 }
 
+  # avatar do perfil: atualiza sempre que a descoberta funcionar (mesmo sem post novo)
+  $tmp = Join-Path $env:TEMP "bellus-ig"; New-Item -ItemType Directory -Force $tmp | Out-Null
+  $pic = $j.data.user.profile_pic_url_hd
+  if (-not $pic) { $pic = $j.data.user.profile_pic_url }
+  if ($pic) {
+    $av = Join-Path $tmp "avatar.jpg"
+    & curl.exe -sL --max-time 30 -A $UA $pic -o $av
+    $b = [IO.File]::ReadAllBytes($av)
+    if ($b.Length -gt 1000 -and $b[0] -eq 0xFF -and $b[1] -eq 0xD8) {
+      & curl.exe -s --resolve $RESOLVE -H ("Authorization: cpanel bellus38:" + $TOKEN) ("$CP/execute/Fileman/upload_files") -F "dir=public_html/thiagobellus/ig" -F "overwrite=1" -F ("file-1=@" + $av) | Out-Null
+      W "avatar atualizado"
+    }
+  }
+
   $novos = @()
   foreach ($e in $edges[0..([Math]::Min(11, $edges.Count - 1))]) {
     $n = $e.node
