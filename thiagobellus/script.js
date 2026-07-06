@@ -40,9 +40,9 @@
       window.gsap.set(r1, { zIndex: 3 });
       window.gsap.set(r2, { zIndex: 2, yPercent: -100, y: -3 });
       window.gsap.set(r3, { zIndex: 1, yPercent: -200, y: -6 });
-      window.gsap.timeline({ scrollTrigger: { trigger: g, start: "top 72%", end: "bottom 45%", scrub: 0.5 } })
-        .to(r2, { yPercent: 0, y: 0, ease: "none", duration: 1 })
-        .to(r3, { yPercent: 0, y: 0, ease: "none", duration: 1.4 });
+      window.gsap.timeline({ scrollTrigger: { trigger: g, start: "top 72%", end: "bottom 60%", scrub: 0.5 } })
+        .to(r2, { yPercent: 0, y: 0, ease: "none", duration: 1 }, 0)
+        .to(r3, { yPercent: 0, y: 0, ease: "none", duration: 1 }, 0);
       window.ScrollTrigger.refresh();
     }
   })();
@@ -350,8 +350,11 @@
       gsap.set("[data-anim]", { autoAlpha: 0, y: 32 });
       gsap.set('[data-anim="sheet"]', { y: 80 });
       gsap.set(".line__inner", { yPercent: 110 });
+      // ficha: a máscara de revelação só roda em telas largas; no mobile o texto
+      // fica sempre visível (a máscara cortava conteúdo que quebra em várias linhas)
+      var fichaAnim = window.innerWidth > 700;
       gsap.set(".ficha__fill", { scaleX: 0 });
-      gsap.set(".ficha__row dt,.ficha__row dd", { yPercent: 120, autoAlpha: 0 });
+      if (fichaAnim) gsap.set(".ficha__row dt,.ficha__row dd", { yPercent: 120, autoAlpha: 0 });
       gsap.set(".ig__tile", { autoAlpha: 0, scale: 0.96 });
       gsap.set(".indice__row", { autoAlpha: 0 });
       gsap.set(".still__corners", { autoAlpha: 0 });
@@ -438,8 +441,8 @@
         }
       });
 
-      // S08 ficha tecnica
-      document.querySelectorAll(".ficha__row").forEach(function (row, i) {
+      // S08 ficha tecnica (só quando a máscara está ativa; ver fichaAnim acima)
+      if (fichaAnim) document.querySelectorAll(".ficha__row").forEach(function (row, i) {
         var fill = row.querySelector(".ficha__fill");
         var parts = row.querySelectorAll("dt,dd");
         var tl = gsap.timeline({ scrollTrigger: { trigger: row, start: "top 84%", once: true }, delay: (i % 3) * 0.05 });

@@ -256,11 +256,13 @@ a.ig__tile:hover::after{background:rgba(20,20,20,.35)}
 .ficha__row dd a{color:var(--gold-light);text-decoration:none;border-bottom:1px solid rgba(202,170,114,.4)}
 .ficha__row dd a:hover{border-bottom-color:var(--gold-light)}
 .ficha__fecho{margin-top:3.4rem;text-align:center;font-family:var(--serif);font-style:italic;font-size:1.3rem;color:rgba(244,241,235,.65)}
+.manifesto__quote .line--gap{margin-top:1.15em}
+.ficha__row dd{overflow-wrap:anywhere}
 @media (max-width:700px){
-  .ficha__row{flex-wrap:wrap;gap:.4rem}
+  .ficha__row{flex-wrap:wrap;gap:.4rem;overflow:visible}
   .ficha__row dt{width:auto}
   .ficha__fill{display:none}
-  .ficha__row dd{text-align:left;max-width:none;font-size:1.2rem}
+  .ficha__row dd{text-align:left;max-width:none;font-size:1.15rem;line-height:1.45}
 }
 
 /* ─────────────────────────── S09 FORM (CALL SHEET) ─────────────────────────── */
