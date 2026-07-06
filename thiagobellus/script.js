@@ -10,6 +10,26 @@
   var SUPABASE_ANON_KEY = "sb_publishable_UhC5LHa4Ob5vSY4K5xrM5Q_LG3pllu-";
   var WHATSAPP = "5521981636666";
 
+  // ── ÍNDICE · feed real do Instagram (ig/feed.json, sincronizado do @thiago.bellus) ──
+  (function igLive() {
+    var grid = document.getElementById("ig-grid"); if (!grid) return;
+    fetch("ig/feed.json?t=" + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.posts || j.posts.length < 6) return;
+        var IG = "https://www.instagram.com/";
+        grid.innerHTML = j.posts.slice(0, 9).map(function (p) {
+          var href = IG + (p.tipo === "reel" ? "reel/" : "p/") + p.code + "/";
+          var alt = String(p.alt || "Publicação de @thiago.bellus").replace(/"/g, "&quot;");
+          return '<a class="ig__tile" href="' + href + '" target="_blank" rel="noopener" aria-label="Abrir publicação no Instagram">' +
+            '<img src="ig/' + p.code + '.jpg" loading="lazy" alt="' + alt + '"/>' +
+            (p.tipo === "reel" ? '<span class="ig__reel" aria-hidden="true"></span>' : '') + '</a>';
+        }).join("");
+        if (window.gsap) { window.gsap.set("#ig-grid .ig__tile", { autoAlpha: 1, scale: 1, clearProps: "transform" }); }
+      })
+      .catch(function () {});
+  })();
+
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
   var isDesktop = window.matchMedia && window.matchMedia("(min-width: 1024px)").matches;
@@ -296,12 +316,10 @@
       var cur = document.getElementById("cursor"); if (!cur) return;
       document.body.classList.add("has-cursor");
       var label = cur.querySelector(".cursor__label");
-      var x = -100, y = -100, cx = -100, cy = -100;
-      document.addEventListener("mousemove", function (e) { x = e.clientX; y = e.clientY; }, { passive: true });
-      gsap.ticker.add(function () {
-        cx += (x - cx) * 0.16; cy += (y - cy) * 0.16;
-        cur.style.transform = "translate(" + cx + "px," + cy + "px)";
-      });
+      // 1:1 com o mouse: sem suavização, o ponteiro acompanha o movimento exato
+      document.addEventListener("mousemove", function (e) {
+        cur.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px)";
+      }, { passive: true });
       document.addEventListener("mouseover", function (e) {
         var clip = e.target.closest ? e.target.closest(".clip__facade") : null;
         if (clip) { cur.classList.add("is-play"); if (label) label.textContent = "PLAY"; return; }
