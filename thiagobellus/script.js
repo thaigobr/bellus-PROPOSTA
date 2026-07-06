@@ -26,8 +26,25 @@
             (p.tipo === "reel" ? '<span class="ig__reel" aria-hidden="true"></span>' : '') + '</a>';
         }).join("");
         if (window.gsap) { window.gsap.set("#ig-grid .ig__tile", { autoAlpha: 1, scale: 1, clearProps: "transform" }); }
+        deckReveal(grid);
       })
       .catch(function () {});
+
+    // revela o grid em linhas: cada fileira desliza de trás da anterior, no ritmo do scroll
+    function deckReveal(g) {
+      var rm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!window.gsap || !window.ScrollTrigger || rm) return;
+      var tiles = g.querySelectorAll(".ig__tile");
+      if (tiles.length < 9) return;
+      var r1 = [].slice.call(tiles, 0, 3), r2 = [].slice.call(tiles, 3, 6), r3 = [].slice.call(tiles, 6, 9);
+      window.gsap.set(r1, { zIndex: 3 });
+      window.gsap.set(r2, { zIndex: 2, yPercent: -100, y: -3 });
+      window.gsap.set(r3, { zIndex: 1, yPercent: -200, y: -6 });
+      window.gsap.timeline({ scrollTrigger: { trigger: g, start: "top 72%", end: "bottom 45%", scrub: 0.5 } })
+        .to(r2, { yPercent: 0, y: 0, ease: "none", duration: 1 })
+        .to(r3, { yPercent: 0, y: 0, ease: "none", duration: 1.4 });
+      window.ScrollTrigger.refresh();
+    }
   })();
 
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
