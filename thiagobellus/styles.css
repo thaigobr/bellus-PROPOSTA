@@ -123,11 +123,11 @@ body.has-cursor .form-producao,body.has-cursor .form-producao *{cursor:auto}
 
 .scene-number{position:absolute;top:8svh;right:2vw;font-family:var(--serif);font-size:24vw;line-height:1;color:transparent;-webkit-text-stroke:1px var(--gold);opacity:.06;pointer-events:none;user-select:none}
 .manifesto__grid{display:grid;grid-template-columns:1.2fr .8fr;gap:6vw;align-items:center}
-.manifesto__quote{font-family:var(--serif);font-weight:500;font-size:clamp(1.5rem,2.6vw,2.3rem);line-height:1.35;color:var(--cream)}
+.manifesto__quote{font-family:var(--serif);font-weight:400;font-size:clamp(1.1rem,1.5vw,1.45rem);line-height:1.55;color:var(--cream)}
 .manifesto__quote em{font-style:italic;color:var(--gold-light)}
 .line{display:block;overflow:hidden}
 .line__inner{display:block;will-change:transform}
-.manifesto__sign{margin-top:2rem;font-family:var(--serif);font-style:italic;font-size:1.4rem;color:var(--gold-light)}
+.manifesto__sign{margin-top:2rem;font-family:var(--serif);font-style:italic;font-size:1.25rem;color:var(--gold-light)}
 .still{position:relative;background:var(--ivory);padding:8px 8px 44px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
 .still img{width:100%;height:auto;filter:saturate(.92)}
 .still figcaption{position:absolute;left:10px;bottom:14px;font-family:var(--sans);font-size:9px;letter-spacing:.22em;color:#6a6156}
