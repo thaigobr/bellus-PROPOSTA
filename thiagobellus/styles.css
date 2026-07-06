@@ -232,7 +232,7 @@ body.has-cursor .form-producao,body.has-cursor .form-producao *{cursor:auto}
 .ig__follow:hover{color:#fff}
 .ig__follow:hover::before{transform:scaleX(1)}
 .ig__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:#e5e0d8}
-.ig__tile{position:relative;aspect-ratio:1;overflow:hidden;background:#efece6;display:block}
+.ig__tile{position:relative;aspect-ratio:3/4;overflow:hidden;background:#efece6;display:block}
 .ig__tile img{width:100%;height:100%;object-fit:cover;transition:transform .45s cubic-bezier(.22,.61,.36,1)}
 .ig__tile:hover img{transform:scale(1.06)}
 .ig__tile::after{content:"";position:absolute;inset:0;background:rgba(20,20,20,0);transition:background .25s}
