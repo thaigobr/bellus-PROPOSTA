@@ -29,6 +29,8 @@ const PRO_BASE = "https://www.belluseventos.com.br/thiagobellus/p/";
 const PRO_PACOTES = [{id:"pro-foto",nome:"Foto"},{id:"pro-video",nome:"Vídeo"},{id:"pro-video-foto",nome:"Vídeo e Foto"}];
 const isPro = (pk)=> typeof pk==="string" && pk.indexOf("pro-")===0;
 const propLink = (p)=> (p && isPro(p.pacote_recomendado) ? PRO_BASE : (p && isNiver(p.pacote_recomendado) ? NIVER_BASE : LINK_BASE)) + (p ? p.slug : "");
+// abrir pelo painel NÃO conta visualização nem muda status (get-proposta ignora preview=1)
+const previewLink = (p)=>{ const l=propLink(p); return l+(l.indexOf("?")>=0?"&":"?")+"preview=1"; };
 
 const root = document.getElementById("root");
 const state = { user: null, membro: null, view: "dashboard", propostas: [], agenda: [], leads: [], leadsUsados: new Set(), propByLead: {}, leadsOrigem: "tudo", leadsBusca: "", leadsPeriodo: "tudo", propPeriodo: "tudo", agendaPeriodo: "tudo", leadsMes: curYM(), propMes: curYM(), agendaMes: curYM(), leadsAno: curY(), propAno: curY(), agendaAno: curY(), calMes: curYM(), datasOcupadas: {}, bloqueios: [], datasBloqueadas: {}, syncMsg: "", prefillLead: null, editing: null, current: null, recovery: false, listaBusca: "" };
@@ -221,7 +223,7 @@ function render(){
   wire();
 }
 // ---------- helpers de tempo e contato ----------
-function diasDesde(ts){ if(!ts) return null; return Math.floor((Date.now()-new Date(ts).getTime())/86400000); }
+function diasDesde(ts){ if(!ts) return null; const d=new Date(ts); if(isNaN(d.getTime())) return null; const h=new Date(); return Math.round((new Date(h.getFullYear(),h.getMonth(),h.getDate()).getTime()-new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime())/86400000); }
 function desdeTxt(ts){ const d=diasDesde(ts); if(d==null) return ""; if(d<=0) return "hoje"; if(d===1) return "ontem"; return `há ${d} dias`; }
 function fmtTs(ts){ if(!ts) return "—"; const dt=new Date(ts); const p=(n)=>String(n).padStart(2,"0"); return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()}`; }
 function tsRel(ts){ if(!ts) return "—"; return `${fmtTs(ts)} (${desdeTxt(ts)})`; }
@@ -279,6 +281,11 @@ function waMsg(p){
   if(p.status==="enviada") return `Oi, ${primeiro}\n\nEnquanto preparava a proposta, fiquei pensando.\nQual é a cena ${ocasiao} que vocês mais gostariam de reviver daqui a 20 anos?\n\n${link}`;
   // Follow-up ABRIU E NÃO RESPONDEU (status visualizada): despertar emoção/opinião
   if(p.status==="visualizada") return `Oi, ${primeiro}\n\nFiquei curioso.\nQual foi a primeira sensação que vocês tiveram ao ver a proposta?\n\n${link}`;
+  // PERDIDA com data ocupada/bloqueada: nunca soar como se a agenda estivesse livre
+  if(p.status==="perdida" && p.evento_data && ((state.datasOcupadas||{})[p.evento_data] || (state.datasBloqueadas||{})[p.evento_data])){
+    const oq = isPro(p.pacote_recomendado) ? "o seu evento" : (isNiver(p.pacote_recomendado) ? "a festa" : "o casamento");
+    return `Oi, ${primeiro}\n\nFiquei muito feliz em saber que vocês pensaram na Bellus para registrar ${oq}.\nVerifiquei nossa agenda e a data ${fmtData(p.evento_data)} já está comprometida.\n\nAinda assim, queria deixar uma pequena observação, às vezes, uma mudança de data abre possibilidades completamente diferentes. Se isso fizer sentido, me avise.\n\nIndependente disso, deixo aqui um link para vocês conhecerem nosso trabalho e entenderem como construímos nossos filmes\n\n${link}\n\nTorço para que vocês encontrem profissionais que façam esse dia ser lembrado exatamente como ele merece.`;
+  }
   if(p.status==="negociando") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Dando sequência à nossa conversa, qualquer dúvida estou por aqui.\n\n${link}`;
   if(p.status==="reservada"||p.status==="fechada") return `Oi ${primeiro}! Aqui é o ${quem}, da Bellus Eventos. Que alegria ter você com a gente! Vamos alinhar os próximos passos?`;
   const L=[`${primeiro}, aqui é o ${quem}, da Bellus Eventos.`, ``];
@@ -916,7 +923,7 @@ function viewDetalhe(){
       <code id="prop-link">${esc(propLink(p))}</code>
       <div class="linkactions">
         <button class="btn btn-ghost" id="btn-copiar">Copiar link</button>
-        <a class="btn btn-ghost" href="${esc(propLink(p))}" target="_blank" rel="noopener">Abrir</a>
+        <a class="btn btn-ghost" href="${esc(previewLink(p))}" target="_blank" rel="noopener" title="Abre sem contar visualização">Abrir</a>
       </div>
     </div>
     <div class="form-actions" id="det-actions">
@@ -933,7 +940,7 @@ function viewAgenda(){
       <div class="data">${esc(fmtData(p.evento_data))}<small>${esc(statusTxt(p.status))}</small></div>
       <div class="ag-main">
         <div class="nome">${esc(nomes(p))}${n!=null?` <span class="ag-quando${urg?" urg":""}">${quandoTxt(n)}</span>`:""}</div>
-        <a class="ag-link" href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>
+        <a class="ag-link" href="${esc(previewLink(p))}" target="_blank" rel="noopener">${esc(link)}</a>
       </div>
       <button class="cbtn det" data-open="${esc(p.id)}">Ver proposta</button>
     </div>`;

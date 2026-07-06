@@ -581,7 +581,7 @@
 
   var slug=getSlug();
   if(!slug){erro("Proposta não encontrada.");return;}
-  fetch(FN+"?slug="+encodeURIComponent(slug),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
+  fetch(FN+"?slug="+encodeURIComponent(slug)+(/[?&]preview=1/.test(location.search)?"&preview=1":""),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
     .then(function(r){return r.json().then(function(b){return {ok:r.ok,b:b};});})
     .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;P.pkgId=(rec&&PACOTES.some(function(p){return p.id===rec;}))?rec:"diamante";build();mostrarRetornoPagamento();try{if(window.fbq){var _vb=breakdown();fbq("track","ViewContent",{value:_vb.total||0,currency:"BRL",content_name:(selPkg()||{}).nome||"Proposta"});}}catch(e){}}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
     .catch(function(){erro("Não foi possível carregar a proposta agora.");});
