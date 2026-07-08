@@ -32,7 +32,7 @@
     ["Alinhamento","Conversamos sobre o objetivo, o roteiro e as referências do projeto."],
     ["Captação","Presença profissional e discreta, com equipamento de cinema."],
     ["Edição","Seleção, montagem, cor e som: o material vira entrega final."],
-    ["Entrega","Arquivos finais por link, organizados e prontos para usar."],
+    ["Entrega","Arquivos finais por link, organizados e prontos para baixar."],
   ];
   var PORTFOLIO = [ ["ePwx8bsoztI",1.35], ["We-jTlYiLC4",1.35], ["_O0Kialgkzo",0] ];
   var FEATURES = [
@@ -461,6 +461,10 @@
     var p=P.proposta;
     var rsv=reservado();
     var focoFoto = p.pacote_recomendado !== "pro-video"; // foto em destaque, menos quando o formato é só vídeo
+    var umFormato = pacotesVis().length === 1; // proposta com um único formato: sem "escolha" nem comparação
+    var proc = PROCESS.map(function(s){return [s[0], s[1]];});
+    if(focoFoto) proc[4] = ["Edição","Seleção, edição e cor das fotos: o material vira a entrega final."];
+    if(umFormato) proc[0] = ["O seu formato","O formato do seu projeto já vem definido nesta proposta, é só conferir."];
     var rows=[["Serviço",p.evento_tipo||"Serviço audiovisual"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
     var ocupada=dataOcupada();
@@ -500,10 +504,10 @@
       '</div></section>'+
     // como funciona
     '<section class="section" id="como-funciona"><div class="container"><div class="shead"><p class="eyebrow">Como funciona</p><h2 class="serif">Do contrato à entrega</h2><p class="sub">Um caminho simples e sem surpresas, do primeiro passo à entrega.</p></div>'+
-      '<ol class="steps">'+PROCESS.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
+      '<ol class="steps">'+proc.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
     // formatos + lado a lado (ocultos depois da contratação)
-    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">Os formatos</p><h2 class="serif">Escolha o formato do seu projeto</h2><p class="sub">Toque num formato para ver o valor e o que inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div><p class="exp-note">'+(focoFoto?'Cada formato tem o seu valor e o que inclui. Escolha o que faz sentido para o seu evento.':'O vídeo é o coração do trabalho: se puder escolher um, escolha ser lembrado em movimento.')+'</p></div></section>'+
-    '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual formato combina com o seu projeto?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+
+    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">'+(umFormato?'O seu formato':'Os formatos')+'</p><h2 class="serif">'+(umFormato?'O que está incluído':'Escolha o formato do seu projeto')+'</h2><p class="sub">'+(umFormato?'Veja o valor e tudo o que faz parte do seu projeto.':'Toque num formato para ver o valor e o que inclui. O resumo se atualiza na hora.')+'</p></div><div id="r-exp"></div>'+(umFormato?'':'<p class="exp-note">'+(focoFoto?'Cada formato tem o seu valor e o que inclui. Escolha o que faz sentido para o seu evento.':'O vídeo é o coração do trabalho: se puder escolher um, escolha ser lembrado em movimento.')+'</p>')+'</div></section>'+
+    (umFormato?'':'<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual formato combina com o seu projeto?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>'))+
     '<div id="r-config"></div>'+
     '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">'+(rsv?'Estamos ansiosos pelo dia':'Vamos tirar o projeto do papel?')+'</h2><p>'+(rsv?'Seu serviço está confirmado e cada detalhe já é importante para nós. Qualquer novidade, é só chamar.':'Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o seu projeto.')+'</p><a class="btn btn-wa" id="cta-final" href="'+(rsv?waReservada():waFalar())+'" target="_blank" rel="noopener">'+WA+' Falar com o Thiago</a></div></section>'+
     '<footer class="footer section--dark">'+part(0)+'<div class="container"><img src="logo_bellus.png" alt="Thiago Bellus"/><div>Thiago Bellus · Bellus Eventos · CNPJ 30.922.038/0001-82 · Teresópolis, RJ</div><div style="margin-top:.4rem;opacity:.7">Proposta pessoal e confidencial.</div></div></footer>'+
