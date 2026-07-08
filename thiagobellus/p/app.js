@@ -477,11 +477,12 @@
     if(grainDone) return; grainDone=true;
     var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if(reducedM||window.innerWidth<768||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)) return;
-    var cv=document.querySelector(".grain"); if(!cv) return;
+    var cv=document.querySelector(".hero .grain"); if(!cv) return;
     var ctx=cv.getContext("2d"); if(!ctx) return;
+    var hero=cv.closest(".hero");
     var tiles=[];
     for(var t=0;t<6;t++){ var tc=document.createElement("canvas"); tc.width=128; tc.height=128; var tctx=tc.getContext("2d"), idata=tctx.createImageData(128,128); for(var i=0;i<idata.data.length;i+=4){ var val=Math.random()*255; idata.data[i]=val; idata.data[i+1]=val; idata.data[i+2]=val; idata.data[i+3]=255; } tctx.putImageData(idata,0,0); tiles.push(tc); }
-    function size(){ cv.width=window.innerWidth; cv.height=window.innerHeight; }
+    function size(){ cv.width=(hero?hero.offsetWidth:window.innerWidth); cv.height=(hero?hero.offsetHeight:window.innerHeight); }
     size(); window.addEventListener("resize",size,{passive:true});
     var fi=0; setInterval(function(){ if(document.hidden) return; fi=(fi+1)%6; ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=ctx.createPattern(tiles[fi],"repeat"); ctx.fillRect(0,0,cv.width,cv.height); },125);
   }
@@ -507,7 +508,7 @@
       topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>';
     }
     document.getElementById("app").innerHTML=
-    '<header class="section--dark hero"><video class="hero__bg" muted loop autoplay playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
+    '<header class="section--dark hero"><video class="hero__bg" muted loop autoplay playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div><canvas class="grain" aria-hidden="true"></canvas>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Thiago Bellus"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
