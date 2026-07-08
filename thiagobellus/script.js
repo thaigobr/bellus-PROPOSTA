@@ -247,7 +247,10 @@
       // navegador que muda a viewport). O vídeo roda em loop automático como fundo.
       if (isTouch) {
         if (reduceMotion) return; // reduzir movimento: mantém o poster estático
-        v.loop = true; v.muted = true;
+        // versão "boomerang" (ida e volta emendadas): loop nativo dá a sensação de
+        // abrir e fechar o olho, sem corte de volta ao início
+        v.innerHTML = '<source src="assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="assets/cabeca-thiago-bmr.mp4" type="video/mp4" />';
+        v.loop = true; v.muted = true; v.load();
         var pm = v.play(); if (pm && pm.catch) pm.catch(function () {});
         return;
       }
