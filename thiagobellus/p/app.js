@@ -465,7 +465,11 @@
     var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if(reducedM) return; // reduzir movimento: mantém o poster estático
     v.loop=true; v.muted=true; v.load();
-    var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){});
+    function tryPlay(){ if(!v.paused) return; var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){}); }
+    tryPlay();
+    // alguns navegadores/abas adiam o autoplay (foco/iOS): tenta na 1ª interação e ao voltar a visível
+    ["pointerdown","touchstart","scroll","keydown"].forEach(function(ev){ window.addEventListener(ev, tryPlay, {passive:true}); });
+    document.addEventListener("visibilitychange", function(){ if(!document.hidden) tryPlay(); });
   }
   // Grão de filme (chiado), igual à home: desktop, 8fps, tiles pré-gerados.
   var grainDone=false;
