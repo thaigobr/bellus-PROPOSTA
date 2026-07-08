@@ -226,6 +226,8 @@
   function boot() {
     if (!window.gsap || !window.ScrollTrigger) { document.documentElement.classList.add("gsap-failed"); return; }
     gsap.registerPlugin(ScrollTrigger);
+    // evita o "pulo" de pins no mobile quando a barra do navegador aparece/some (muda a viewport)
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
     var lenis = null;
     var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
@@ -241,10 +243,19 @@
     // Desceu o scroll, o vídeo avança; voltou, retrocede — na mesma velocidade do scroll.
     (function heroVideo() {
       var v = document.querySelector(".hero__bg"); if (!v) return;
+      // MOBILE/touch: sem pin nem scrub (o pin "pula" no celular por causa da barra do
+      // navegador que muda a viewport). O vídeo roda em loop automático como fundo.
+      if (isTouch) {
+        if (reduceMotion) return; // reduzir movimento: mantém o poster estático
+        v.loop = true; v.muted = true;
+        var pm = v.play(); if (pm && pm.catch) pm.catch(function () {});
+        return;
+      }
+      // DESKTOP: pin + scrub controlado pelo scroll
       v.pause();
       function setup() {
         if (!v.duration || !isFinite(v.duration)) return;
-        // prime do decoder (ajuda o seek a responder na hora, inclusive iOS)
+        // prime do decoder (ajuda o seek a responder na hora)
         var pr = v.play(); if (pr && pr.then) pr.then(function () { v.pause(); try { v.currentTime = 0; } catch (e) {} }).catch(function () {});
         else v.pause();
         if (reduceMotion) { try { v.currentTime = 0; } catch (e) {} return; }
