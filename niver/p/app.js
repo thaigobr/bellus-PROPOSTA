@@ -491,6 +491,35 @@
     if(!revealIO){ revealIO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("is-visible"); revealIO.unobserve(e.target); } }); }, {threshold:0.18, rootMargin:"0px 0px -6% 0px"}); }
     els.forEach(function(el){ revealIO.observe(el); });
   }
+    // Hero: vídeo boomerang (ida e volta) em loop, sensação de piscar o olho, sem travar a página.
+  // v.load() é necessário porque o <video> é inserido via innerHTML.
+  var heroFxDone=false;
+  function heroVideoFx(){
+    var v=document.querySelector(".hero__bg"); if(!v||heroFxDone) return; heroFxDone=true;
+    var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reducedM) return; // reduzir movimento: mantém o poster estático
+    v.loop=true; v.muted=true; v.load();
+    function tryPlay(){ if(!v.paused) return; var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){}); }
+    tryPlay();
+    // alguns navegadores/abas adiam o autoplay (foco/iOS): tenta na 1ª interação e ao voltar a visível
+    ["pointerdown","touchstart","scroll","keydown"].forEach(function(ev){ window.addEventListener(ev, tryPlay, {passive:true}); });
+    document.addEventListener("visibilitychange", function(){ if(!document.hidden) tryPlay(); });
+  }
+  // Grão de filme (chiado) só no hero: desktop, 8fps, tiles pré-gerados.
+  var grainDone=false;
+  function grainFx(){
+    if(grainDone) return; grainDone=true;
+    var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reducedM||window.innerWidth<768||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)) return;
+    var cv=document.querySelector(".hero .grain"); if(!cv) return;
+    var ctx=cv.getContext("2d"); if(!ctx) return;
+    var hero=cv.closest(".hero");
+    var tiles=[];
+    for(var t=0;t<6;t++){ var tc=document.createElement("canvas"); tc.width=128; tc.height=128; var tctx=tc.getContext("2d"), idata=tctx.createImageData(128,128); for(var i=0;i<idata.data.length;i+=4){ var val=Math.random()*255; idata.data[i]=val; idata.data[i+1]=val; idata.data[i+2]=val; idata.data[i+3]=255; } tctx.putImageData(idata,0,0); tiles.push(tc); }
+    function size(){ cv.width=(hero?hero.offsetWidth:window.innerWidth); cv.height=(hero?hero.offsetHeight:window.innerHeight); }
+    size(); window.addEventListener("resize",size,{passive:true});
+    var fi=0; setInterval(function(){ if(document.hidden) return; fi=(fi+1)%6; ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=ctx.createPattern(tiles[fi],"repeat"); ctx.fillRect(0,0,cv.width,cv.height); },125);
+  }
   function build(){
     var p=P.proposta;
     var rsv=reservado();
@@ -518,7 +547,7 @@
     var imgsNds=(p.imagens||[]);
     var galeria = false ? ('<section class="section" id="previa-noiva"><div class="container"><div class="shead"><p class="eyebrow">Sua prévia Noiva dos Sonhos</p><h2 class="serif">Você, antes do grande dia</h2><p class="sub">As imagens que você criou na experiência Noiva dos Sonhos. Baixe as que quiser guardar.</p></div><div class="nds-grid" id="nds-grid">'+imgsNds.map(function(im){return '<figure class="nds-fig"><img class="nds-img" src="'+esc(im.url)+'" alt="Sua prévia de noiva" loading="lazy"/><a class="nds-dl" href="'+esc(im.url)+'?download" target="_blank" rel="noopener">Baixar</a></figure>';}).join("")+'</div><p class="nds-note">Por segurança, essas imagens ficam disponíveis por tempo limitado e depois são removidas. Baixe as suas para guardar.</p></div></section>') : '';
     document.getElementById("app").innerHTML=
-    '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
+    '<header class="section--dark hero"><video class="hero__bg" muted loop autoplay playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div><canvas class="grain" aria-hidden="true"></canvas>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Bellus Eventos"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
@@ -560,6 +589,7 @@
     var ndsGrid=document.getElementById("nds-grid");
     if(ndsGrid){ ndsGrid.querySelectorAll(".nds-img").forEach(function(img){ img.addEventListener("error",function(){ var fig=img.closest(".nds-fig"); if(fig)fig.remove(); if(!ndsGrid.querySelector(".nds-fig")){ var sec=document.getElementById("previa-noiva"); if(sec)sec.style.display="none"; } }); }); }
     document.querySelectorAll("[data-particles]").forEach(initParticles);
+    heroVideoFx(); grainFx();
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
   }
