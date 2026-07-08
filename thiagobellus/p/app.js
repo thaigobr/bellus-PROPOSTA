@@ -457,34 +457,29 @@
       el.innerHTML=j.fotos.map(function(f){return '<figure class="gtile'+(f.orient==="v"?" v":"")+'"><img src="galeria/'+f.f+'" loading="lazy" alt="Fotografia de evento por Thiago Bellus"/></figure>';}).join("");
     }).catch(function(){ el.innerHTML=""; });
   }
-  // Hero: mesmo efeito da home. Desktop = vídeo controlado pelo scroll (avança/retrocede);
-  // mobile = boomerang (ida e volta) em loop, sem scroll-scrub (evita o "pulo" no celular).
+  // Hero: vídeo boomerang (ida e volta) em loop, sensação de piscar o olho, sem travar a página.
+  // v.load() é necessário porque o <video> é inserido via innerHTML.
   var heroFxDone=false;
   function heroVideoFx(){
     var v=document.querySelector(".hero__bg"); if(!v||heroFxDone) return; heroFxDone=true;
-    var isTouch=window.matchMedia&&window.matchMedia("(pointer: coarse)").matches;
     var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if(isTouch){
-      if(reducedM) return;
-      v.innerHTML='<source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" />';
-      v.loop=true; v.muted=true; v.load();
-      var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){});
-      return;
-    }
-    v.pause(); v.load(); // load() é necessário: o <video> foi inserido via innerHTML
-    var hero=document.querySelector(".hero");
-    function range(){ return Math.max(1, hero?hero.offsetHeight:window.innerHeight); }
-    var tick=false;
-    function upd(){ tick=false; if(reducedM||!v.duration) return;
-      var p=Math.min(Math.max(window.scrollY/range(),0),1); var t=p*(v.duration-0.05);
-      if(Math.abs((v.currentTime||0)-t)>0.001){ try{v.currentTime=t;}catch(e){} } }
-    function onScroll(){ if(!tick){ tick=true; requestAnimationFrame(upd); } }
-    function start(){
-      var pr=v.play(); if(pr&&pr.then) pr.then(function(){v.pause();try{v.currentTime=0;}catch(e){}}).catch(function(){}); else v.pause();
-      if(reducedM){ try{v.currentTime=0;}catch(e){} return; }
-      window.addEventListener("scroll",onScroll,{passive:true}); upd();
-    }
-    if(v.readyState>=1) start(); else v.addEventListener("loadedmetadata",start,{once:true});
+    if(reducedM) return; // reduzir movimento: mantém o poster estático
+    v.loop=true; v.muted=true; v.load();
+    var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){});
+  }
+  // Grão de filme (chiado), igual à home: desktop, 8fps, tiles pré-gerados.
+  var grainDone=false;
+  function grainFx(){
+    if(grainDone) return; grainDone=true;
+    var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reducedM||window.innerWidth<768||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)) return;
+    var cv=document.querySelector(".grain"); if(!cv) return;
+    var ctx=cv.getContext("2d"); if(!ctx) return;
+    var tiles=[];
+    for(var t=0;t<6;t++){ var tc=document.createElement("canvas"); tc.width=128; tc.height=128; var tctx=tc.getContext("2d"), idata=tctx.createImageData(128,128); for(var i=0;i<idata.data.length;i+=4){ var val=Math.random()*255; idata.data[i]=val; idata.data[i+1]=val; idata.data[i+2]=val; idata.data[i+3]=255; } tctx.putImageData(idata,0,0); tiles.push(tc); }
+    function size(){ cv.width=window.innerWidth; cv.height=window.innerHeight; }
+    size(); window.addEventListener("resize",size,{passive:true});
+    var fi=0; setInterval(function(){ if(document.hidden) return; fi=(fi+1)%6; ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=ctx.createPattern(tiles[fi],"repeat"); ctx.fillRect(0,0,cv.width,cv.height); },125);
   }
   function build(){
     var p=P.proposta;
@@ -508,7 +503,7 @@
       topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>';
     }
     document.getElementById("app").innerHTML=
-    '<header class="section--dark hero"><video class="hero__bg" muted playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
+    '<header class="section--dark hero"><video class="hero__bg" muted loop autoplay playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Thiago Bellus"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
@@ -551,7 +546,7 @@
     });});
     document.querySelectorAll("[data-particles]").forEach(initParticles);
     carregarGaleria();
-    heroVideoFx();
+    heroVideoFx(); grainFx();
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
   }
