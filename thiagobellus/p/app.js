@@ -28,7 +28,7 @@
   var CTA_LABEL = { full:"Confirmar e contratar", installments:"Continuar para contratar", signal:"Pagar 50% e garantir a data" };
   var PROCESS = [
     ["Escolha do formato","Você escolhe o formato que faz sentido para o seu projeto."],
-    ["Confirmação","O serviço é confirmado com a assinatura e o pagamento: Pix à vista ou cartão em até 3x."],
+    ["Confirmação","O serviço é confirmado com a assinatura e o pagamento. Você pode pagar 50% agora e o restante até a data, ou à vista no Pix."],
     ["Alinhamento","Conversamos sobre o objetivo, o roteiro e as referências do projeto."],
     ["Captação","Presença profissional e discreta, com equipamento de cinema."],
     ["Edição","Seleção, montagem, cor e som: o material vira entrega final."],
@@ -449,35 +449,13 @@
     if(!revealIO){ revealIO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("is-visible"); revealIO.unobserve(e.target); } }); }, {threshold:0.18, rootMargin:"0px 0px -6% 0px"}); }
     els.forEach(function(el){ revealIO.observe(el); });
   }
-  // Galeria de fotos reais (galeria/fotos.json) + lightbox
+  // Galeria de fotos reais (galeria/fotos.json). Sem lightbox: as fotos ficam estáticas na grade.
   function carregarGaleria(){
     var el=document.getElementById("galeria"); if(!el) return;
     fetch("galeria/fotos.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(j){
       if(!j||!j.fotos||!j.fotos.length){ el.innerHTML=""; return; }
-      var fotos=j.fotos;
-      el.innerHTML=fotos.map(function(f,i){return '<button class="gtile'+(f.orient==="v"?" v":"")+'" data-gi="'+i+'" aria-label="Ampliar foto"><img src="galeria/'+f.f+'" loading="lazy" alt="Fotografia de evento por Thiago Bellus"/></button>';}).join("");
-      var srcs=fotos.map(function(f){return "galeria/"+f.f;});
-      el.querySelectorAll("[data-gi]").forEach(function(b){ b.addEventListener("click",function(){ abrirLightbox(srcs, parseInt(b.getAttribute("data-gi"),10)||0); }); });
+      el.innerHTML=j.fotos.map(function(f){return '<figure class="gtile'+(f.orient==="v"?" v":"")+'"><img src="galeria/'+f.f+'" loading="lazy" alt="Fotografia de evento por Thiago Bellus"/></figure>';}).join("");
     }).catch(function(){ el.innerHTML=""; });
-  }
-  var lbIdx=0, lbSrcs=[];
-  function abrirLightbox(srcs, i){
-    lbSrcs=srcs; lbIdx=i;
-    var old=document.getElementById("lbov"); if(old)old.remove();
-    var ov=document.createElement("div"); ov.id="lbov"; ov.className="lbov";
-    ov.innerHTML='<button class="lbx" aria-label="Fechar">&times;</button><button class="lbnav lbprev" aria-label="Anterior">&#8249;</button><img class="lbimg" alt="Foto ampliada"/><button class="lbnav lbnext" aria-label="Próxima">&#8250;</button><div class="lbcount"></div>';
-    document.body.appendChild(ov); document.body.style.overflow="hidden";
-    function paint(){ ov.querySelector(".lbimg").src=lbSrcs[lbIdx]; ov.querySelector(".lbcount").textContent=(lbIdx+1)+" / "+lbSrcs.length; }
-    function fechar(){ ov.remove(); document.body.style.overflow=""; document.removeEventListener("keydown",onkey); }
-    function prev(){ lbIdx=(lbIdx-1+lbSrcs.length)%lbSrcs.length; paint(); }
-    function next(){ lbIdx=(lbIdx+1)%lbSrcs.length; paint(); }
-    function onkey(e){ if(e.key==="Escape")fechar(); else if(e.key==="ArrowLeft")prev(); else if(e.key==="ArrowRight")next(); }
-    ov.querySelector(".lbx").addEventListener("click",fechar);
-    ov.querySelector(".lbprev").addEventListener("click",prev);
-    ov.querySelector(".lbnext").addEventListener("click",next);
-    ov.addEventListener("click",function(e){ if(e.target===ov)fechar(); });
-    document.addEventListener("keydown",onkey);
-    paint();
   }
   function build(){
     var p=P.proposta;
@@ -509,10 +487,10 @@
       (p.mensagem_pessoal?'<figure class="evmsg"><blockquote>“'+esc(p.mensagem_pessoal)+'”</blockquote><figcaption>'+esc(p.consultor||"Thiago Rodrigues")+', Thiago Bellus</figcaption></figure>':'')+'</div></div></section>'+
     // manifesto
     '<section class="section section--tint"><div class="container narrow"><p class="eyebrow">Por que registrar bem</p><p class="serif" style="font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.08;margin-top:1rem">Imagem profissional muda como o seu projeto é percebido.</p>'+
-      '<blockquote class="manifq serif">Vídeo e foto são a primeira impressão do que você faz. Qualidade de imagem é qualidade percebida.</blockquote>'+
+      '<blockquote class="manifq serif">'+(focoFoto?'A fotografia é a lembrança que sobra quando o evento acaba. Qualidade de imagem é qualidade percebida.':'A imagem é a primeira impressão do seu evento. Qualidade de imagem é qualidade percebida.')+'</blockquote>'+
       '<p class="manif-fear serif">Um registro amador custa caro depois. O profissional fica pronto para usar: hoje e sempre.</p></div></section>'+
     // portfolio (Para você sentir)
-    '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">'+(focoFoto?'Como enxergamos um evento real':'Para você sentir')+'</p><h2 class="serif light">'+(focoFoto?'Pessoas, luz e o instante certo':'O que a imagem certa revela')+'</h2><p class="sub">'+(focoFoto?'Uma seleção de fotografias de eventos reais. Toque em qualquer foto para ampliar.':'Um olhar de cinema aplicado a projetos e eventos.')+'</p></div>'+
+    '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">'+(focoFoto?'Como enxergamos um evento real':'Para você sentir')+'</p><h2 class="serif light">'+(focoFoto?'Pessoas, luz e o instante certo':'O que a imagem certa revela')+'</h2><p class="sub">'+(focoFoto?'Uma seleção de fotografias de eventos reais.':'Um olhar de cinema aplicado a projetos e eventos.')+'</p></div>'+
       (focoFoto
         ? '<div class="galeria" id="galeria"><p class="galeria-load">Carregando fotos…</p></div>'+
           '<p class="galeria-video">Também filmamos. Se quiser ver o trabalho em movimento, <a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener">é só assistir no YouTube</a>.</p>'+
@@ -524,7 +502,7 @@
     '<section class="section" id="como-funciona"><div class="container"><div class="shead"><p class="eyebrow">Como funciona</p><h2 class="serif">Do contrato à entrega</h2><p class="sub">Um caminho simples e sem surpresas, do primeiro passo à entrega.</p></div>'+
       '<ol class="steps">'+PROCESS.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
     // formatos + lado a lado (ocultos depois da contratação)
-    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">Os formatos</p><h2 class="serif">Escolha o formato do seu projeto</h2><p class="sub">Toque num formato para ver o valor e o que inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div><p class="exp-note">O vídeo é o coração do trabalho: se puder escolher um, escolha ser lembrado em movimento.</p></div></section>'+
+    (rsv?'':'<section class="section" id="experiencias"><div class="container"><div class="shead"><p class="eyebrow">Os formatos</p><h2 class="serif">Escolha o formato do seu projeto</h2><p class="sub">Toque num formato para ver o valor e o que inclui. O resumo se atualiza na hora.</p></div><div id="r-exp"></div><p class="exp-note">'+(focoFoto?'Cada formato tem o seu valor e o que inclui. Escolha o que faz sentido para o seu evento.':'O vídeo é o coração do trabalho: se puder escolher um, escolha ser lembrado em movimento.')+'</p></div></section>'+
     '<section class="section section--tint" id="comparar"><div class="container"><div class="shead"><p class="eyebrow">Lado a lado</p><h2 class="serif">Qual formato combina com o seu projeto?</h2><p class="sub">O essencial para comparar, sem termos técnicos.</p></div><div id="r-comp"></div></div></section>')+
     '<div id="r-config"></div>'+
     '<section class="section--dark finalcta section">'+part(0.7)+'<div class="hero__glow"></div><div class="container"><h2 class="serif">'+(rsv?'Estamos ansiosos pelo dia':'Vamos tirar o projeto do papel?')+'</h2><p>'+(rsv?'Seu serviço está confirmado e cada detalhe já é importante para nós. Qualquer novidade, é só chamar.':'Qualquer dúvida sobre a proposta, é só chamar. Será uma alegria registrar o seu projeto.')+'</p><a class="btn btn-wa" id="cta-final" href="'+(rsv?waReservada():waFalar())+'" target="_blank" rel="noopener">'+WA+' Falar com o Thiago</a></div></section>'+
