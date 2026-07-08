@@ -230,7 +230,8 @@
     var lenis = null;
     var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
     if (window.Lenis && !isTouch && !reduceMotion) {
-      lenis = new Lenis({ smoothWheel: true, syncTouch: false });
+      // lerp alto + wheelMultiplier: resposta imediata e navegação rápida (sem sensação de atraso)
+      lenis = new Lenis({ smoothWheel: true, syncTouch: false, lerp: 0.18, wheelMultiplier: 1.6 });
       lenis.on("scroll", ScrollTrigger.update);
       gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
       gsap.ticker.lagSmoothing(0);
@@ -247,8 +248,10 @@
         var pr = v.play(); if (pr && pr.then) pr.then(function () { v.pause(); try { v.currentTime = 0; } catch (e) {} }).catch(function () {});
         else v.pause();
         if (reduceMotion) { try { v.currentTime = 0; } catch (e) {} return; }
+        // pin: o hero fica preso enquanto o vídeo percorre do início ao fim;
+        // só depois de concluído a página segue para as próximas seções
         ScrollTrigger.create({
-          trigger: "#hero", start: "top top", end: "bottom top", scrub: true,
+          trigger: "#hero", start: "top top", end: "+=100%", pin: true, anticipatePin: 1, scrub: true,
           onUpdate: function (self) {
             if (!v.duration) return;
             var t = self.progress * (v.duration - 0.05);
