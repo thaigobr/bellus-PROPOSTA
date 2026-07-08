@@ -230,8 +230,8 @@
     var lenis = null;
     var isTouch = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
     if (window.Lenis && !isTouch && !reduceMotion) {
-      // lerp alto + wheelMultiplier: resposta imediata e navegação rápida (sem sensação de atraso)
-      lenis = new Lenis({ smoothWheel: true, syncTouch: false, lerp: 0.18, wheelMultiplier: 1.6 });
+      // pouco amortecimento (lerp alto) + bastante alcance por giro: navegação rápida, quase imediata
+      lenis = new Lenis({ smoothWheel: true, syncTouch: false, lerp: 0.55, wheelMultiplier: 3.2, touchMultiplier: 2.2 });
       lenis.on("scroll", ScrollTrigger.update);
       gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
       gsap.ticker.lagSmoothing(0);
