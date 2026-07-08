@@ -21,10 +21,11 @@
   ];
   var ADDONS = [];
   var PAGAMENTOS = [
-    { id:"avista", kind:"full", label:"Pagamento via PIX", desc:"Valor integral no Pix, sem taxa.", discountRate:0 },
+    { id:"sinal", kind:"signal", label:"50% agora, saldo até a data", desc:"Metade no Pix agora para garantir a data. O restante até o dia do evento.", pct:0.5 },
+    { id:"avista", kind:"full", label:"Pagamento integral no Pix", desc:"Valor total no Pix, sem taxa.", discountRate:0 },
     { id:"cartao", kind:"installments", label:"Cartão de crédito em até 3x", desc:"No cartão via checkout seguro, com a taxa da operadora embutida.", maxInstallments:MAXP },
   ];
-  var CTA_LABEL = { full:"Confirmar e contratar", installments:"Continuar para contratar" };
+  var CTA_LABEL = { full:"Confirmar e contratar", installments:"Continuar para contratar", signal:"Pagar 50% e garantir a data" };
   var PROCESS = [
     ["Escolha do formato","Você escolhe o formato que faz sentido para o seu projeto."],
     ["Confirmação","O serviço é confirmado com a assinatura e o pagamento: Pix à vista ou cartão em até 3x."],
@@ -60,7 +61,7 @@
   var PLAY='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7-11-7z"/></svg>';
   var IG='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>';
 
-  var P = { proposta:null, pkgId:null, qty:{}, downsell:false, payId:"avista", terms:false };
+  var P = { proposta:null, pkgId:null, qty:{}, downsell:false, payId:"sinal", terms:false };
 
   function selPkg(){return PACOTES.find(function(p){return p.id===P.pkgId;});}
   function visibleAddons(){return ADDONS;}
@@ -75,7 +76,8 @@
     var subtotal=preco(pk)+desloc; var pay=selPay();
     var disc=Math.round(subtotal*((pay&&pay.discountRate)||0)); var total=subtotal-disc;
     var ic=null,iv=null,icTotal=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){ic=pay.maxInstallments;icTotal=totalCart(total,ic);iv=Math.round((icTotal/ic)*100)/100;}
-    return {subtotal:subtotal,disc:disc,total:total,sig:null,sal:null,ic:ic,iv:iv,icTotal:icTotal,desloc:desloc};
+    var sig=null,sal=null; if(pay&&pay.kind==="signal"){var pct=pay.pct||0.5; sig=Math.round(subtotal*pct); sal=subtotal-sig;}
+    return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv,icTotal:icTotal,desloc:desloc};
   }
   function waBase(extra){var p=P.proposta;var num=(p.whatsapp||WHATS).replace(/\D/g,"");return "https://wa.me/"+num+"?text="+encodeURIComponent(extra);}
   function dataTxt(){var d=P.proposta.evento_data;return d?dataCurta(d):"a definir";}
@@ -96,13 +98,17 @@
   function taxaCart(n){ return n<=1?0.0299:(n<=6?0.0349:0.0399); }
   function totalCart(v,n){ return (v+0.49)/(1-taxaCart(n)); }
   function abrirPix(cond, met){
-    pgCond=["avista","cartao"].indexOf(cond)>=0?cond:"avista"; pgMet=met||"";
+    pgCond=["avista","cartao","sinal","saldo"].indexOf(cond)>=0?cond:"avista"; pgMet=met||"";
     var ehCartao=pgCond==="cartao";
     var b=breakdown();
-    if(window.fbq) fbq("track","InitiateCheckout",{value:b.total||0,currency:"BRL"});
+    var pgRes=(P.proposta&&P.proposta.pagamento)||{};
+    var valorCobra = (pgCond==="sinal") ? b.sig : (pgCond==="saldo") ? ((pgRes.saldo_centavos||0)/100) : b.total;
+    if(window.fbq) fbq("track","InitiateCheckout",{value:valorCobra||0,currency:"BRL"});
     var topo, titu, subq;
     if(ehCartao){ topo="Pagar no cartão"; titu="Cartão de crédito"; subq="Escolha em quantas vezes quer parcelar (até "+MAXP+"x). A taxa do cartão já vem embutida em cada parcela."; }
-    else { topo="Pagamento à vista"; titu="Pix"; subq="Você paga <b>"+brl(b.total)+"</b> no Pix, sem taxa. Confirma o serviço na hora."; }
+    else if(pgCond==="sinal"){ topo="Sinal de 50%"; titu="Pix"; subq="Você paga <b>"+brl(b.sig)+"</b> agora no Pix e garante a data. O saldo de "+brl(b.sal)+" fica para até o evento."; }
+    else if(pgCond==="saldo"){ topo="Pagamento do saldo"; titu="Pix"; subq="Você paga o restante de <b>"+brl(valorCobra)+"</b> no Pix, sem taxa."; }
+    else { topo="Pagamento integral"; titu="Pix"; subq="Você paga <b>"+brl(b.total)+"</b> no Pix, sem taxa. Confirma o serviço na hora."; }
     var parcHtml="";
     if(ehCartao){
       var os="";
@@ -152,7 +158,7 @@
     var ehCartaoG=pgCond==="cartao";
     var orig=btn.innerHTML; btn.innerHTML=ehCartaoG?"Abrindo…":"Gerando…"; msg.textContent=""; msg.classList.remove("warn");
     function falha(e){ btn.removeAttribute("data-l"); btn.innerHTML=orig; msg.textContent=e||"Não foi possível agora. Tente de novo."; msg.classList.add("warn"); }
-    fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:P.pkgId,cond:pgCond,metodo:pgMet,cpf:cpf,qty:{},parcelas:(ehCartaoG&&document.getElementById("pixparc"))?parseInt(document.getElementById("pixparc").value,10)||1:1})})
+    fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:(P.pkgId||pacoteContratado().id),cond:pgCond,metodo:pgMet,cpf:cpf,qty:{},parcelas:(ehCartaoG&&document.getElementById("pixparc"))?parseInt(document.getElementById("pixparc").value,10)||1:1})})
       .then(function(r){return r.json().then(function(b){return{ok:r.ok,b:b};});})
       .then(function(r){
         if(!r.ok||!r.b){ falha(r.b&&r.b.error); return; }
@@ -287,6 +293,12 @@
   }
 
   function alemHtml(){ return ""; }
+  function payMsg(){
+    var pay=selPay(); if(!pay) return "";
+    if(pay.kind==="installments") return "Pagamento no cartão em até "+MAXP+"x, em ambiente seguro.";
+    if(pay.kind==="signal"){ var b=breakdown(); return "Você paga "+brl(b.sig)+" agora no Pix e garante a data. O saldo de "+brl(b.sal)+" fica para até o evento."; }
+    return "Pagamento integral no Pix, sem taxa.";
+  }
   function summaryHtml(){
     var pk=selPkg(); var b=breakdown(); var pay=selPay(); var p=P.proposta;
     var h='<div class="summary"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Sua contratação</h3><span class="ev">'+esc(p.evento_tipo||"Serviço audiovisual")+(p.evento_data?" · "+dataCurta(p.evento_data):"")+'</span></div>';
@@ -296,6 +308,7 @@
     if(b.disc>0)h+='<div class="sline accent"><span class="l">Desconto à vista</span><span class="v tnum">menos '+brl(b.disc)+'</span></div>';
     h+='<div class="stotal"><span class="l">Total</span><span class="v tnum">'+brl(b.total)+'</span></div>';
     if(pay&&pay.kind==="installments"&&b.iv!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">Em até '+b.ic+'x no cartão</span><span class="v tnum">'+brlC(b.iv)+'</span></div><div class="sline"><span class="l">Total no cartão (com a taxa)</span><span class="v tnum">'+brlC(b.icTotal)+'</span></div></div>';
+    if(pay&&pay.kind==="signal"&&b.sig!=null)h+='<div class="sbox"><div class="sline strong"><span class="l">50% agora no Pix</span><span class="v tnum">'+brl(b.sig)+'</span></div><div class="sline"><span class="l">Saldo até '+(p.evento_data?dataCurta(p.evento_data):"a data do evento")+'</span><span class="v tnum">'+brl(b.sal)+'</span></div></div>';
     var dval=p.expira_em?diasPara(String(p.expira_em).slice(0,10)):null;
     var validadeTxt=dval==null?"":(dval>1?'<span class="sval-urge">Esta condição vale por mais '+dval+' dias.</span> ':dval===1?'<span class="sval-urge">Esta condição vale só até amanhã.</span> ':dval===0?'<span class="sval-urge">Esta condição vale só até hoje.</span> ':"");
     h+='<div class="svalidade">'+validadeTxt+'O serviço é confirmado após a assinatura do contrato e o pagamento.</div></div>';
@@ -305,13 +318,14 @@
       (dataOcupada()
         ? '<a class="btn btn-bloq ckbtn" id="reservar" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Essa data já está comprometida</a>'
         : '<a class="btn btn-gold ckbtn'+(P.terms?"":" off")+'" id="reservar" href="'+waReservar()+'" target="_blank" rel="noopener">'+esc(lab)+' →</a>')+
-      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está comprometida na agenda. Fale com o Thiago para ver alternativas.":(!P.terms?"Marque o aceite acima para contratar.":(selPay()&&selPay().kind==="installments")?"Pagamento no cartão em até "+MAXP+"x, em ambiente seguro.":"Pagamento à vista no Pix, sem taxa."))+'</p></div>';
+      '<p class="ck-msg" id="ck-msg">'+(dataOcupada()?"Essa data já está comprometida na agenda. Fale com o Thiago para ver alternativas.":(!P.terms?"Marque o aceite acima para contratar.":payMsg()))+'</p></div>';
     return h;
   }
   function paymentHtml(){
     var b=breakdown();
     var opts=PAGAMENTOS.map(function(o){var sel=o.id===P.payId;var pv="";
       if(o.kind==="full"){pv=brl(b.subtotal)+" à vista no Pix";}
+      else if(o.kind==="signal"){var pct=o.pct||0.5;var sg=Math.round(b.subtotal*pct);pv="50% = "+brl(sg)+" agora · saldo "+brl(b.subtotal-sg)+(P.proposta&&P.proposta.evento_data?" até "+dataCurta(P.proposta.evento_data):"");}
       else if(o.kind==="installments"&&o.maxInstallments){pv="Em até "+o.maxInstallments+"x de "+brlC(totalCart(b.subtotal,o.maxInstallments)/o.maxInstallments)+" (com taxa)";}
       return '<button class="payopt'+(sel?" sel":"")+'" data-pay="'+o.id+'"><span class="rd">'+(sel?CK:"")+'</span><span><span class="lab">'+esc(o.label)+'</span><span class="ds">'+esc(o.desc)+'</span>'+(pv?'<span class="pv">'+esc(pv)+'</span>':'')+'</span></button>';
     }).join("");
@@ -362,7 +376,7 @@
               '<div class="rsv-row"><span class="l">Pago'+(quando?' <small>em '+quando+'</small>':'')+'</span><b class="tnum">'+sinal+'</b></div>'+
               '<div class="rsv-row total"><span class="l">Restante</span><b class="tnum">'+saldo+'</b></div>'+
             '</div>'+
-            '<p class="rsv-info">Pague o restante como preferir: no Pix (sem taxa) ou no cartão (com a taxa).</p>'+
+            '<p class="rsv-info">Pague o restante no Pix, sem taxa, quando quiser até a data do evento.</p>'+
             '<a class="btn btn-gold rsv-btn" id="saldo-pix">Pagar restante no Pix · '+saldo+'</a>'
           : '<div class="rsv-paid"><span class="rsv-paid-ck">'+CK+'</span><div><div class="t">Pagamento concluído</div><div class="d">Tudo quitado'+(totalPago?' · '+totalPago:'')+'. Estamos ansiosos pelo dia!</div></div></div>'
         )+
@@ -371,18 +385,19 @@
   }
   function paintConfig(){
     var el=document.getElementById("r-config");
-    if(reservado()){ el.innerHTML=reservaPainelHtml(); setupTitleType(); var sp=document.getElementById("saldo-pix"); if(sp)sp.addEventListener("click",function(){abrirPix("avista","pix");}); return; }
+    if(reservado()){ el.innerHTML=reservaPainelHtml(); setupTitleType(); var sp=document.getElementById("saldo-pix"); if(sp)sp.addEventListener("click",function(){abrirPix("saldo","pix");}); return; }
     el.innerHTML=alemHtml()+'<section class="section" id="contratacao"><div class="container"><div class="shead"><p class="eyebrow">Resumo da contratação</p><h2 class="serif">Tudo claro, antes do próximo passo</h2></div><div class="cw"><div>'+paymentHtml()+'</div><div>'+summaryHtml()+'</div></div></div></section>';
     el.querySelectorAll("[data-pay]").forEach(function(b){b.addEventListener("click",function(){P.payId=b.getAttribute("data-pay");paintConfig();paintMbar();});});
     el.querySelectorAll("[data-scroll]").forEach(function(b){b.addEventListener("click",function(){var t=document.getElementById(b.getAttribute("data-scroll"));if(t)t.scrollIntoView({behavior:"smooth"});});});
     setupTitleType();
     var tc=document.getElementById("terms"), rb=document.getElementById("reservar"), msg=document.getElementById("ck-msg");
-    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?((selPay()&&selPay().kind==="installments")?"Pagamento no cartão em até "+MAXP+"x, em ambiente seguro.":"Pagamento à vista no Pix, sem taxa."):"Marque o aceite acima para contratar.";});
+    if(tc)tc.addEventListener("change",function(){if(dataOcupada())return;P.terms=tc.checked;if(rb)rb.classList.toggle("off",!P.terms);if(msg)msg.textContent=P.terms?payMsg():"Marque o aceite acima para contratar.";});
     if(rb)rb.addEventListener("click",function(e){
       if(dataOcupada())return;
       if(!P.terms){e.preventDefault();if(msg){msg.textContent="Marque o aceite acima para contratar.";msg.classList.add("warn");setTimeout(function(){msg.classList.remove("warn");},1800);}return;}
       var pay=selPay();
       if(pay&&pay.kind==="full"){ e.preventDefault(); abrirPix("avista"); }
+      else if(pay&&pay.kind==="signal"){ e.preventDefault(); abrirPix("sinal"); }
       else if(pay&&pay.kind==="installments"){ e.preventDefault(); abrirPix("cartao"); }
     });
   }
@@ -434,9 +449,40 @@
     if(!revealIO){ revealIO=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("is-visible"); revealIO.unobserve(e.target); } }); }, {threshold:0.18, rootMargin:"0px 0px -6% 0px"}); }
     els.forEach(function(el){ revealIO.observe(el); });
   }
+  // Galeria de fotos reais (galeria/fotos.json) + lightbox
+  function carregarGaleria(){
+    var el=document.getElementById("galeria"); if(!el) return;
+    fetch("galeria/fotos.json?t="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      if(!j||!j.fotos||!j.fotos.length){ el.innerHTML=""; return; }
+      var fotos=j.fotos;
+      el.innerHTML=fotos.map(function(f,i){return '<button class="gtile'+(f.orient==="v"?" v":"")+'" data-gi="'+i+'" aria-label="Ampliar foto"><img src="galeria/'+f.f+'" loading="lazy" alt="Fotografia de evento por Thiago Bellus"/></button>';}).join("");
+      var srcs=fotos.map(function(f){return "galeria/"+f.f;});
+      el.querySelectorAll("[data-gi]").forEach(function(b){ b.addEventListener("click",function(){ abrirLightbox(srcs, parseInt(b.getAttribute("data-gi"),10)||0); }); });
+    }).catch(function(){ el.innerHTML=""; });
+  }
+  var lbIdx=0, lbSrcs=[];
+  function abrirLightbox(srcs, i){
+    lbSrcs=srcs; lbIdx=i;
+    var old=document.getElementById("lbov"); if(old)old.remove();
+    var ov=document.createElement("div"); ov.id="lbov"; ov.className="lbov";
+    ov.innerHTML='<button class="lbx" aria-label="Fechar">&times;</button><button class="lbnav lbprev" aria-label="Anterior">&#8249;</button><img class="lbimg" alt="Foto ampliada"/><button class="lbnav lbnext" aria-label="Próxima">&#8250;</button><div class="lbcount"></div>';
+    document.body.appendChild(ov); document.body.style.overflow="hidden";
+    function paint(){ ov.querySelector(".lbimg").src=lbSrcs[lbIdx]; ov.querySelector(".lbcount").textContent=(lbIdx+1)+" / "+lbSrcs.length; }
+    function fechar(){ ov.remove(); document.body.style.overflow=""; document.removeEventListener("keydown",onkey); }
+    function prev(){ lbIdx=(lbIdx-1+lbSrcs.length)%lbSrcs.length; paint(); }
+    function next(){ lbIdx=(lbIdx+1)%lbSrcs.length; paint(); }
+    function onkey(e){ if(e.key==="Escape")fechar(); else if(e.key==="ArrowLeft")prev(); else if(e.key==="ArrowRight")next(); }
+    ov.querySelector(".lbx").addEventListener("click",fechar);
+    ov.querySelector(".lbprev").addEventListener("click",prev);
+    ov.querySelector(".lbnext").addEventListener("click",next);
+    ov.addEventListener("click",function(e){ if(e.target===ov)fechar(); });
+    document.addEventListener("keydown",onkey);
+    paint();
+  }
   function build(){
     var p=P.proposta;
     var rsv=reservado();
+    var focoFoto = p.pacote_recomendado !== "pro-video"; // foto em destaque, menos quando o formato é só vídeo
     var rows=[["Serviço",p.evento_tipo||"Serviço audiovisual"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
     var ocupada=dataOcupada();
@@ -466,9 +512,14 @@
       '<blockquote class="manifq serif">Vídeo e foto são a primeira impressão do que você faz. Qualidade de imagem é qualidade percebida.</blockquote>'+
       '<p class="manif-fear serif">Um registro amador custa caro depois. O profissional fica pronto para usar: hoje e sempre.</p></div></section>'+
     // portfolio (Para você sentir)
-    '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">Para você sentir</p><h2 class="serif light">O que a imagem certa revela</h2><p class="sub">Um olhar de cinema aplicado a projetos e eventos.</p></div>'+
-      '<div class="pf-grid">'+PORTFOLIO.map(function(v){return '<button class="pf-tile" data-video="'+v[0]+'" data-zoom="'+v[1]+'" aria-label="Assistir vídeo"><span class="pf-cover" style="background-image:url(https://i.ytimg.com/vi/'+v[0]+'/hqdefault.jpg);transform:scale('+(v[1]||1)+')"></span><span class="pf-play">'+PLAY+'</span></button>';}).join("")+'</div>'+
-      '<div class="pf-links"><a href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener" aria-label="Instagram">'+IG+'</a><a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener" class="yt">Ver mais trabalhos no YouTube</a></div></div></section>'+
+    '<section class="section section--dark" id="portfolio">'+part(0.6)+'<div class="container"><div class="shead"><p class="eyebrow eyebrow--light">'+(focoFoto?'Como enxergamos um evento real':'Para você sentir')+'</p><h2 class="serif light">'+(focoFoto?'Pessoas, luz e o instante certo':'O que a imagem certa revela')+'</h2><p class="sub">'+(focoFoto?'Uma seleção de fotografias de eventos reais. Toque em qualquer foto para ampliar.':'Um olhar de cinema aplicado a projetos e eventos.')+'</p></div>'+
+      (focoFoto
+        ? '<div class="galeria" id="galeria"><p class="galeria-load">Carregando fotos…</p></div>'+
+          '<p class="galeria-video">Também filmamos. Se quiser ver o trabalho em movimento, <a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener">é só assistir no YouTube</a>.</p>'+
+          '<div class="pf-links"><a href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener"><span class="pf-igmark">'+IG+'</span>Ver mais no Instagram</a></div>'
+        : '<div class="pf-grid">'+PORTFOLIO.map(function(v){return '<button class="pf-tile" data-video="'+v[0]+'" data-zoom="'+v[1]+'" aria-label="Assistir vídeo"><span class="pf-cover" style="background-image:url(https://i.ytimg.com/vi/'+v[0]+'/hqdefault.jpg);transform:scale('+(v[1]||1)+')"></span><span class="pf-play">'+PLAY+'</span></button>';}).join("")+'</div>'+
+          '<div class="pf-links"><a href="https://www.instagram.com/thiago.bellus/" target="_blank" rel="noopener" aria-label="Instagram">'+IG+'</a><a href="https://www.youtube.com/@belluseventos" target="_blank" rel="noopener" class="yt">Ver mais trabalhos no YouTube</a></div>')+
+      '</div></section>'+
     // como funciona
     '<section class="section" id="como-funciona"><div class="container"><div class="shead"><p class="eyebrow">Como funciona</p><h2 class="serif">Do contrato à entrega</h2><p class="sub">Um caminho simples e sem surpresas, do primeiro passo à entrega.</p></div>'+
       '<ol class="steps">'+PROCESS.map(function(s,i){return '<li class="step"><span class="stepn serif">'+(i+1)+'</span><div><h3>'+esc(s[0])+'</h3><p>'+esc(s[1])+'</p></div></li>';}).join("")+'</ol></div></section>'+
@@ -488,6 +539,7 @@
       t.innerHTML=""; t.appendChild(f); t.classList.add("playing");
     });});
     document.querySelectorAll("[data-particles]").forEach(initParticles);
+    carregarGaleria();
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
   }
