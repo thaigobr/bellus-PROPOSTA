@@ -235,6 +235,31 @@
       gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
       gsap.ticker.lagSmoothing(0);
     }
+
+    // ── HERO: vídeo de fundo controlado pelo scroll (scrub bidirecional) ──
+    // Desceu o scroll, o vídeo avança; voltou, retrocede — na mesma velocidade do scroll.
+    (function heroVideo() {
+      var v = document.querySelector(".hero__bg"); if (!v) return;
+      v.pause();
+      function setup() {
+        if (!v.duration || !isFinite(v.duration)) return;
+        // prime do decoder (ajuda o seek a responder na hora, inclusive iOS)
+        var pr = v.play(); if (pr && pr.then) pr.then(function () { v.pause(); try { v.currentTime = 0; } catch (e) {} }).catch(function () {});
+        else v.pause();
+        if (reduceMotion) { try { v.currentTime = 0; } catch (e) {} return; }
+        ScrollTrigger.create({
+          trigger: "#hero", start: "top top", end: "bottom top", scrub: true,
+          onUpdate: function (self) {
+            if (!v.duration) return;
+            var t = self.progress * (v.duration - 0.05);
+            if (Math.abs((v.currentTime || 0) - t) > 0.001) { try { v.currentTime = t; } catch (e) {} }
+          }
+        });
+        ScrollTrigger.refresh();
+      }
+      if (v.readyState >= 1) setup();
+      else v.addEventListener("loadedmetadata", setup, { once: true });
+    })();
     function scrollToEl(target) {
       var el = typeof target === "string" ? document.querySelector(target) : target;
       if (!el) return;
