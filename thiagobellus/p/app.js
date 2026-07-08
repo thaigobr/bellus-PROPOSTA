@@ -457,6 +457,35 @@
       el.innerHTML=j.fotos.map(function(f){return '<figure class="gtile'+(f.orient==="v"?" v":"")+'"><img src="galeria/'+f.f+'" loading="lazy" alt="Fotografia de evento por Thiago Bellus"/></figure>';}).join("");
     }).catch(function(){ el.innerHTML=""; });
   }
+  // Hero: mesmo efeito da home. Desktop = vídeo controlado pelo scroll (avança/retrocede);
+  // mobile = boomerang (ida e volta) em loop, sem scroll-scrub (evita o "pulo" no celular).
+  var heroFxDone=false;
+  function heroVideoFx(){
+    var v=document.querySelector(".hero__bg"); if(!v||heroFxDone) return; heroFxDone=true;
+    var isTouch=window.matchMedia&&window.matchMedia("(pointer: coarse)").matches;
+    var reducedM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(isTouch){
+      if(reducedM) return;
+      v.innerHTML='<source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" />';
+      v.loop=true; v.muted=true; v.load();
+      var pm=v.play(); if(pm&&pm.catch) pm.catch(function(){});
+      return;
+    }
+    v.pause(); v.load(); // load() é necessário: o <video> foi inserido via innerHTML
+    var hero=document.querySelector(".hero");
+    function range(){ return Math.max(1, hero?hero.offsetHeight:window.innerHeight); }
+    var tick=false;
+    function upd(){ tick=false; if(reducedM||!v.duration) return;
+      var p=Math.min(Math.max(window.scrollY/range(),0),1); var t=p*(v.duration-0.05);
+      if(Math.abs((v.currentTime||0)-t)>0.001){ try{v.currentTime=t;}catch(e){} } }
+    function onScroll(){ if(!tick){ tick=true; requestAnimationFrame(upd); } }
+    function start(){
+      var pr=v.play(); if(pr&&pr.then) pr.then(function(){v.pause();try{v.currentTime=0;}catch(e){}}).catch(function(){}); else v.pause();
+      if(reducedM){ try{v.currentTime=0;}catch(e){} return; }
+      window.addEventListener("scroll",onScroll,{passive:true}); upd();
+    }
+    if(v.readyState>=1) start(); else v.addEventListener("loadedmetadata",start,{once:true});
+  }
   function build(){
     var p=P.proposta;
     var rsv=reservado();
@@ -479,7 +508,7 @@
       topInfo='<span class="avail '+av[0]+'"><span class="dot '+av[0]+'"></span>'+av[1]+'</span>';
     }
     document.getElementById("app").innerHTML=
-    '<header class="section--dark hero">'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
+    '<header class="section--dark hero"><video class="hero__bg" muted playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Thiago Bellus"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
       '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
@@ -522,6 +551,7 @@
     });});
     document.querySelectorAll("[data-particles]").forEach(initParticles);
     carregarGaleria();
+    heroVideoFx();
     paintExp(); paintComp(); paintConfig(); paintMbar(); setupReveal();
     setupTitleType();
   }
