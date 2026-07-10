@@ -84,10 +84,22 @@ function mensagemAbertura(nome, parc, ocupada){
 function leadDataOcupada(d){ return !!(d && ((state.datasOcupadas||{})[d] || (state.datasBloqueadas||{})[d])); }
 
 // ---------- auth ----------
+// Deep-link do e-mail de lead novo: /#lead=<id> abre a aba Leads e destaca o card.
+function deepLinkLead(){
+  const m = (location.hash||"").match(/^#lead=([0-9a-fA-F-]{36})$/);
+  if (!m || !state.user) return false;
+  history.replaceState(null, "", location.pathname + location.search);
+  state.view = "leads"; render();
+  requestAnimationFrame(function(){
+    const el = document.querySelector('[data-lead-id="'+m[1]+'"]');
+    if (el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.classList.add("is-flash"); setTimeout(function(){ el.classList.remove("is-flash"); }, 4000); }
+  });
+  return true;
+}
 async function init(){
   const { data } = await supabase.auth.getSession();
   if (data.session?.user) await loadMembro(data.session.user);
-  render();
+  if (!deepLinkLead()) render();
 }
 async function loadMembro(user){
   const { data } = await supabase.from("proposta_equipe").select("nome,papel,ativo").eq("id", user.id).maybeSingle();
@@ -99,7 +111,8 @@ async function doLogin(email, password){
   if (error) return "E-mail ou senha inválidos.";
   await loadMembro(data.user);
   if (!state.user) return "Este usuário não faz parte da equipe.";
-  state.view="dashboard"; render(); armIdle(); return null;
+  if (!deepLinkLead()){ state.view="dashboard"; render(); }
+  armIdle(); return null;
 }
 async function doLogout(){ clearTimeout(idleTimer); idleTimer=null; await supabase.auth.signOut(); state.user=null; state.membro=null; render(); }
 // auto-bloqueio: sem atividade por IDLE_MS, desloga e volta pra senha (evita painel aberto exposto)
@@ -760,7 +773,7 @@ function leadCard(l){
     : tem
       ? `<span class="lead-tag">Proposta criada</span>`
       : `<button class="btn btn-primary lead-cta" data-nova-lead="${esc(l.id)}">Criar proposta</button>`;
-  return `<div class="lead-card${tem?" is-done":""}">
+  return `<div class="lead-card${tem?" is-done":""}" data-lead-id="${esc(l.id)}">
     <div class="lead-card-top">
       <div><span class="lead-card-nome">${esc(l.nome)}${par}</span><span class="lead-card-origem">${esc(origemTxt(l.origem))}</span></div>
       ${quando}
