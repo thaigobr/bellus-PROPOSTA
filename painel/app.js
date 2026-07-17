@@ -128,7 +128,7 @@ async function loadPropostas(){
 }
 async function loadLeads(){
   const { data } = await supabase.from("leads")
-    .select("id,nome,nome_parceiro,email,whatsapp,data_casamento,local,cidade,convidados,mensagem,origem,created_at")
+    .select("id,nome,nome_parceiro,email,whatsapp,data_casamento,local,cidade,convidados,mensagem,origem,created_at,followups")
     .order("created_at", { ascending: false }).limit(100);
   state.leads = data || [];
 }
@@ -407,6 +407,23 @@ document.addEventListener("click", async (e)=>{
   const prev=p.followups; p.followups=fu;
   const { error } = await supabase.from("propostas").update({ followups: fu }).eq("id", id);
   if(error){ b.classList.toggle("on", !novo); b.setAttribute("aria-pressed", String(!novo)); p.followups=prev; alert("Não consegui salvar o check: "+error.message); }
+});
+// check de follow-up do LEAD (1h/48h, chamar de volta pro cenário) — delegado
+document.addEventListener("click", async (e)=>{
+  const b=e.target&&e.target.closest?e.target.closest("[data-leadfu]"):null;
+  if(!b) return; e.preventDefault();
+  const id=b.getAttribute("data-leadfu"), key=b.getAttribute("data-fukey"), ch=b.getAttribute("data-fuch");
+  const l=(state.leads||[]).find((x)=>x.id===id); if(!l) return;
+  const fu=(l.followups&&typeof l.followups==="object")?JSON.parse(JSON.stringify(l.followups)):{};
+  if(!fu[key]) fu[key]={};
+  const novo=!fu[key][ch]; fu[key][ch]=novo;
+  const prev=l.followups; l.followups=fu;
+  const { error } = await supabase.from("leads").update({ followups: fu }).eq("id", id);
+  if(error){ l.followups=prev; alert("Não consegui salvar o check: "+error.message); return; }
+  // Re-renderiza a lista: o estado pendente atualiza e os botões WhatsApp/E-mail
+  // passam a pré-preencher a mensagem de REFORÇO depois do 1º contato marcado.
+  const cont=document.getElementById("leads-cont");
+  if(cont) cont.innerHTML=leadsCardsHTML(state.leadsBusca||"");
 });
 // excluir lead (admin) — listener delegado, sobrevive à re-renderização da busca
 document.addEventListener("click", async (e)=>{
@@ -741,16 +758,57 @@ function checkDataConflito(){
   } else { el.className="data-aviso"; el.innerHTML=""; }
 }
 // ---------- leads (entrada de contatos) ----------
+// Lead da Noiva dos Sonhos: a mensagem NAO e sobre a proposta de filmagem (isso
+// tem canal proprio nas propostas). Aqui o unico objetivo e chamar a noiva de
+// volta para a experiencia com cenario ("seu dia do jeito real"). Quando ela
+// voltar, cai no bloqueio do gratis, que vende exatamente essa experiencia.
+function isNoivaLead(l){ return (l.origem||"")==="noiva-dos-sonhos"; }
+function leadFu(l){ const f=(l&&l.followups&&typeof l.followups==="object")?l.followups:{}; return { h1:f.h1||{}, h48:f.h48||{} }; }
 function leadWaLink(l){
   const d=waDigits(l.whatsapp); if(!d) return "";
-  const msg=`Oi ${l.nome||""}! Aqui é o Thiago, da Bellus Eventos. Recebi o contato de vocês pelo nosso site e queria conversar sobre o filme do casamento.`;
+  const nome=(l.nome||"").trim().split(/\s+/)[0]||l.nome||"";
+  let msg;
+  if(isNoivaLead(l)){
+    const fu=leadFu(l);
+    msg = fu.h1.whatsapp
+      ? `Oi ${nome}! Thiago, da Bellus, passando de novo por aqui. O lugar do seu casamento ainda está esperando para te ver de noiva. Dá para se ver lá, com o seu vestido, do jeito real: https://www.noivadossonhos.com.br`
+      : `Oi ${nome}! Aqui é o Thiago, da Bellus. Vi a foto que você criou no Noiva dos Sonhos e ficou linda. E sabia que dá para ir além? Lá mesmo você consegue se ver com o seu vestido de verdade e no lugar do seu casamento, do jeito real. É só voltar: https://www.noivadossonhos.com.br`;
+  } else {
+    msg=`Oi ${l.nome||""}! Aqui é o Thiago, da Bellus Eventos. Recebi o contato de vocês pelo nosso site e queria conversar sobre o filme do casamento.`;
+  }
   return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`;
 }
 function leadEmailData(l){
   if(!l.email) return null;
   const primeiro=((l.nome||"").trim().split(/\s+/)[0])||(l.nome||"");
+  if(isNoivaLead(l)){
+    const fu=leadFu(l);
+    if(fu.h1.email){
+      const corpo=[`Oi, ${primeiro}.`,``,`Thiago, da Bellus, passando de novo por aqui.`,``,`Fiquei pensando na foto que você criou no Noiva dos Sonhos. O próximo passo é ainda melhor: você, com o seu vestido, no lugar exato do seu casamento.`,``,`Leva dois minutos: https://www.noivadossonhos.com.br`,``,`Abraço,`,`Thiago Rodrigues`,`Bellus Eventos`].join("\n");
+      return { to:l.email, nome:(l.nome||""), su:"O cenário do seu casamento está te esperando", corpo:corpo };
+    }
+    const corpo=[`Oi, ${primeiro}.`,``,`Aqui é o Thiago Rodrigues, da Bellus Eventos. Vi a foto que você criou no Noiva dos Sonhos e ficou linda.`,``,`O que pouca gente sabe: dá para ir além. Lá mesmo você consegue se ver com o seu vestido de verdade e no lugar onde o casamento vai acontecer, do jeito real.`,``,`É só voltar aqui: https://www.noivadossonhos.com.br`,``,`Qualquer dúvida, é só responder este e-mail.`,``,`Abraço,`,`Thiago Rodrigues`,`Bellus Eventos`].join("\n");
+    return { to:l.email, nome:(l.nome||""), su:"Você de noiva no lugar do seu casamento", corpo:corpo };
+  }
   const corpo=[`Oi, ${primeiro}.`,``,`Aqui é o Thiago Rodrigues, da Bellus Eventos. Recebi o seu contato pelo nosso site e fico muito feliz com o seu interesse.`,``,`Já vou preparar uma proposta personalizada e te envio em seguida. Qualquer coisa, é só responder por aqui.`,``,`Abraço,`,`Thiago Rodrigues`,`Bellus Eventos`].join("\n");
   return { to:l.email, nome:(l.nome||""), su:"Recebemos o seu contato - Bellus Eventos", corpo:corpo };
+}
+// Lembretes visuais 1h/48h (so aviso; NADA dispara sozinho). Aparecem quando o
+// prazo vence e somem do estado "pendente" quando Thiago marca o check.
+function leadFollowupHTML(l){
+  if(!isNoivaLead(l) || !l.created_at) return "";
+  const ageH=(Date.now()-new Date(l.created_at).getTime())/36e5;
+  const fu=leadFu(l);
+  const row=(key,label,due)=>{
+    if(!due) return "";
+    const chk=(ch,t)=>{ const on=!!fu[key][ch]; return `<span class="lfu-ch"><button type="button" class="fu-check${on?" on":""}" data-leadfu="${esc(l.id)}" data-fukey="${key}" data-fuch="${ch}" aria-pressed="${on}" title="${on?"Enviado":"Marcar como enviado"} · ${label} · ${t}">✓</button>${t}</span>`; };
+    const done=fu[key].whatsapp||fu[key].email;
+    return `<div class="lfu-row${done?"":" pend"}"><span class="lfu-label">${label}</span>${chk("whatsapp","WhatsApp")}${chk("email","E-mail")}</div>`;
+  };
+  const r1=row("h1","Follow-up 1h", ageH>=1);
+  const r2=row("h48","Reforço 48h", ageH>=48);
+  if(!r1&&!r2) return "";
+  return `<div class="lead-fu"><span class="lfu-title">Chamar de volta para o cenário</span>${r1}${r2}</div>`;
 }
 function leadContatoBtns(l){
   const wl=leadWaLink(l);
@@ -781,6 +839,7 @@ function leadCard(l){
     ${meta?`<div class="lead-card-meta">${meta}</div>`:""}
     ${flag}
     ${msg}
+    ${leadFollowupHTML(l)}
     <div class="lead-card-foot"><div class="lead-contato">${leadContatoBtns(l)}</div><div class="lead-actions">${isAdmin()?`<button type="button" class="cbtn del" data-del-lead="${esc(l.id)}" title="Excluir este lead">Excluir</button>`:""}${acao}</div></div>
   </div>`;
 }
