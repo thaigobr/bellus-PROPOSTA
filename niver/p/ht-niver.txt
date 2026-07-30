@@ -1,0 +1,26 @@
+DirectoryIndex index.html
+Options -Indexes
+
+# Proposta é pessoal: não indexar no Google.
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+
+# O HTML nunca pode ficar preso no cache do navegador: é ele que aponta para o
+# app.js versionado (?v=N). Sem isto, quem já abriu a proposta continua com o JS
+# antigo e vê valor de parcela desatualizado. "no-cache" não desliga o cache,
+# obriga a revalidar com o servidor (responde 304 quando não mudou).
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# URL bonita: /niver/p/<slug> serve a página, que lê o slug do caminho.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /niver/p/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.html [L]
+</IfModule>

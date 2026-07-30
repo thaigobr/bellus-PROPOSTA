@@ -61,7 +61,7 @@
   var PLAY='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7-11-7z"/></svg>';
   var IG='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>';
 
-  var P = { proposta:null, pkgId:null, qty:{}, downsell:false, payId:"sinal", terms:false };
+  var P = { proposta:null, pkgId:null, cot:null, qty:{}, downsell:false, payId:"sinal", terms:false };
 
   function selPkg(){return PACOTES.find(function(p){return p.id===P.pkgId;});}
   function visibleAddons(){return ADDONS;}
@@ -75,8 +75,8 @@
     var desloc=Math.max(0,parseInt((P.proposta&&P.proposta.deslocamento)||0,10)||0);
     var subtotal=preco(pk)+desloc; var pay=selPay();
     var disc=Math.round(subtotal*((pay&&pay.discountRate)||0)); var total=subtotal-disc;
-    var ic=null,iv=null,icTotal=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){ic=pay.maxInstallments;icTotal=totalCart(total,ic);iv=Math.round((icTotal/ic)*100)/100;}
-    var sig=null,sal=null; if(pay&&pay.kind==="signal"){var pct=pay.pct||0.5; sig=Math.round(subtotal*pct); sal=subtotal-sig;}
+    var ic=null,iv=null,icTotal=null; if(pay&&pay.kind==="installments"&&pay.maxInstallments){var _e=cotParc(pay.maxInstallments); if(_e){ic=pay.maxInstallments;icTotal=_e.total;iv=_e.parcela;}}
+    var sig=null,sal=null; if(pay&&pay.kind==="signal"){var pct=pay.pct||0.5; sig=Math.round(subtotal*pct*100)/100; sal=Math.round((subtotal-sig)*100)/100;}
     return {subtotal:subtotal,disc:disc,total:total,sig:sig,sal:sal,ic:ic,iv:iv,icTotal:icTotal,desloc:desloc};
   }
   function waBase(extra){var p=P.proposta;var num=(p.whatsapp||WHATS).replace(/\D/g,"");return "https://wa.me/"+num+"?text="+encodeURIComponent(extra);}
@@ -95,8 +95,25 @@
   var pixPoll=null;
   function fecharPix(){ if(pixPoll){clearInterval(pixPoll);pixPoll=null;} var o=document.getElementById("pixov"); if(o)o.remove(); document.body.style.overflow=""; }
   var pgCond="avista", pgMet="", pgValor=0;
-  function taxaCart(n){ return n<=1?0.0299:(n<=6?0.0349:0.0399); }
-  function totalCart(v,n){ return (v+0.49)/(1-taxaCart(n)); }
+  // FONTE UNICA DO PRECO: a tabela de parcelas vem da MESMA funcao que cobra
+  // (asaas-cobranca-pro, modo cotacao), com a taxa do cartao E o custo de antecipar
+  // ja embutidos. NAO existe formula aqui, de proposito: numero errado e pior que
+  // numero nenhum. Sem cotacao, o cartao fica indisponivel.
+  var cotSeq=0, cotTimer=null;
+  function cotAchar(tab,n){ tab=tab||[]; for(var i=0;i<tab.length;i++){ if(tab[i].n===n) return tab[i]; } return null; }
+  function cotParc(n){ return cotAchar(P.cot&&P.cot.cartao,n); }
+  function cotPkg(id,n){ var pk=P.cot&&P.cot.pacotes&&P.cot.pacotes[id]; return pk?cotAchar(pk.cartao,n):null; }
+  // Uma falha de rede nao pode deixar a pagina sem preco: tenta de novo antes de desistir.
+  function cotar(tent){
+    tent=tent||0; var seq=++cotSeq;
+    return fetch(FN_COBRANCA,{method:"POST",headers:{"Content-Type":"application/json",apikey:ANON,Authorization:"Bearer "+ANON},body:JSON.stringify({slug:getSlug(),pkgId:P.pkgId,cotacao:true})})
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(d){ if(seq!==cotSeq)return; if(!d||!d.cotacao) throw 0; P.cot=d; repintarPrecos(); })
+      .catch(function(){ if(seq!==cotSeq)return; if(tent<2){ setTimeout(function(){ cotar(tent+1); }, tent===0?1200:4000); return; } P.cot=null; repintarPrecos(); });
+  }
+  // Trocou de formato? A tabela antiga deixa de valer NA HORA. Melhor "calculando" que numero velho.
+  function invalidarCot(){ P.cot = P.cot ? { cotacao:true, pacotes:P.cot.pacotes, deslocamento:P.cot.deslocamento } : null; }
+  function repintarPrecos(){ [paintExp,paintConfig,paintMbar].forEach(function(f){ try{ f(); }catch(e){ if(window.console&&console.error) console.error("repintarPrecos",e); } }); }
   function abrirPix(cond, met){
     pgCond=["avista","cartao","sinal","saldo"].indexOf(cond)>=0?cond:"avista"; pgMet=met||"";
     var ehCartao=pgCond==="cartao";
@@ -109,11 +126,17 @@
     else if(pgCond==="sinal"){ topo="Sinal de 50%"; titu="Pix"; subq="Você paga <b>"+brl(b.sig)+"</b> agora no Pix e garante a data. O saldo de "+brl(b.sal)+" fica para até o evento."; }
     else if(pgCond==="saldo"){ topo="Pagamento do saldo"; titu="Pix"; subq="Você paga o restante de <b>"+brl(valorCobra)+"</b> no Pix, sem taxa."; }
     else { topo="Pagamento integral"; titu="Pix"; subq="Você paga <b>"+brl(b.total)+"</b> no Pix, sem taxa. Confirma o serviço na hora."; }
-    var parcHtml="";
+    // As parcelas vem da cotacao (mesmo codigo que cobra). Sem tabela, o cartao fica
+    // bloqueado de proposito: mostrar um numero calculado aqui poderia divergir do cobrado.
+    var parcHtml="", semParcelas=false;
     if(ehCartao){
-      var os="";
-      for(var n=1;n<=MAXP;n++){ var t=totalCart(b.total,n); os+='<option value="'+n+'">'+n+'x de '+brlC(t/n)+(n>1?' (total '+brlC(t)+')':' à vista')+'</option>'; }
-      parcHtml='<label class="pixlab" for="pixparc">Em quantas vezes?</label><select id="pixparc" class="pixinp">'+os+'</select>';
+      var tab=(P.cot&&P.cot.cartao)||[];
+      if(!tab.length){ semParcelas=true; parcHtml='<p class="pixmsg warn">Não consegui carregar os valores das parcelas agora. Recarregue a página ou escolha o Pix.</p>'; }
+      else {
+        var os="";
+        for(var pi=0;pi<tab.length;pi++){ var pe=tab[pi]; os+='<option value="'+pe.n+'">'+pe.n+'x de '+brlC(pe.parcela)+(pe.n>1?' (total '+brlC(pe.total)+')':' à vista')+'</option>'; }
+        parcHtml='<label class="pixlab" for="pixparc">Em quantas vezes?</label><select id="pixparc" class="pixinp">'+os+'</select>';
+      }
     }
     var ov=document.createElement("div"); ov.id="pixov"; ov.className="pixov";
     ov.innerHTML='<div class="pixbox" role="dialog" aria-modal="true">'+
@@ -125,7 +148,7 @@
         '<label class="pixlab" for="pixcpf">CPF do pagador</label>'+
         '<input id="pixcpf" class="pixinp" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14"/>'+
         '<p class="pixmsg" id="pixmsg"></p>'+
-        '<button class="btn btn-gold pixfull" id="pixgerar">'+(ehCartao?"Ir para o cartão":"Gerar Pix")+'</button>'+
+        '<button class="btn btn-gold pixfull" id="pixgerar"'+(semParcelas?' disabled':'')+'>'+(ehCartao?"Ir para o cartão":"Gerar Pix")+'</button>'+
         '<p class="pixfoot">Pagamento processado com segurança pelo Asaas.</p>'+
       '</div>'+
       '<div class="pixstep" data-step="2" hidden>'+
@@ -240,10 +263,10 @@
   function paintExp(){
     if(!document.getElementById("r-exp"))return;
     var rec=P.proposta.pacote_recomendado;
-    var html=pacotesVis().map(function(pk){var sel=pk.id===P.pkgId;var is3=totalCart(preco(pk),MAXP)/MAXP;
+    var html=pacotesVis().map(function(pk){var sel=pk.id===P.pkgId;var _p3=cotPkg(pk.id,MAXP);var is3=_p3?brlC(_p3.parcela):"…";
       return '<div class="pcard'+(sel?" sel":"")+'">'+(pk.id===rec?'<span class="pcard__rec">★ Recomendado</span>':'')+
         '<div class="pcard__name">'+esc(pk.nome)+'</div><div class="pcard__pos">'+esc(pk.pos)+'</div>'+
-        '<div class="pcard__price"><div class="pcard__parc"><span class="x">'+MAXP+'x de</span><span class="v serif tnum">'+brlC(is3)+'</span></div><div class="pcard__full">ou '+brl(preco(pk))+' à vista no Pix</div></div>'+
+        '<div class="pcard__price"><div class="pcard__parc"><span class="x">'+MAXP+'x de</span><span class="v serif tnum">'+is3+'</span></div><div class="pcard__full">ou '+brl(preco(pk))+' à vista no Pix</div></div>'+
         '<div class="pcard__best"><b>Indicado para:</b> '+esc(pk.best)+'</div>'+
         '<ul class="pcard__list">'+pk.entregas.map(function(e){return '<li class="'+(e[1]?"h":"")+'">'+CK+'<span>'+esc(e[0])+'</span></li>';}).join("")+'</ul>'+
         '<button class="pcard__btn" data-pick="'+pk.id+'">'+(sel?CK+" Selecionado":"Selecionar")+'</button></div>';
@@ -326,7 +349,7 @@
     var opts=PAGAMENTOS.map(function(o){var sel=o.id===P.payId;var pv="";
       if(o.kind==="full"){pv=brl(b.subtotal)+" à vista no Pix";}
       else if(o.kind==="signal"){var pct=o.pct||0.5;var sg=Math.round(b.subtotal*pct);pv="50% = "+brl(sg)+" agora · saldo "+brl(b.subtotal-sg)+(P.proposta&&P.proposta.evento_data?" até "+dataCurta(P.proposta.evento_data):"");}
-      else if(o.kind==="installments"&&o.maxInstallments){pv="Em até "+o.maxInstallments+"x de "+brlC(totalCart(b.subtotal,o.maxInstallments)/o.maxInstallments)+" (com taxa)";}
+      else if(o.kind==="installments"&&o.maxInstallments){var _pe=cotParc(o.maxInstallments);pv=_pe?("Em até "+o.maxInstallments+"x de "+brlC(_pe.parcela)+" (com taxa)"):"Calculando as parcelas…";}
       return '<button class="payopt'+(sel?" sel":"")+'" data-pay="'+o.id+'"><span class="rd">'+(sel?CK:"")+'</span><span><span class="lab">'+esc(o.label)+'</span><span class="ds">'+esc(o.desc)+'</span>'+(pv?'<span class="pv">'+esc(pv)+'</span>':'')+'</span></button>';
     }).join("");
     return '<div><h3 style="font-size:1.2rem">Como você prefere pagar</h3><p style="margin:.4rem 0 1rem;color:var(--ink-soft);font-size:.95rem">Escolha a condição que faz mais sentido para você.</p><div class="pay">'+opts+'</div></div>';
@@ -408,7 +431,7 @@
     el.innerHTML='<div class="info"><div class="pk">Formato '+esc(pk.nome)+'</div><div class="tt serif tnum">'+brl(b.total)+'</div><div class="mbar-sub">à vista no Pix · ou '+MAXP+'x no cartão</div></div>'+(dataOcupada()?'<a class="btn btn-bloq" href="'+waDataAlternativa()+'" target="_blank" rel="noopener">Data comprometida · ver outra</a>':'<a class="btn btn-wa" href="'+waReservar()+'" target="_blank" rel="noopener">Contratar</a>');
     var cf=document.getElementById("cta-final"); if(cf)cf.setAttribute("href",waFalar());
   }
-  function pick(id){P.pkgId=id;paintExp();paintComp();paintConfig();paintMbar();}
+  function pick(id){P.pkgId=id;invalidarCot();paintExp();paintComp();paintConfig();paintMbar();cotar();}
 
   // ── Títulos: efeito de máquina de escrever (1x por título, mesmo em seções que re-renderizam) ──
   var titleReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -561,6 +584,6 @@
   if(!slug){erro("Proposta não encontrada.");return;}
   fetch(FN+"?slug="+encodeURIComponent(slug)+(/[?&]preview=1/.test(location.search)?"&preview=1":""),{headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
     .then(function(r){return r.json().then(function(b){return {ok:r.ok,b:b};});})
-    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;var vis=pacotesVis();P.pkgId=(rec&&vis.some(function(p){return p.id===rec;}))?rec:(vis.some(function(p){return p.id==="pro-video";})?"pro-video":vis[0].id);build();mostrarRetornoPagamento();try{if(window.fbq){var _vb=breakdown();fbq("track","ViewContent",{value:_vb.total||0,currency:"BRL",content_name:(selPkg()||{}).nome||"Proposta"});}}catch(e){}}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
+    .then(function(r){if(r.ok&&r.b&&r.b.proposta){P.proposta=r.b.proposta;var rec=P.proposta.pacote_recomendado;var vis=pacotesVis();P.pkgId=(rec&&vis.some(function(p){return p.id===rec;}))?rec:(vis.some(function(p){return p.id==="pro-video";})?"pro-video":vis[0].id);build();cotar();mostrarRetornoPagamento();try{if(window.fbq){var _vb=breakdown();fbq("track","ViewContent",{value:_vb.total||0,currency:"BRL",content_name:(selPkg()||{}).nome||"Proposta"});}}catch(e){}}else erro(r.b&&r.b.error?r.b.error:"Proposta não encontrada.");})
     .catch(function(){erro("Não foi possível carregar a proposta agora.");});
 })();
