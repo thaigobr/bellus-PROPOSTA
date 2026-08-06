@@ -52,6 +52,29 @@
   function dataLonga(d){if(!d)return "";var p=d.split("-");return parseInt(p[2],10)+" de "+MESES[parseInt(p[1],10)-1]+" de "+p[0];}
   function dataSemana(d){if(!d)return "Data a definir";var dt=new Date(d+"T12:00:00");return DIAS[dt.getDay()]+", "+dataLonga(d);}
   function dataCurta(d){if(!d)return "";var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
+  // Evento de mais de um dia (evento_data_fim preenchido): mostra o periodo.
+  // Sem data_fim, tudo continua exatamente como antes.
+  function dataPeriodo(ini,fim){
+    if(!ini)return "";
+    if(!fim||fim===ini)return dataLonga(ini);
+    var a=ini.split("-"),b=fim.split("-");
+    if(a[0]===b[0]&&a[1]===b[1])return parseInt(a[2],10)+" e "+parseInt(b[2],10)+" de "+MESES[parseInt(a[1],10)-1]+" de "+a[0];
+    if(a[0]===b[0])return parseInt(a[2],10)+" de "+MESES[parseInt(a[1],10)-1]+" a "+dataLonga(fim);
+    return dataLonga(ini)+" a "+dataLonga(fim);
+  }
+  function dataPeriodoSemana(ini,fim){
+    if(!ini)return "Data a definir";
+    if(!fim||fim===ini)return dataSemana(ini);
+    var d1=new Date(ini+"T12:00:00"),d2=new Date(fim+"T12:00:00");
+    return DIAS[d1.getDay()]+" e "+DIAS[d2.getDay()]+", "+dataPeriodo(ini,fim);
+  }
+  function dataPeriodoCurto(ini,fim){
+    if(!ini)return "";
+    if(!fim||fim===ini)return dataCurta(ini);
+    var a=ini.split("-"),b=fim.split("-");
+    if(a[0]===b[0]&&a[1]===b[1])return a[2]+" e "+b[2]+"/"+a[1]+"/"+a[0];
+    return dataCurta(ini)+" a "+dataCurta(fim);
+  }
   function nomes(p){return p.cliente_parceiro?(p.cliente_nome+" & "+p.cliente_parceiro):p.cliente_nome;}
   function getSlug(){var u=new URL(location.href);var q=u.searchParams.get("s");if(q)return q;var m=u.pathname.match(/\/p\/([^\/?#]+)/);return m?decodeURIComponent(m[1]):"";}
   function preco(pk){var ov=P.proposta.price_overrides&&P.proposta.price_overrides[pk.id];return (ov!=null&&ov>0)?ov:pk.preco;}
@@ -324,7 +347,7 @@
   }
   function summaryHtml(){
     var pk=selPkg(); var b=breakdown(); var pay=selPay(); var p=P.proposta;
-    var h='<div class="summary"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Sua contratação</h3><span class="ev">'+esc(p.evento_tipo||"Serviço audiovisual")+(p.evento_data?" · "+dataCurta(p.evento_data):"")+'</span></div>';
+    var h='<div class="summary"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Sua contratação</h3><span class="ev">'+esc(p.evento_tipo||"Serviço audiovisual")+(p.evento_data?" · "+dataPeriodoCurto(p.evento_data,p.evento_data_fim):"")+'</span></div>';
     h+='<div style="margin-top:1rem"><div class="sline strong"><span class="l">Formato '+esc(pk.nome)+'</span><span class="v tnum">'+brl(preco(pk))+'</span></div></div>';
     if(b.desloc>0)h+='<div class="ssum-step"><div class="top"><span>Deslocamento e logística</span><span class="tnum">+ '+brl(b.desloc)+'</span></div></div>';
     h+='<hr class="shr"><div class="sline"><span class="l">Subtotal</span><span class="v tnum">'+brl(b.subtotal)+'</span></div>';
@@ -386,7 +409,7 @@
         '</div>'+
         (p.evento_data?'<div class="rsv-date">'+
           '<div class="rsv-date-box"><span class="d serif">'+diaNum+'</span><span class="m">'+mesAbrev+'</span></div>'+
-          '<div class="rsv-date-info"><div class="dw">'+dataSemana(p.evento_data)+'</div>'+((p.evento_local||p.evento_cidade)?'<div class="lo">'+esc([p.evento_local,p.evento_cidade].filter(Boolean).join(" · "))+'</div>':'')+(countTxt?'<div class="ct">'+countTxt+'</div>':'')+'</div>'+
+          '<div class="rsv-date-info"><div class="dw">'+dataPeriodoSemana(p.evento_data,p.evento_data_fim)+'</div>'+((p.evento_local||p.evento_cidade)?'<div class="lo">'+esc([p.evento_local,p.evento_cidade].filter(Boolean).join(" · "))+'</div>':'')+(countTxt?'<div class="ct">'+countTxt+'</div>':'')+'</div>'+
         '</div>':'')+
         '<div class="rsv-pkg">'+
           '<p class="rsv-pkg-eyebrow"><span class="rsv-pkg-ck">'+CK+'</span> Formato contratado</p>'+
@@ -517,7 +540,7 @@
     var proc = PROCESS.map(function(s){return [s[0], s[1]];});
     if(focoFoto) proc[4] = ["Edição","Seleção, edição e cor das fotos: o material vira a entrega final."];
     if(umFormato) proc[0] = ["O seu formato","O formato do seu projeto já vem definido nesta proposta, é só conferir."];
-    var rows=[["Serviço",p.evento_tipo||"Serviço audiovisual"],["Data",dataSemana(p.evento_data)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
+    var rows=[["Serviço",p.evento_tipo||"Serviço audiovisual"],[(p.evento_data_fim&&p.evento_data_fim!==p.evento_data)?"Datas":"Data",dataPeriodoSemana(p.evento_data,p.evento_data_fim)],["Local",p.evento_local||"A definir"],["Cidade",p.evento_cidade||"A definir"]];
     if(p.evento_convidados)rows.push(["Convidados",p.evento_convidados]);
     var ocupada=dataOcupada();
     var av = ocupada ? ["unavailable","Essa data já está comprometida"] : (p.disponibilidade==="on_hold" ? ["on_hold","Data em pré-reserva"] : ["available","Data disponível no momento"]);
@@ -534,7 +557,7 @@
     '<header class="section--dark hero"><video class="hero__bg" muted loop autoplay playsinline preload="auto" poster="/thiagobellus/assets/cabeca-thiago-poster.jpg" aria-hidden="true"><source src="/thiagobellus/assets/cabeca-thiago-bmr.webm" type="video/webm" /><source src="/thiagobellus/assets/cabeca-thiago-bmr.mp4" type="video/mp4" /></video><div class="hero__scrim" aria-hidden="true"></div><canvas class="grain" aria-hidden="true"></canvas>'+part(0.6)+'<div class="hero__glow"></div><div class="container">'+
       '<img class="hero__logo" src="logo_bellus.png" alt="Thiago Bellus"/><p class="eyebrow eyebrow--light">Proposta para</p>'+
       '<h1 class="hero__title serif">'+esc(nomes(p))+'</h1>'+
-      '<div class="hero__meta">'+[p.evento_tipo,dataLonga(p.evento_data),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
+      '<div class="hero__meta">'+[p.evento_tipo,dataPeriodo(p.evento_data,p.evento_data_fim),p.evento_local,p.evento_cidade].filter(Boolean).map(function(m,i){return i===0?'<span><b>'+esc(m)+'</b></span>':'<span>'+esc(m)+'</span>';}).join("")+'</div>'+
       topInfo+'<div class="hairline"></div></div></header>'+
     // O projeto
     '<section class="section" id="seu-evento"><div class="container"><div class="shead"><p class="eyebrow">O seu projeto</p><h2 class="serif">Os detalhes que já conhecemos</h2><p class="sub">Partimos do que você já nos contou, sem precisar repetir nada.</p></div>'+dataBanner+
